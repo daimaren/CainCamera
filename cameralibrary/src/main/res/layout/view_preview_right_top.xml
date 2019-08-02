@@ -20,7 +20,7 @@
         <ImageView
             android:layout_width="@dimen/top_button_width_height"
             android:layout_height="@dimen/top_button_width_height"
-            android:background="@drawable/ic_camera_switch_camera_light" />
+            android:background="@drawable/ic_camera_switch_camera_light_new" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -39,7 +39,7 @@
         <ImageView
             android:layout_width="@dimen/top_button_width_height"
             android:layout_height="@dimen/top_button_width_height"
-            android:background="@drawable/ic_camera_setting_more_light" />
+            android:background="@drawable/ic_camera_speed_light_new" />
         <TextView
             android:id="@+id/tv_speed_status"
             android:layout_width="wrap_content"
@@ -60,7 +60,7 @@
         <ImageView
             android:layout_width="@dimen/top_button_width_height"
             android:layout_height="@dimen/top_button_width_height"
-            android:background="@drawable/ic_camera_effect_light" />
+            android:background="@drawable/ic_camera_effect_light_new" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -68,6 +68,45 @@
             android:text="滤镜" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/btn_beauty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/dp20">
+        <!-- 滤镜 -->
+        <ImageView
+            android:layout_width="@dimen/top_button_width_height"
+            android:layout_height="@dimen/top_button_width_height"
+            android:background="@drawable/ic_camera_beauty_light_new" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text="美化" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btn_clock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/dp20">
+        <!-- 滤镜 -->
+        <ImageView
+            android:layout_width="@dimen/top_button_width_height"
+            android:layout_height="@dimen/top_button_width_height"
+            android:background="@drawable/ic_camera_clock_light_new" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/white"
+            android:text="倒计时" />
+    </LinearLayout>
     <LinearLayout
         android:id="@+id/btn_setting"
         android:layout_width="wrap_content"

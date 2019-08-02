@@ -28,7 +28,7 @@
             android:layout_width="@dimen/dp30"
             android:layout_height="@dimen/dp30"
             android:layout_centerVertical="true"
-            android:background="@drawable/ic_camera_preview_close"/>
+            android:background="@drawable/ic_camera_preview_close_new"/>
 
         <LinearLayout
             android:id="@+id/btn_select_music"
