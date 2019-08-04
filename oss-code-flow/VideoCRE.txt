@@ -1,0 +1,32 @@
+MainActivity
+
+1. onCreate()<--VideoActivity
+  2. createVideoCapturer()<--VideoActivity
+    3. createCamera2Capturer()<--VideoCapturers.java
+      4. new Camera2Enumerator()
+      4. createCameraCapturer()
+        5. enumerator.createCapturer()<--
+          6. new Camera2Capturer()
+            7. 
+  2. new Mp4Recorder()
+  2. new HwAvcEncoder()
+  2. new VideoSource()
+  2. mHwAvcEncoder.start()
+
+1. onStart()<--VideoActivity
+  2. mVideoSource.start()
+    3. startCapture()<--VideoCapturers.java
+      4. createSessionInternal(0)
+        5. createCameraSession()
+          6. Camera2Session.create()
+            7. new Camera2Session()
+              8. start()
+                9. openCamera()
+                  10. cameraManager.openCamera()
+
+
+
+
+
+
+  

@@ -1,0 +1,19 @@
+
+setup.py
+
+1. main()<--_main_.py
+  2. set_loop()
+    3. uvloop.EventLoopPolicy()
+    3. set_event_loop_policy()
+  2. asyncio_run(setup_and_run_hass())
+    3. asyncio.new_event_loop()
+    3. asyncio.set_event_loop()
+    3. loop.run_until_complete(main)
+      4. core.HomeAssistant()
+      4. hass.async_run()
+        5. async_start()
+          6. async_fire(EVENT_HOMEASSISTANT_START)
+            7. self._hass.async_add_job(func, event)
+          6. await self.async_block_till_done()
+          6. _async_create_timer(self)
+

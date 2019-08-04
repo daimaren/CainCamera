@@ -1,0 +1,36 @@
+主界面WlMainActivity包含四个Fragment，videoFragment、radioFragment、localFragment、aboutFragment。
+
+VideoLiveActivity视频播放界面，WlPlayer是封装的播放器，调到wlplayer.cpp。
+怎么重构代码：
+
+代码流程：
+wlPrepared()<--wlplayer.cpp //初始化
+  preparedFFmpeg()<--WlFFmpeg.cpp
+    pthread_create(decodThread)
+      decodThread()<--WlFFmpeg.cpp
+        decodeFFmpeg()<--WlFFmpeg.cpp
+          av_register_all()<--ffmpeg api
+start()<--wlplayer.cpp //循环read_frame，送入Audio和Video的队列
+  start()<--WlFFmpeg.cpp
+    playAudio()<--WlAudio.cpp
+      pthread_create(audioThread)
+        audioPlayThread()<--WlAudio.cpp
+          initOpenSL() //注册回调函数
+            pcmBufferCallBack()<--WlAudio.cpp
+              getPcmData()
+                getAvpacket() //从队列拿数据
+                avcodec_send_packet()
+                avcodec_receive_frame()
+                swr_convert()
+   playVideo(0)<--WlVideo.cpp
+     codecFrame()
+       getAvpacket()
+       avcodec_send_packet()
+       avcodec_receive_frame()
+      queue->putAvframe()
+   playVideo(1)<--WlVideo.cpp
+     pthread_create(videoThread)
+       decodVideo()
+         getAvframe //从队列拿数据
+         onVideoInfo()
+         onGlRenderYuv()

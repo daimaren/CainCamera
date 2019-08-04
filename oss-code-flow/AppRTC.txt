@@ -1,0 +1,7 @@
+1. onClick()
+  2. connectToRoom()<-ConnectActivity
+    3. 从config里读取很多参数准备传递
+    3. startActivityForResult(CallActivity)
+      4. onCreate()<-CallActivity
+        5. new CallFragment()
+        5. new HudFragment()
