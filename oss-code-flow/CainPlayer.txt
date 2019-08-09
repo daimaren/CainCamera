@@ -1,0 +1,87 @@
+https://www.jianshu.com/p/95dc19217847
+1. setup()<--AVMediaPlayerActivity.java
+  2. init()<--CainMediaPlayer.java
+    3. new GLESDevice()
+      4. new EglHelper()
+    3. start msg process
+1. surfaceCreated()<--AVMediaPlayerActivity.java
+  2. setDisplay()
+    3. _setVideoSurface()
+      4. setVideoSurface()
+        5. surfaceCreated()
+1. initPlayer()<--AVMediaPlayerActivity.java
+  2. new CainMediaPlayer()<--CainMediaPlayer.java
+  2. setDataSource()<--CainMediaPlayer.java
+    3. setDataSource()<--CainMediaPlayer.cpp
+      4. new MediaPlayer()<--MediaPlayer.cpp
+      4. setDataSource()<--MediaPlayer.cpp
+      4. setVideoDevice()<--MediaPlayer.cpp
+  2. prepareAsync()<--CainMediaPlayer.java
+    3. prepareAsync()<--CainMediaPlayer.cpp
+      4. prepareAsync()<--MediaPlayer.cpp
+        5. prepare()<--MediaPlayer.cpp
+          6. readPackets()<--MediaPlayer.cpp
+            7. avformat_open_input()
+            7. avformat_find_stream_info()
+            7. av_find_best_stream(video)
+            7. av_find_best_stream(audio)
+            7. prepareDecoder(video)
+              8. avcodec_find_decoder()
+              8. new VideoDecoder()
+            7. prepareDecoder(audio)
+              8. avcodec_find_decoder()
+              8. new AudioDecoder()          
+            7. videoDecoder->start()
+              8. decodeVideo()
+                9. packetQueue->getPacket()
+                9. avcodec_send_packet()
+                9. avcodec_receive_frame()
+                9. frameQueue->pushFrame()
+            7. openAudioDevice()<--SLESDevice.cpp
+              8. slCreateEngine()
+            7. audioDevice->start()<--SLESDevice.cpp
+              8. run()
+                9. audioDeviceSpec.callback() //通过回调填充PCM数据
+                  10. audioPCMQueueCallback()<--MediaPlayer.cpp
+                    11. audioResampler->pcmQueueCallback()<--AudioResampler.cpp
+                      12. audioFrameResample()
+                        13. audioDecoder->getAudioFrame()
+                          14. packetQueue->getPacket()
+            7. mediaSync->start()
+              8. refreshVideo()
+                9. renderVideo()
+                  10. videoDevice->onInitTexture()<--GLESDevice.cpp
+                    11. eglHelper->init()
+                    11. new YUV420PRenderer() //new BGRARenderer()
+                    11. mRenderer->onInit()
+                      12. createProgram()
+                      12. glUseProgram()
+                      12. glGenTextures()
+                  10. videoDevice->onUpdateYUV()
+                    11. uploadTexture()
+                      12. glBindTexture()
+                      12. glTexImage2D()
+            7. av_read_frame()
+            7. videoDecoder->pushPacket() //audioDecoder->pushPacket()
+              8. packetQueue->pushPacket()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

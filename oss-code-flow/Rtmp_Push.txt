@@ -1,0 +1,23 @@
+地址
+代码流程
+1.init_video()
+  2.x264_encoder_open() //加载config，拿到handle
+  2.init_rtmp() //创建一个RTMP会话
+  2.create_queue() //创建队列
+  2.pthread_create() //创建push_thread
+    3.pthread_cond_wait
+    3.queue_get_first()
+    3.RTMP_SendPacket()
+    3.RTMPPacket_Free()
+1.init_audio
+  2.faacEncOpen //初始化aac句柄
+  2.faacEncSetConfiguration() //参数配置
+  2.init_audio_header()
+1.push_audio()
+  2.faacEncEncode()
+  2.add_rtmp_packet()
+    3.queue_append_last()
+    3.pthread_cond_signal()
+1.push_video
+  2.要转换下两次，第一次是因为y1的位置不一样，第二次是因为输入I420，android 采集的是nv21格式数据
+  2.add_rtmp_packet()

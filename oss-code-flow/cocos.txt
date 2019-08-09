@@ -1,0 +1,51 @@
+1. onCreate()<--Cocos2dxActivity
+  2. onLoadNativeLibraries()<--Cocos2dxActivity
+  2. init()<--Cocos2dxActivity
+
+找不到操作入口
+
+runThisTest()
+  new TestController()
+    new RootTests()
+  setCurrTestSuite()<--TestController.cpp
+
+RootTests()
+  init()<--AudioControlTest.cpp
+    create(play)<--TextButton
+    play2d()<--AudioEngine.cpp
+    setFinishCallback()<--AudioEngine.cpp
+
+1. play2d()<--AudioEngine.cpp
+  2. lazyInit()<--AudioEngine.cpp
+  2. new AudioEngineImpl()<--AudioEngine-inl.cpp
+  2. init()<--AudioEngineImpl.cpp
+    3. slCreateEngine()
+    3. Realize()
+    3. CreateOutputMix()
+    3. new AudioPlayerProvider()<--AudioPlayerProvider.cpp
+      4. new AudioMixerController()<--AudioMixerController.cpp
+      4. init()<--AudioMixerController.cpp
+        5. new AudioMixer()
+      4. new PcmAudioService()<--PcmAudioService.cpp
+      4. init()<--PcmAudioService.cpp
+    3. getInstance()<--CCDirector.cpp
+  2. _audioEngineImpl->play2d()
+    3. _audioPlayerProvider->getAudioPlayer()
+      4. createUrlAudioPlayer(); 
+        5. new UrlAudioPlayer()
+      4. obtainPcmAudioPlayer()
+    3. player->setLoop()
+    3. player->play()
+  2. audioPathIDMap[filePath].push_back(ret)
+1. pause()<--AudioEngine.cpp
+  2. pause()<--AudioEngineImpl.cpp
+    3. pause()<--IAudioPlayer.cpp
+      4. pause()<--UrlAudioPlayer.cpp
+        5. SetPlayState(pause)
+1. resume()<--AudioEngine.cpp
+  2. resume()<--AudioEngineImpl.cpp
+    3. resume()<--IAudioPlayer.cpp
+1. stop()<--AudioEngine.cpp
+  2. stop()<--AudioEngineImpl.cpp
+    3. stop()<--IAudioPlayer.cpp
+1. end()

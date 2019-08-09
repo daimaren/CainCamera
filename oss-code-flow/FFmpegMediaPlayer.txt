@@ -1,0 +1,69 @@
+1）代码流程
+1.MainActivity.java
+  2.VideoPlayerActivity.java
+    3.reset()
+    3.setDataSource()
+    3.setSurface()
+    3.prepareAsync()<--FFmpegMediaPlayer.java
+      4.xxx_prepareAsync()<--wseemann_media_MediaPlayer.cpp
+        5.prepareAsync()<--MediaPlayer.cpp
+	  6.prepareAsync_l<--MediaPlayer.cpp
+	    7.prepareAsync_l()<--ffmpeg_mediaplayer.c
+	      8.pthread_create(video_refresh)<--ffmpef_mediaplayer.c
+	        9.video_display()
+		  10.displayBmp()
+		    11.ANativeWindow_setBuffersGeometry()
+	      8.pthread_create(decode_thread)<--ffmpef_mediaplayer.c
+                9.avio_open2()
+		9.avformat_open_input()
+		9.avformat_find_stream_info()
+		9.stream_component_open(audio)
+                  10.audio_callback()
+                    11.audio_decode_frame()
+                     2.avcodec_decode_audio4
+                    11.synchronize_audio()
+		  10.createEngine(audio_player)
+		  10.createBufferQueueAudioPlayer()
+		  10.avcodec_find_decoder()
+		  10.avcodec_open2()
+		9.stream_component_open(video)
+		  10.createVideoEngine()
+		  10.createScreen()
+		  10.avcodec_find_decoder()
+		  10.avcodec_open2()
+                  10.createScaler()
+		  10.pthread_create(video_thread)
+		    11.packet_queue_get()
+		    11.avcodec_decode_video2()
+		    11.synchronize_video()
+                    11.queue_picture()
+                      12.updateBmp()
+                        13.avpicture_fill()
+                        13.sws_scale()
+数据流分析：
+decode_thread解复用音视频，video包压入videoq，audio包压入audioq。
+video_thread从videoq取数据，解码一帧视频，解码出来的帧格式是YUV，在渲染之前需要进行格式转换为RGBA后压入pictq。
+video_refresh从pictq取数据，渲染一帧视频。
+播放完一帧后会调用bqPlayerCallback通知新的一帧入队列，实际会调用audio_callback从audioq取数据，解码一帧音频，转换格式存到audio_buf。
+2）通用解码播放框架流程
+av_register_all()
+avformat_alloc_context()
+avformat_open_input()
+avformat_find_stream_info()
+avcodec_find_decoder()
+avcodec_open2()
+ANativeWindow_fromSurface() //获取native window
+ANativeWindow_setBuffersGeometry() //设置native window的buffer大小,可自动拉伸
+av_frame_alloc()
+av_image_get_buffer_size()
+av_image_fill_arrays()
+sws_getContext() //由于解码出来的帧格式不是RGBA的,在渲染之前需要进行格式转换
+av_read_frame()
+avcodec_decode_video2()
+ANativeWindow_lock()
+sws_scale() //格式转换
+memcpy(dst + h * dstStride, src + h * srcStride, srcStride) //由于window的stride和帧的stride不同,因此需要逐行复制
+ANativeWindow_unlockAndPost()
+av_packet_unref()
+avcodec_close()
+avformat_close_input()

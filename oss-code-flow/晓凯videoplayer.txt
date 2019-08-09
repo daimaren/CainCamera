@@ -1,0 +1,77 @@
+先从各个子模块一一实现：
+
+首先实现了输入模块或者称之为解码模块VideoDecoder类，输出音频帧是AudioFrame，里面的主要数据就是PCM裸数据，输出视频帧是VideoFrame，里面的主要数据就是YUV420P的裸数据；
+1. 建立连接、准备资源阶段；
+2. 不断地读取数据进行拆封装、解码、处理数据阶段；
+3. 释放资源阶段。
+
+然后实现了音频播放模块，输入就是我们解码出来的AudioFrame，直接就是SInt16表示一个sample格式的数据，输出就是输出到Speaker让用户直接听到声音；
+
+接着实现了视频播放模块，输入就是解码出来的VideoFrame，里面存放的是YUV420P格式的数据，在渲染过程中使用OpenGLES的Program将YUV格式的数据转换为RGBA格式的数据，并最终显示到物理屏幕上；
+
+之后就是音视频同步模块了，它的工作主要由两部分组成，第一是负责维护解码线程，即负责输入模块的管理；另外一个就是音视频同步，向外部暴露填充音频数据的接口和获取视频帧的接口，保证提供出去的数据是同步的；
+
+最后书写一个中控系统，负责将AVSync模块、AudioOutput模块、VideoOutput模块组织起来，最重要的就是维护这几个模块的生命周期，由于这里面存在多线程的问题，所以比较重要的就是在初始化、运行、销毁各个阶段保证这几个模块可以协同有序的运行，同时中控系统向外暴露用户可以操作的接口，比如开始播放、暂停、继续、停止等接口。
+
+1. init()<--ChangbaPlayer.java
+  2. prepare()<--jni
+    3. init()<--VideoPlayerController.cpp
+      4. new DecoderRequestHeader()
+      4. init()<--DecoderRequestHeader
+      4. pthread_create(initThreadCallback)
+        5. initThreadCallback()
+          6. startAVSynchronizer()
+            7. initAVSynchronizer()<--VideoPlayerController.cpp
+              8. new AVSynchronizer()
+              8. init()<--av_synchronizer.cpp
+                9. createDecoderInstance()<--
+                  10. new FFMPEGVideoDecoder()<--FFMPEGVideoDecoder.cpp
+                9. openFile()<--VideoDecoder.cpp
+                  10. initFFMpegContext()
+                  10. openVideoStream()
+                    11. avcodec_find_decoder()
+                    11. avcodec_open2()
+                  10. openAudioStream()
+                 9. startUploader()
+                   10. createTextureFrameUploader()
+                 9. viewStreamMetaCallback()
+              7. initAudioOutput()
+                8. new AudioOutput()
+                8. initSoundTrack()<--AudioOutput.cpp
+              7. start()
+                8. initDecoderThread()
+                  9. pthread_create(startDecoderThread)
+                    10. startDecoderThread()
+                      11. decodeFrames()
+                        12. processDecodingFrame()
+                          13. decodeFrames()<--VideoDecoder.cpp
+                            14. av_read_frame()
+                            14. decodeVideoFrame()
+                            14. decodeAudioFrames()
+              7. start()<--AudioOutput.cpp
+                8. setAudioPlayerStatePlaying()
+    3. onSurfaceCreated()<--VideoPlayerController.cpp
+      4. initVideoOutput()<--
+        5. new VideoOutput()
+        5. initOutput()<--VideoOutput.cpp
+          6. new MessageQueue()
+          6. new VideoOuputHandler()
+          6. createEGLContext()<--VideoOutput.cpp
+            7. initWithSharedContext()<--EGLCore.cpp
+            7. createWindowSurface()
+              8. createWindowSurface()<--EGLCore.cpp
+              8. new VideoGLSurfaceRender()
+              8. init()<--VideoGLSurfaceRender.cpp
+1. onSurfaceCreated()
+  2. onSurfaceCreated()<--VideoOutput.cpp
+    3. renderVideo()<--
+1. play()<--ChangbaPlayer.java
+  2. play()<--jni
+    3. play()<--VideoPlayerController.cpp
+      4. play()<--AudioOutput.cpp
+        5. setAudioPlayerStatePlaying()
+pause()
+seekToPosition()
+resetRenderSize()
+stopPlay()
+onSurfaceDestroyed()
