@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CainCamera</string>
+    <string name="app_name">抖音短视频</string>
 
     <!-- 首页按钮 -->
     <string name="btn_camera">滤镜相机</string>
