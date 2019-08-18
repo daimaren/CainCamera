@@ -1,5 +1,6 @@
 package com.mlingdu.douyin.ui.act;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.view.ViewPager;
@@ -15,6 +16,14 @@ import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
 import com.cgfay.caincamera.R;
+import com.cgfay.caincamera.activity.MainActivity;
+import com.cgfay.camera.engine.PreviewEngine;
+import com.cgfay.camera.engine.model.AspectRatio;
+import com.cgfay.camera.engine.model.GalleryType;
+import com.cgfay.camera.listener.OnGallerySelectedListener;
+import com.cgfay.camera.listener.OnPreviewCaptureListener;
+import com.cgfay.image.activity.ImageEditActivity;
+import com.cgfay.video.activity.VideoEditActivity;
 import com.dueeeke.videoplayer.player.IjkVideoView;
 import com.dueeeke.videoplayer.player.PlayerConfig;
 import com.mlingdu.douyin.App;
@@ -61,6 +70,7 @@ public class DouyinActivity extends AppCompatActivity {
     private TextView mPlayCount;
     private TextView mLikeCount;
     private TextView mShareCount;
+    private ImageView mStartCamera;
 
     private int mPlayingPosition;
     private int position;
@@ -72,9 +82,12 @@ public class DouyinActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vertical_video);
         initView();
+        initListener();
+        initData();
     }
 
     protected void initView() {
+        mStartCamera = (ImageView) findViewById(R.id.iv_camera);
         mVerticalViewpager = (VerticalViewPager)findViewById(R.id.verticalviewpager);
         StatusBarCompat.translucentStatusBar(this, true);
 
@@ -84,8 +97,15 @@ public class DouyinActivity extends AppCompatActivity {
 
         mDouYinController = new DouYinController(this);
         mIjkVideoView.setVideoController(mDouYinController);
+    }
 
-        initData();
+    private void initListener() {
+        mStartCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                previewCamera();
+            }
+        });
     }
 
     private void startPlay() {
@@ -281,5 +301,38 @@ public class DouyinActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+    }
+
+    /**
+     * 打开预览页面
+     */
+    private void previewCamera() {
+        PreviewEngine.from(this)
+                .setCameraRatio(AspectRatio.Ratio_16_9)
+                .showFacePoints(false)
+                .showFps(true)
+                .backCamera(true)
+                .setGalleryListener(new OnGallerySelectedListener() {
+                    @Override
+                    public void onGalleryClickListener(GalleryType type) {
+                        //scanMedia(type == GalleryType.ALL);
+                    }
+                })
+                .setPreviewCaptureListener(new OnPreviewCaptureListener() {
+                    @Override
+                    public void onMediaSelectedListener(String path, GalleryType type) {
+                        if (type == GalleryType.PICTURE) {
+                            Intent intent = new Intent(DouyinActivity.this, ImageEditActivity.class);
+                            intent.putExtra(ImageEditActivity.IMAGE_PATH, path);
+                            intent.putExtra(ImageEditActivity.DELETE_INPUT_FILE, true);
+                            startActivity(intent);
+                        } else if (type == GalleryType.VIDEO) {
+                            Intent intent = new Intent(DouyinActivity.this, VideoEditActivity.class);
+                            intent.putExtra(VideoEditActivity.VIDEO_PATH, path);
+                            startActivity(intent);
+                        }
+                    }
+                })
+                .startPreview();
     }
 }

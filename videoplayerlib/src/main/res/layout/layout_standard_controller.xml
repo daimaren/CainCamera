@@ -189,6 +189,7 @@
         android:layout_width="45.3dp"
         android:layout_height="45.3dp"
         android:layout_gravity="center"
+        android:scaleType="centerCrop"
         android:src="@drawable/selector_play_button"
         android:visibility="gone"/>
 
@@ -198,7 +199,7 @@
         android:layout_width="45.3dp"
         android:layout_height="45.3dp"
         android:layout_gravity="center"
-        android:src="@drawable/icon_play"/>
+        android:src="@drawable/ic_play"/>
 
     <ProgressBar
         android:id="@+id/loading"
