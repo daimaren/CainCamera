@@ -133,6 +133,15 @@ public class RecordProgressView extends View {
 
     /**
      * 添加一段进度
+     */
+    public void addProgressSegment() {
+        mProgressList.add(mProgress);
+        mProgress = 0;
+        invalidate();
+    }
+
+    /**
+     * 添加一段进度
      * @param progress
      */
     public void addProgressSegment(float progress) {

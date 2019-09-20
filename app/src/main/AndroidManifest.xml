@@ -41,13 +41,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".activity.MainActivity">
-        </activity>
-        <activity android:name="com.mlingdu.douyin.ui.act.DouyinActivity"
-            android:theme="@style/NoActionBarTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity android:name="com.mlingdu.douyin.ui.act.DouyinActivity"
+            android:theme="@style/NoActionBarTheme">
         </activity>
         <activity android:name=".activity.MusicMergeActivity" />
         <activity

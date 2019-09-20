@@ -28,6 +28,8 @@ import android.widget.TextView;
 
 import com.cgfay.camera.presenter.CameraPreviewPresenter;
 import com.cgfay.camera.widget.CainTextureView;
+import com.cgfay.camera.widget.CustomRecordImageView;
+import com.cgfay.camera.widget.RecordProgressView;
 import com.cgfay.cameralibrary.R;
 import com.cgfay.camera.engine.camera.CameraEngine;
 import com.cgfay.camera.engine.camera.CameraParam;
@@ -112,12 +114,12 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
     // 速度选择条
     private RecordSpeedLevelBar mSpeedBar;
     private boolean mSpeedBarShowing;
-    // 倒计时
-    private TextView mCountDownView;
+    //录制时间进度条
+    private RecordProgressView mProgressView;
     // 贴纸按钮
     private Button mBtnStickers;
     // 快门按钮
-    private ShutterButton mBtnShutter;
+    private CustomRecordImageView mBtnShutter;
     // 媒体库按钮
     private Button mBtnViewPhoto;
     // 视频删除按钮
@@ -140,6 +142,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
     private PreviewEffectFragment mEffectFragment;
 
     private CameraPreviewPresenter mPreviewPresenter;
+    private boolean isRecording = false;
 
     public CameraPreviewFragment() {
         mCameraParam = CameraParam.getInstance();
@@ -246,7 +249,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
             mPreviewPresenter.setSpeed(speed.getSpeed());
         });
 
-        mCountDownView = (TextView) view.findViewById(R.id.tv_countdown);
+        mProgressView = (RecordProgressView) view.findViewById(R.id.record_progress_view);
         mBtnStickers = (Button) view.findViewById(R.id.btn_stickers);
         mBtnStickers.setOnClickListener(this);
         mBtnViewPhoto = (Button) view.findViewById(R.id.btn_view_photo);
@@ -257,8 +260,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
         mBottomIndicator.setIndicators(mIndicatorText);
         mBottomIndicator.addIndicatorListener(this);
 
-        mBtnShutter = (ShutterButton) view.findViewById(R.id.btn_shutter);
-        mBtnShutter.setOnShutterListener(mShutterListener);
+        mBtnShutter = (CustomRecordImageView) view.findViewById(R.id.btn_shutter);
         mBtnShutter.setOnClickListener(this);
 
         mBtnRecordDelete = (Button) view.findViewById(R.id.btn_record_delete);
@@ -277,14 +279,12 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
         mBtnStickers.setBackgroundResource(result ? R.drawable.ic_camera_sticker_light : R.drawable.ic_camera_sticker_dark);
         mBtnRecordDelete.setBackgroundResource(result ? R.drawable.ic_camera_record_delete_light : R.drawable.ic_camera_record_delete_dark);
         mBtnRecordPreview.setBackgroundResource(result ? R.drawable.ic_camera_record_done_light : R.drawable.ic_camera_record_done_dark);
-        mBtnShutter.setOuterBackgroundColor(result ? R.color.shutter_gray_light : R.color.shutter_gray_dark);
     }
 
     @Override
     public void onResume() {
         super.onResume();
         enhancementBrightness();
-        mBtnShutter.setEnableOpened(false);
     }
 
     /**
@@ -300,7 +300,6 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
         super.onPause();
         hideStickerView();
         hideEffectView();
-        mBtnShutter.setEnableOpened(false);
     }
 
     @Override
@@ -347,7 +346,12 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
         } else if (i == R.id.btn_view_photo) {
             mPreviewPresenter.onOpenGalleryPage();
         } else if (i == R.id.btn_shutter) {
-            takePicture();
+            //takePicture();
+            if(!isRecording) {
+                onStartRecording();
+            }else{
+                onStopRecording();
+            }
         } else if (i == R.id.btn_record_delete) {
             deleteRecordedVideo(false);
         } else if (i == R.id.btn_record_preview) {
@@ -359,18 +363,18 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
     public void onIndicatorChanged(int currentIndex) {
         if (currentIndex == 0) {
             mCameraParam.mGalleryType = GalleryType.GIF;
-            mBtnShutter.setIsRecorder(false);
+            //mBtnShutter.setIsRecorder(false);
         } else if (currentIndex == 1) {
             mCameraParam.mGalleryType = GalleryType.PICTURE;
             // 拍照状态
-            mBtnShutter.setIsRecorder(false);
+            //mBtnShutter.setIsRecorder(false);
             if (!mStorageWriteEnable) {
                 PermissionUtils.requestStoragePermission(this);
             }
         } else if (currentIndex == 2) {
             mCameraParam.mGalleryType = GalleryType.VIDEO;
             // 录制视频状态
-            mBtnShutter.setIsRecorder(true);
+            //mBtnShutter.setIsRecorder(true);
             // 请求录音权限
             if (!mCameraParam.audioPermitted) {
                 PermissionUtils.requestRecordSoundPermission(this);
@@ -556,14 +560,16 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
         if (mPreviewPresenter.isRecording()) {
             // 取消录制
             mPreviewPresenter.cancelRecord();
+            mBtnShutter.stopRecord();
+            //mProgressView.setProgress(mPreviewPresenter.getVideoVisibleDuration() / mPreviewPresenter.getMaxRecordMilliSeconds());
             // 重置进入条
-            mBtnShutter.setProgress((int) mPreviewPresenter.getVideoVisibleDuration());
+            //mBtnShutter.setProgress((int) mPreviewPresenter.getVideoVisibleDuration());
             // 删除分割线
-            mBtnShutter.deleteSplitView();
+            //mBtnShutter.deleteSplitView();
             // 关闭按钮
-            mBtnShutter.closeButton();
+            //mBtnShutter.closeButton();
             // 更新时间
-            mCountDownView.setText(mPreviewPresenter.getVideoVisibleTimeString());
+            //mCountDownView.setText(mPreviewPresenter.getVideoVisibleTimeString());
         }
     }
 
@@ -818,69 +824,55 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
     public void enableShutter(final boolean enable) {
         mMainHandler.post(() -> {
             if (mBtnShutter != null) {
-                mBtnShutter.setEnableOpened(enable);
+                //mBtnShutter.setEnableOpened(enable);
             }
         });
     }
 
-    // ------------------------------------ 录制回调 -------------------------------------------
-    private ShutterButton.OnShutterListener mShutterListener = new ShutterButton.OnShutterListener() {
-
-        @Override
-        public void onStartRecord() {
-            if (mCameraParam.mGalleryType == GalleryType.PICTURE) {
-                return;
-            }
-
-            // 隐藏顶部视图
-            mPreviewTop.setVisibility(View.GONE);
-            mPreviewRightTop.setVisibility(View.GONE);
-            mSpeedBar.setVisibility(View.GONE);
-
-            // 隐藏删除按钮
-            if (mCameraParam.mGalleryType == GalleryType.VIDEO) {
-                mBtnRecordPreview.setVisibility(View.GONE);
-                mBtnRecordDelete.setVisibility(View.GONE);
-            }
-            mBtnShutter.setProgressMax((int)mPreviewPresenter.getMaxRecordMilliSeconds());
-            // 添加分割线
-            mBtnShutter.addSplitView();
-
-            // 是否允许录制音频
-            boolean enableAudio = mCameraParam.audioPermitted && mCameraParam.recordAudio
-                    && mCameraParam.mGalleryType == GalleryType.VIDEO;
-
-            // 计算输入纹理的大小
-            int width = mCameraParam.previewWidth;
-            int height = mCameraParam.previewHeight;
-            if (mCameraParam.orientation == 90 || mCameraParam.orientation == 270) {
-                width = mCameraParam.previewHeight;
-                height = mCameraParam.previewWidth;
-            }
-            mPreviewPresenter.startRecord(width, height, enableAudio);
+    private void onStartRecording() {
+        if (mCameraParam.mGalleryType == GalleryType.PICTURE) {
+            return;
         }
+        isRecording = true;
+        // 隐藏顶部视图
+        mPreviewTop.setVisibility(View.GONE);
+        mPreviewRightTop.setVisibility(View.GONE);
+        mSpeedBar.setVisibility(View.GONE);
+        mBtnStickers.setVisibility(View.GONE);
+        mBtnViewPhoto.setVisibility(View.GONE);
+        mBottomIndicator.setVisibility(View.GONE);
 
-        @Override
-        public void onStopRecord() {
-            mPreviewPresenter.stopRecord();
-            // 隐藏顶部视图
-            mPreviewTop.setVisibility(View.VISIBLE);
-            mPreviewRightTop.setVisibility(View.VISIBLE);
-            setShowingSpeedBar(mSpeedBarShowing);
+        // 隐藏删除按钮
+        if (mCameraParam.mGalleryType == GalleryType.VIDEO) {
+            mBtnRecordPreview.setVisibility(View.GONE);
+            mBtnRecordDelete.setVisibility(View.GONE);
         }
+        mProgressView.addProgressSegment();
 
-        @Override
-        public void onProgressOver() {
-            // 如果最后一秒内点击停止录制，则仅仅关闭录制按钮，因为前面已经停止过了，不做跳转
-            // 如果最后一秒内没有停止录制，否则停止录制并跳转至预览页面
-            if (mPreviewPresenter.isLastSecondStop()) {
-                // 关闭录制按钮
-                mBtnShutter.closeButton();
-            } else {
-                stopRecordOrPreviewVideo();
-            }
+        // 是否允许录制音频
+        boolean enableAudio = mCameraParam.audioPermitted && mCameraParam.recordAudio
+                && mCameraParam.mGalleryType == GalleryType.VIDEO;
+
+        // 计算输入纹理的大小
+        int width = mCameraParam.previewWidth;
+        int height = mCameraParam.previewHeight;
+        if (mCameraParam.orientation == 90 || mCameraParam.orientation == 270) {
+            width = mCameraParam.previewHeight;
+            height = mCameraParam.previewWidth;
         }
-    };
+        mPreviewPresenter.startRecord(width, height, enableAudio);
+        mBtnShutter.startRecord();
+    }
+
+    private void onStopRecording() {
+        isRecording = false;
+        mPreviewPresenter.stopRecord();
+        mBtnShutter.stopRecord();
+        // 隐藏顶部视图
+        mPreviewTop.setVisibility(View.VISIBLE);
+        mPreviewRightTop.setVisibility(View.VISIBLE);
+        setShowingSpeedBar(mSpeedBarShowing);
+    }
 
     /**
      * 设置快门是否允许可用
@@ -888,7 +880,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
      */
     public void setShutterEnableEncoder(boolean enable) {
         if (mBtnShutter != null) {
-            mBtnShutter.setEnableEncoder(enable);
+            //mBtnShutter.setEnableEncoder(enable);
         }
     }
 
@@ -899,9 +891,8 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
     public void updateRecordProgress(final long duration) {
         mMainHandler.post(() -> {
             // 设置进度
-            mBtnShutter.setProgress(duration);
-            // 设置时间
-            mCountDownView.setText(StringUtils.generateMillisTime((int) duration));
+            float ratio = duration * 1.0f / mPreviewPresenter.getMaxRecordMilliSeconds();
+            mProgressView.setProgress(ratio);
         });
     }
 
@@ -930,31 +921,32 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
      */
     private void deleteRecordedVideo(boolean clearAll) {
         // 处于删除模式，则删除文件
-        if (mBtnShutter.isDeleteMode()) {
+        //if (mBtnShutter.isDeleteMode()) {
+        if (true) {
             // 删除视频，判断是否清除所有
             if (clearAll) {
                 // 清除所有分割线
-                mBtnShutter.cleanSplitView();
+                //mBtnShutter.cleanSplitView();
                 mPreviewPresenter.removeAllSubVideo();
             } else {
                 // 删除分割线
-                mBtnShutter.deleteSplitView();
+                mProgressView.deleteProgressSegment();
+                //mBtnShutter.deleteSplitView();
                 mPreviewPresenter.removeLastSubVideo();
 
             }
             // 更新进度
-            mBtnShutter.setProgress(mPreviewPresenter.getVideoVisibleDuration());
-            // 更新时间
-            mCountDownView.setText(mPreviewPresenter.getVideoVisibleTimeString());
+            mProgressView.setProgress(mPreviewPresenter.getVideoVisibleDuration() * 1.0f / mPreviewPresenter.getMaxRecordMilliSeconds());
+            //mBtnShutter.setProgress(mPreviewPresenter.getVideoVisibleDuration());
             // 如果此时没有了视频，则恢复初始状态
             if (mPreviewPresenter.getNumberOfSubVideo() <= 0) {
-                mCountDownView.setText("");
+                //mCountDownView.setText("");
                 mBtnRecordDelete.setVisibility(View.GONE);
                 mBtnRecordPreview.setVisibility(View.GONE);
                 mNeedToWaitStop = false;
             }
         } else { // 没有进入删除模式则进入删除模式
-            mBtnShutter.setDeleteMode(true);
+            //mBtnShutter.setDeleteMode(true);
         }
     }
 
@@ -962,7 +954,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
      * 停止录制或者预览视频
      */
     private void stopRecordOrPreviewVideo() {
-        mBtnShutter.closeButton();
+        //mBtnShutter.closeButton();
         if (mPreviewPresenter.isRecording()) {
             mNeedToWaitStop = true;
             mPreviewPresenter.stopRecord(false);
@@ -973,6 +965,29 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
             combinePath = PathConstraints.getVideoCachePath(mActivity);
             PreviewRecorder.getInstance().combineVideo(combinePath, mCombineListener);
         }
+    }
+
+    /**
+     * 设置进度
+     * @param progress
+     */
+    public void setProgress(float progress) {
+        mProgressView.setProgress(progress);
+    }
+
+    /**
+     * 添加一段进度
+     * @param progress
+     */
+    public void addProgressSegment(float progress) {
+        mProgressView.addProgressSegment(progress);
+    }
+
+    /**
+     * 删除一段进度
+     */
+    public void deleteProgressSegment() {
+        mProgressView.deleteProgressSegment();
     }
 
     // -------------------------------------- 短视频合成监听器 ---------------------------------
