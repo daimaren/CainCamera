@@ -562,7 +562,7 @@ public class VideoEditFragment extends Fragment implements View.OnClickListener 
      * 保存所有变更，合成视频
      */
     private void saveAllChange() {
-
+        mOnEditPreviewListener.onOpenEditPreviewPage();
     }
 
     private void resumePlayer() {
@@ -880,4 +880,22 @@ public class VideoEditFragment extends Fragment implements View.OnClickListener 
     }
 
     private OnSelectMusicListener mOnSelectMusicListener;
+
+    /**
+     * 下一步操作监听器
+     */
+    public interface OnEditPreviewListener {
+
+        void onOpenEditPreviewPage();
+    }
+
+    /**
+     * 添加页面操作监听器
+     * @param listener
+     */
+    public void setOnEditPreviewListener(OnEditPreviewListener listener) {
+        mOnEditPreviewListener = listener;
+    }
+
+    private OnEditPreviewListener mOnEditPreviewListener;
 }

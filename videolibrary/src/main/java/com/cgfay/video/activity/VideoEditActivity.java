@@ -10,14 +10,17 @@ import com.cgfay.video.R;
 import com.cgfay.uitls.bean.Music;
 import com.cgfay.uitls.fragment.MusicSelectFragment;
 import com.cgfay.video.fragment.VideoEditFragment;
+import com.cgfay.video.fragment.EditPreviewFragment;
 
 public class VideoEditActivity extends AppCompatActivity implements VideoEditFragment.OnSelectMusicListener,
-        MusicSelectFragment.OnMusicSelectedListener {
+        MusicSelectFragment.OnMusicSelectedListener, VideoEditFragment.OnEditPreviewListener {
 
     public static final String VIDEO_PATH = "videoPath";
 
     private static final String FRAGMENT_VIDEO_EDIT = "fragment_video_edit";
     private static final String FRAGMENT_MUSIC_SELECT = "fragment_video_music_select";
+    private static final String FRAGMENT_EDIT_PREVIEW = "fragment_edit_preview";
+    private String mVideoPath;
 
     protected void hideNavigationBar() {
         if (Build.VERSION.SDK_INT > 11 && Build.VERSION.SDK_INT < 19) {
@@ -45,10 +48,11 @@ public class VideoEditActivity extends AppCompatActivity implements VideoEditFra
 //        hideNavigationBar();
         setContentView(R.layout.activity_video_edit);
         if (null == savedInstanceState) {
-            String videoPath = getIntent().getStringExtra(VIDEO_PATH);
+            mVideoPath = getIntent().getStringExtra(VIDEO_PATH);
             VideoEditFragment fragment = VideoEditFragment.newInstance();
             fragment.setOnSelectMusicListener(this);
-            fragment.setVideoPath(videoPath);
+            fragment.setOnEditPreviewListener(this);
+            fragment.setVideoPath(mVideoPath);
             getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_content, fragment, FRAGMENT_VIDEO_EDIT)
@@ -97,6 +101,17 @@ public class VideoEditActivity extends AppCompatActivity implements VideoEditFra
                 .commit();
     }
 
+    @Override
+    public void onOpenEditPreviewPage() {
+        EditPreviewFragment fragment = new EditPreviewFragment();
+        fragment.setVideoPath(mVideoPath);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setCustomAnimations(R.anim.anim_slide_up, 0)
+                .add(R.id.fragment_content, fragment)
+                .addToBackStack(FRAGMENT_EDIT_PREVIEW)
+                .commit();
+    }
     @Override
     public void onMusicSelected(Music music) {
         getSupportFragmentManager().popBackStack(FRAGMENT_VIDEO_EDIT, 0);
