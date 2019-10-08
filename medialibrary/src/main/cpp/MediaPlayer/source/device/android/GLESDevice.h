@@ -40,6 +40,10 @@ public:
 
     void changeFilter(RenderNodeType type, const int id);
 
+    void beginFilter(RenderNodeType type, const char *filterName);
+
+    void endFilter(RenderNodeType type, const char *filterName);
+
 private:
     void resetVertices();
 

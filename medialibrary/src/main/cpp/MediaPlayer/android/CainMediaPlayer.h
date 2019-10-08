@@ -151,6 +151,10 @@ public:
 
     void changeFilter(int type, const int id);
 
+    void beginFilter(int type, const char *name);
+
+    void endFilter(int type, const char *name);
+
     void setOption(int category, const char *type, const char *option);
 
     void setOption(int category, const char *type, int64_t option);

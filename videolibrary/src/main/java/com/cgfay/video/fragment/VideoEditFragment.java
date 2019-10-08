@@ -843,6 +843,30 @@ public class VideoEditFragment extends Fragment implements View.OnClickListener 
                 mCainMediaPlayer.changeEffect(effectType.getName());
             }
         }
+
+        @Override
+        public void beginEffect(EffectType effectType) {
+            if (mCainMediaPlayer != null) {
+                mCainMediaPlayer.beginEffect(effectType.getName());
+            }
+        }
+
+        @Override
+        public void endEffect(EffectType effectType) {
+            if (mCainMediaPlayer != null) {
+                mCainMediaPlayer.endEffect(effectType.getName());
+            }
+        }
+
+        @Override
+        public void deleteLastEffect(EffectType effectType) {
+
+        }
+
+        @Override
+        public void deleteAllEffects(EffectType effectType) {
+
+        }
     };
 
     /**

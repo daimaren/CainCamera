@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -63,19 +64,16 @@ public class VideoEffectAdapter extends RecyclerView.Adapter<VideoEffectAdapter.
             holder.effectImage.setImageBitmap(BitmapUtils.getBitmapFromFile(mEffectList.get(position).getThumb()));
         }
         holder.effectName.setText(mEffectList.get(position).getName());
-        holder.effectRoot.setOnClickListener(new View.OnClickListener() {
+        holder.effectRoot.setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                if (mSelected == position) {
-                    return;
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                int action = motionEvent.getAction();
+                if(action == motionEvent.ACTION_DOWN) {
+                    mEffectChangeListener.beginEffect(mEffectList.get(position));
+                } else if(action == motionEvent.ACTION_DOWN) {
+                    mEffectChangeListener.endEffect(mEffectList.get(position));
                 }
-                int lastSelected = mSelected;
-                mSelected = position;
-                notifyItemChanged(lastSelected, 0);
-                notifyItemChanged(position, 0);
-                if (mEffectChangeListener != null) {
-                    mEffectChangeListener.onEffectChanged(mEffectList.get(position));
-                }
+                return false;
             }
         });
     }
@@ -104,6 +102,10 @@ public class VideoEffectAdapter extends RecyclerView.Adapter<VideoEffectAdapter.
     public interface OnEffectChangeListener {
 
         void onEffectChanged(EffectType effectType);
+        void beginEffect(EffectType effectType);
+        void endEffect(EffectType effectType);
+        void deleteLastEffect(EffectType effectType);
+        void deleteAllEffects(EffectType effectType);
     }
 
     public void setOnEffectChangeListener(OnEffectChangeListener listener) {

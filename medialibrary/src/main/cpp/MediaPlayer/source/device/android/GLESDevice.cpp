@@ -233,6 +233,24 @@ void GLESDevice::changeFilter(RenderNodeType type, const int id) {
     mMutex.unlock();
 }
 
+void GLESDevice::beginFilter(RenderNodeType type, const char *filterName) {
+    mMutex.lock();
+    filterInfo.type = type;
+    filterInfo.name = av_strdup(filterName);
+    filterInfo.id = -1;
+    filterChange = true;
+    mMutex.unlock();
+}
+
+void GLESDevice::endFilter(RenderNodeType type, const char *filterName) {
+    mMutex.lock();
+    filterInfo.type = type;
+    filterInfo.name = av_strdup(filterName);
+    filterInfo.id = -1;
+    filterChange = true;
+    mMutex.unlock();
+}
+
 void GLESDevice::resetVertices() {
     const float *verticesCoord = CoordinateUtils::getVertexCoordinates();
     for (int i = 0; i < 8; ++i) {

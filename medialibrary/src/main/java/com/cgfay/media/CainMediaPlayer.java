@@ -855,6 +855,22 @@ public class CainMediaPlayer implements IMediaPlayer {
     }
 
     /**
+     * begin effect
+     * @param name effect name
+     */
+    public void beginEffect(String name) {
+        _beginFilter(NODE_EFFECT, name);
+    }
+
+    /**
+     * end effect
+     * @param name effect name
+     */
+    public void endEffect(String name) {
+        _endFilter(NODE_EFFECT, name);
+    }
+
+    /**
      * change effect
      * @param id effect id
      */
@@ -874,6 +890,8 @@ public class CainMediaPlayer implements IMediaPlayer {
 
     private native void _changeFilter(int type, String name);
     private native void _changeFilter(int type, int id);
+    private native void _beginFilter(int type, String name);
+    private native void _endFilter(int type, String name);
 
     // ---------------------------------------------------------------------------------------------
     // Options

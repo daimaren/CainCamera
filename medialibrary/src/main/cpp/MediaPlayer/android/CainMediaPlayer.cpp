@@ -297,6 +297,18 @@ void CainMediaPlayer::changeFilter(int type, const int id) {
     }
 }
 
+void CainMediaPlayer::beginFilter(int type, const char *name) {
+    if (videoDevice != nullptr) {
+        videoDevice->beginFilter((RenderNodeType)type, name);
+    }
+}
+
+void CainMediaPlayer::endFilter(int type, const char *name) {
+    if (videoDevice != nullptr) {
+        videoDevice->endFilter((RenderNodeType)type, name);
+    }
+}
+
 void CainMediaPlayer::setOption(int category, const char *type, const char *option) {
     if (mediaPlayer != nullptr) {
         mediaPlayer->getPlayerState()->setOption(category, type, option);
