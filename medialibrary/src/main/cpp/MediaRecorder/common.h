@@ -27,4 +27,6 @@
 
 #endif
 
+typedef unsigned char byte;
+
 #endif //CAINCAMERA_COMMON_H

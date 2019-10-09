@@ -1,5 +1,7 @@
 先用时序图从整体上理解底层模块实现，分哪些模块，之前怎么交互的
 
+decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
+
 1. initRecordingStudio()<--VideoRecorderActivity.java
   2. new ChangbaVideoCamera()
   2. new ChangbaRecordingPreviewScheduler()

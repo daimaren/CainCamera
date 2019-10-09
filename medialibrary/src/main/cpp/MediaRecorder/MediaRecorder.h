@@ -8,6 +8,7 @@
 #include <android/native_window.h>
 #include "../include/Thread.h"
 #include "egl_core.h"
+#include "recording_preview_renderer.h"
 
 /**
  * 录制监听器
@@ -67,6 +68,7 @@ private:
 
     EGLCore *eglCore;
     EGLSurface previewSurface;
+    RecordingPreviewRenderer *renderer;
 };
 
 #endif //CAINCAMERA_MEDIARECORDER_H

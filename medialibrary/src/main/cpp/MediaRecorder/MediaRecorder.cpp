@@ -104,8 +104,10 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, int screenWidth, in
     if (previewSurface != NULL) {
         eglCore->makeCurrent(previewSurface);
     }
-    //todo init render
+    renderer = new RecordingPreviewRenderer();
     configCamera();
+    //renderer->init(degress, facingId == CAMERA_FACING_FRONT, textureWidth, textureHeight, cameraWidth, cameraHeight);
+    //this->startCameraPreview();
 }
 
 void MediaRecorder::configCamera() {

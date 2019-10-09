@@ -13,6 +13,13 @@ add_library( media_recorder
         # 通用类
 
         # 录制器
+        matrix.cpp
+        texture_frame_copier.cpp
+        gpu_texture_frame_copier.cpp
+        texture_frame.cpp
+        gpu_texture_frame.cpp
+        video_gl_surface_render.cpp
+        recording_preview_renderer.cpp
         egl_share_context.cpp
         egl_core.cpp
         MediaRecorder.cpp
