@@ -29,6 +29,7 @@ import android.widget.TextView;
 import com.cgfay.camera.presenter.CameraPreviewPresenter;
 import com.cgfay.camera.widget.CainTextureView;
 import com.cgfay.camera.widget.CustomRecordImageView;
+import com.cgfay.camera.widget.PopupManager;
 import com.cgfay.camera.widget.RecordProgressView;
 import com.cgfay.cameralibrary.R;
 import com.cgfay.camera.engine.camera.CameraEngine;
@@ -339,6 +340,8 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
             setShowingSpeedBar(mSpeedBar.getVisibility() != View.VISIBLE);
         } else if (i == R.id.btn_effects) {
             showEffectView();
+        } else if(i == R.id.btn_clock) {
+            showCountDown();
         } else if (i == R.id.btn_setting) {
             showSettingPopView();
         } else if (i == R.id.btn_stickers) {
@@ -391,6 +394,17 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
             return;
         }
         mPreviewPresenter.switchCamera();
+    }
+
+    private void showCountDown() {
+        new PopupManager(getActivity()).showCountDown(getResources(), 0, new PopupManager.SelTimeBackListener() {
+            @Override
+            public void selTime(String selTime, boolean isDismiss) {
+                if(!isDismiss){
+                }else {
+                }
+            }
+        });
     }
 
     /**

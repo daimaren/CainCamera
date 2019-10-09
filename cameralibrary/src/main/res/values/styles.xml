@@ -7,4 +7,12 @@
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:navigationBarColor">@color/video_window_background</item>
     </style>
+
+    <style name="expression_dialog_anim_style">
+        <item name="android:windowEnterAnimation">@anim/expression_show_anim</item>
+        <!-- 指定显示的动画xml -->
+
+        <item name="android:windowExitAnimation">@anim/expression_hidden_anim</item>
+        <!-- 指定消失的动画xml -->
+    </style>
 </resources>
