@@ -32,6 +32,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/FFCommand)
 # 媒体录制器
 add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
 
+# 媒体录制器
+add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
+
 # Metadata库
 add_subdirectory(${CMAKE_SOURCE_DIR}/Metadata)
 
