@@ -13,6 +13,13 @@ add_library( media_recorder
         # 通用类
 
         # 录制器
+        live_audio_packet_queue.cpp
+        live_video_packet_queue.cpp
+        live_common_packet_pool.cpp
+        live_yuy2_packet_pool.cpp
+        host_gpu_copier.cpp
+        handler.cpp
+        message_queue.cpp
         matrix.cpp
         texture_frame_copier.cpp
         gpu_texture_frame_copier.cpp
@@ -20,6 +27,11 @@ add_library( media_recorder
         gpu_texture_frame.cpp
         video_gl_surface_render.cpp
         recording_preview_renderer.cpp
+        recording_preview_controller.cpp
+        video_x264_encoder.cpp
+        video_encoder_adapter.cpp
+        soft_encoder_adapter.cpp
+        hw_encoder_adapter.cpp
         egl_share_context.cpp
         egl_core.cpp
         MediaRecorder.cpp

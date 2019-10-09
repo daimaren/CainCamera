@@ -114,6 +114,7 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:gravity="center"
+        android:visibility="gone"
         android:layout_marginTop="@dimen/dp20">
         <ImageView
             android:layout_width="@dimen/top_button_width_height"
