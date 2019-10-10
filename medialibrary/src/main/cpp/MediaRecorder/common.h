@@ -5,6 +5,14 @@
 #ifndef CAINCAMERA_COMMON_H
 #define CAINCAMERA_COMMON_H
 
+#include <stdio.h>
+#include <sys/time.h>
+#include <math.h>
+#include <stdlib.h>
+
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+
 #if defined(__ANDROID__)
 
 #include <android/log.h>

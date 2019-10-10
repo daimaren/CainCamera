@@ -2,7 +2,7 @@
 #define LIVE_AUDIO_PACKETQUEUE_H
 
 #include <pthread.h>
-#include "../platform_dependent/platform_4_live_common.h"
+#include "platform_4_live_common.h"
 
 typedef struct LiveAudioPacket {
 	short * buffer;
