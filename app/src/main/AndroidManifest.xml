@@ -57,6 +57,9 @@
             android:name=".activity.FFMediaRecordActivity"
             android:theme="@style/NoActionBarTheme" />
 
+        <activity
+            android:name=".activity.FLVRecordActivity"
+            android:theme="@style/NoActionBarTheme" />
         <!-- 全面屏兼容逻辑 -->
         <meta-data
             android:name="android.max_aspect"

@@ -59,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.btn_speed_record).setOnClickListener(this);
         findViewById(R.id.btn_edit_music_merge).setOnClickListener(this);
         findViewById(R.id.btn_ff_media_record).setOnClickListener(this);
+        findViewById(R.id.btn_flv_record).setOnClickListener(this);
     }
 
     @Override
@@ -102,6 +103,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case R.id.btn_ff_media_record: {
                 ffmpegRecord();
+                break;
+            }
+            case R.id.btn_flv_record: {
+                flvRecord();
                 break;
             }
         }
@@ -232,5 +237,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void ffmpegRecord() {
         startActivity(new Intent(MainActivity.this, FFMediaRecordActivity.class));
+    }
+
+    /**
+     * 录制FLV视频
+     */
+    private void flvRecord() {
+        startActivity(new Intent(MainActivity.this, FLVRecordActivity.class));
     }
 }

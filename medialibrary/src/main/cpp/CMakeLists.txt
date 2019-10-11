@@ -19,7 +19,18 @@ add_library( ffmpeg SHARED IMPORTED )
 set_target_properties( ffmpeg
                        PROPERTIES IMPORTED_LOCATION
                        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libffmpeg.so )
+                       
+# 添加x264库
+add_library( x264 STATIC IMPORTED )
+set_target_properties( x264
+                       PROPERTIES IMPORTED_LOCATION
+                       ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libx264.a )
 
+# 添加faac库
+add_library( faac STATIC IMPORTED )
+set_target_properties( faac
+                       PROPERTIES IMPORTED_LOCATION
+                       ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libfaac.a )
 # 添加yuv库
 add_library(yuv SHARED IMPORTED )
 set_target_properties( yuv
@@ -30,10 +41,13 @@ set_target_properties( yuv
 add_subdirectory(${CMAKE_SOURCE_DIR}/FFCommand)
 
 # 媒体录制器
-add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
 
 # 媒体录制器
 add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
+
+# FLV录制器
+add_subdirectory(${CMAKE_SOURCE_DIR}/FLVRecorder)
 
 # Metadata库
 add_subdirectory(${CMAKE_SOURCE_DIR}/Metadata)
