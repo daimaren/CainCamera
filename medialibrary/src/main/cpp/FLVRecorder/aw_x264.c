@@ -8,6 +8,7 @@
 #include "aw_alloc.h"
 #include "aw_utils.h"
 #include <string.h>
+#include <x264.h>
 
 static void aw_create_x264_param(aw_x264_context *aw_ctx, x264_param_t ** param){
     if (!param) {
@@ -44,6 +45,53 @@ static void aw_create_x264_param(aw_x264_context *aw_ctx, x264_param_t ** param)
     aw_log("%d %d %d %d", x264_param->i_width, x264_param->i_height, x264_param->rc.i_bitrate, x264_param->i_fps_num);
 }
 
+static void aw_create_x264_param2(aw_x264_context *aw_ctx, x264_param_t ** param) {
+    x264_t* _x264_encoder = NULL;
+    unsigned int bitratelevel = 3; //BIT_LOW_LEVEL
+    x264_param_t *x264_param = *param;
+    if (!x264_param) {
+        x264_param = aw_alloc(sizeof(x264_param_t));
+        *param = x264_param;
+    }
+    x264_param_default_preset(x264_param, "fast" , "zerolatency");
+    x264_param->rc.f_rf_constant = 32;
+
+    x264_param->b_repeat_headers = 1; // ÷ÿ∏¥SPS/PPS ∑≈µΩπÿº¸÷°«∞√Ê
+    x264_param->rc.i_rc_method = X264_RC_CRF; //CQP(∫„∂®÷ ¡ø)£¨CRF(∫„∂®¬Î¬ )£¨ABR(∆Ωæ˘¬Î¬ )
+
+    x264_param->i_width  = aw_ctx->config.width;
+    x264_param->i_height = aw_ctx->config.height;
+    x264_param->i_frame_total = 0; //* 编码总帧数.不知道用0.
+    x264_param->i_keyint_max = 3;
+
+    x264_param->i_fps_den = 1; //* 帧率分母
+    x264_param->i_fps_num = aw_ctx->config.fps; //* 帧率分子
+    x264_param->i_timebase_den = x264_param->i_fps_num;
+    x264_param->i_timebase_num = x264_param->i_fps_den;
+
+    x264_param->i_cqm_preset = X264_CQM_FLAT;
+
+    x264_param->analyse.i_me_method = X264_ME_HEX;
+    x264_param->analyse.i_subpel_refine = 2;
+    x264_param->i_frame_reference = 1;
+    x264_param->analyse.b_mixed_references = 0;
+    x264_param->analyse.i_trellis = 0;
+    x264_param->b_sliced_threads = 0;
+    x264_param->i_threads = 4;
+    //i_threads = N并行编码的时候如果b_sliced_threads=1那么是并行slice编码，
+    //如果b_sliced_threads=0，那么是并行frame编码。并行slice无延时，并行frame有延时
+
+    x264_param->analyse.b_transform_8x8 = 0;
+    x264_param->b_cabac = 0;
+    x264_param->b_deblocking_filter =1;
+    x264_param->psz_cqm_file = NULL;
+    x264_param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+    x264_param->rc.i_lookahead = 10;
+    x264_param->i_bframe = 0;
+
+    aw_log("%d %d %d %d", x264_param->i_width, x264_param->i_height, x264_param->rc.i_bitrate, x264_param->i_fps_num);
+}
+
 static void aw_open_x264_handler(aw_x264_context *aw_ctx, x264_param_t *x264_param){
     x264_t *x264_handler = NULL;
     int ret = 0;
@@ -63,6 +111,21 @@ static void aw_open_x264_handler(aw_x264_context *aw_ctx, x264_param_t *x264_par
     if (!x264_handler) {
         aw_log("[E] x264_handler open error");
         return;
+    }
+}
+
+static void aw_open_x264_handler2(aw_x264_context *aw_ctx, x264_param_t *x264_param) {
+    x264_t *x264_handler = NULL;
+#ifdef __ANDROID__
+    x264_handler = x264_encoder_open_148(x264_param);
+#else
+    x264_handler = x264_encoder_open_133(_x264_param);
+#endif
+
+    if (x264_handler == NULL) {
+        aw_log("x264_handler open error");
+    } else {
+        aw_ctx->x264_handler = x264_handler;
     }
 }
 
@@ -176,8 +239,8 @@ extern aw_x264_context *alloc_aw_x264_context(aw_x264_config config){
     //创建handler do nothing
     memcpy(&ctx->config, &config, sizeof(aw_x264_config));
     x264_param_t *x264_param = NULL;
-    aw_create_x264_param(ctx, &x264_param);
-    aw_open_x264_handler(ctx, x264_param);
+    aw_create_x264_param2(ctx, &x264_param);
+    aw_open_x264_handler2(ctx, x264_param);
     aw_free(x264_param);
     
     //创建pic_in
