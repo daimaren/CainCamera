@@ -2,17 +2,15 @@
 // Created by CainHuang on 2019/8/17.
 //
 
-#include "FFMediaRecorder.h"
-#include "aw_all.h"
+#include "FLVRecorder.h"
 
-
-FFMediaRecorder::FFMediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
+FLVRecorder::FLVRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr){
     mRecordParams = new RecordParams();
 }
 
-FFMediaRecorder::~FFMediaRecorder() {
+FLVRecorder::~FLVRecorder() {
     release();
     if (mRecordParams != nullptr) {
         delete mRecordParams;
@@ -24,14 +22,14 @@ FFMediaRecorder::~FFMediaRecorder() {
  * 设置录制监听器
  * @param listener
  */
-void FFMediaRecorder::setOnRecordListener(OnRecordListener *listener) {
+void FLVRecorder::setOnRecordListener(OnRecordListener *listener) {
     mRecordListener = listener;
 }
 
 /**
  * 释放资源
  */
-void FFMediaRecorder::release() {
+void FLVRecorder::release() {
     stopRecord();
     // 等待退出
     mMutex.lock();
@@ -52,11 +50,9 @@ void FFMediaRecorder::release() {
         delete mRecordThread;
         mRecordThread = nullptr;
     }
-    aw_sw_encoder_close_faac_encoder();
-    aw_sw_encoder_close_x264_encoder();
 }
 
-RecordParams* FFMediaRecorder::getRecordParams() {
+RecordParams* FLVRecorder::getRecordParams() {
     return mRecordParams;
 }
 
@@ -65,7 +61,7 @@ RecordParams* FFMediaRecorder::getRecordParams() {
  * @param params
  * @return
  */
-int FFMediaRecorder::prepare() {
+int FLVRecorder::prepare() {
 
     RecordParams *params = mRecordParams;
     if (params->rotateDegree % 90 != 0) {
@@ -122,7 +118,34 @@ int FFMediaRecorder::prepare() {
 
     aw_sw_encoder_open_x264_encoder(pX264_config);
 
-    // todo 打开文件 params->dstFile
+    // write FLV Header
+    aw_data *awData = alloc_aw_data(13);
+    aw_write_flv_header(&awData);
+    aw_write_data_to_file(params->dstFile, awData);
+
+    // write Metadata Tag
+    aw_flv_script_tag *script_tag = alloc_aw_flv_script_tag();
+
+    script_tag->duration = 0;
+    script_tag->width = outputWidth;
+    script_tag->height = outputHeight;
+    script_tag->video_data_rate = 1000;
+    script_tag->frame_rate = params->frameRate;
+
+    script_tag->a_sample_rate = params->sampleRate;
+    script_tag->a_sample_size = params->sampleFormat;
+    if (params->channels == 1) {
+        script_tag->stereo = 0;
+    } else {
+        script_tag->stereo = 1;
+    }
+    script_tag->file_size = 0;
+    if(script_tag) {
+        save_script_data(script_tag);
+        LOGD("save Metadata Tag success");
+    }else{
+        LOGE("pScriptTag null pointer");
+    }
     return 0;
 }
 
@@ -131,7 +154,7 @@ int FFMediaRecorder::prepare() {
  * @param data
  * @return
  */
-int FFMediaRecorder::recordFrame(AVMediaData *data) {
+int FLVRecorder::recordFrame(AVMediaData *data) {
     if (mAbortRequest || mExit) {
         LOGE("Recoder is not recording.");
         delete data;
@@ -162,7 +185,7 @@ int FFMediaRecorder::recordFrame(AVMediaData *data) {
 /**
  * 开始录制
  */
-void FFMediaRecorder::startRecord() {
+void FLVRecorder::startRecord() {
     mMutex.lock();
     mAbortRequest = false;
     mStartRequest = true;
@@ -179,7 +202,7 @@ void FFMediaRecorder::startRecord() {
 /**
  * 停止录制
  */
-void FFMediaRecorder::stopRecord() {
+void FLVRecorder::stopRecord() {
     mMutex.lock();
     mAbortRequest = true;
     mCondition.signal();
@@ -189,13 +212,37 @@ void FFMediaRecorder::stopRecord() {
         delete mRecordThread;
         mRecordThread = nullptr;
     }
+    //update duration and file size
+    FILE *file = fopen(mRecordParams->dstFile, "w");
+    int64_t  file_size = ftello(file);
+    aw_data* flv_data = alloc_aw_data(30);
+
+    //写入duration 0表示double，1表示uint8
+    data_writer.write_string(&flv_data, "duration", 2);
+    data_writer.write_uint8(&flv_data, 0);
+    data_writer.write_double(&flv_data, duration);
+    //写入file_size
+    data_writer.write_string(&flv_data, "filesize", 2);
+    data_writer.write_uint8(&flv_data, 0);
+    data_writer.write_double(&flv_data, file_size);
+
+    if (file) {
+        //todo
+        fseek(file, 28, SEEK_SET);
+
+        size_t write_item_count = fwrite(flv_data->data, flv_data->size, 1, file);
+        fflush(file);
+        fclose(file);
+    }
+    aw_sw_encoder_close_faac_encoder();
+    aw_sw_encoder_close_x264_encoder();
 }
 
 /**
  * 判断是否正在录制
  * @return
  */
-bool FFMediaRecorder::isRecording() {
+bool FLVRecorder::isRecording() {
     bool recording = false;
     mMutex.lock();
     recording = !mAbortRequest && mStartRequest && !mExit;
@@ -203,7 +250,7 @@ bool FFMediaRecorder::isRecording() {
     return recording;
 }
 
-void FFMediaRecorder::run() {
+void FLVRecorder::run() {
     int ret = 0;
     int64_t start = 0;
     int64_t current = 0;
@@ -278,9 +325,6 @@ void FFMediaRecorder::run() {
                 delete data;
             }
         }
-
-        // 停止文件写入器
-        ret = mMediaWriter->stop();
     }
 
     // 通知退出成功
@@ -291,18 +335,19 @@ void FFMediaRecorder::run() {
     if (mRecordListener != nullptr) {
         mRecordListener->onRecordFinish(ret == 0, (float)(current - start));
     }
+    duration = current - start;
 }
 
 /**
  * Save Flv AudioTag
  */
-void FFMediaRecorder::saveFlvAudioTag(aw_flv_audio_tag *audio_tag) {
+void FLVRecorder::saveFlvAudioTag(aw_flv_audio_tag *audio_tag) {
     if(!audio_tag){
         LOGE("audio_tag null pointer");
         return;;
     }
     if(!isSpsPpsAndAudioSpecificConfigSent){
-        sendSpsPpsAndAudioSpecificConfigTag();
+        saveSpsPpsAndAudioSpecificConfigTag();
         free_aw_flv_audio_tag(&audio_tag);
     } else{
         save_audio_data(audio_tag);
@@ -312,14 +357,14 @@ void FFMediaRecorder::saveFlvAudioTag(aw_flv_audio_tag *audio_tag) {
 /**
  * Save Flv VideoTag
  */
-void FFMediaRecorder::saveFlvVideoTag(aw_flv_video_tag *video_tag) {
+void FLVRecorder::saveFlvVideoTag(aw_flv_video_tag *video_tag) {
 
     if(!video_tag){
         LOGE("video_tag null pointer");
         return;;
     }
     if(!isSpsPpsAndAudioSpecificConfigSent){
-        sendSpsPpsAndAudioSpecificConfigTag();
+        saveSpsPpsAndAudioSpecificConfigTag();
         free_aw_flv_video_tag(&video_tag);
     } else{
         save_video_data(video_tag);
@@ -329,18 +374,18 @@ void FFMediaRecorder::saveFlvVideoTag(aw_flv_video_tag *video_tag) {
 /**
  * 根据flv，h264，aac协议，提供首帧需要发送的tag
  */
-void FFMediaRecorder::sendSpsPpsAndAudioSpecificConfigTag() {
+void FLVRecorder::saveSpsPpsAndAudioSpecificConfigTag() {
     aw_flv_video_tag *spsPpsTag = NULL;
     aw_flv_audio_tag *audioSpecificConfigTag = NULL;
     if(isSpsPpsAndAudioSpecificConfigSent){
-        LOGE("[AVCapture] already send sps pps or not capture");
+        LOGE("already send sps pps or not capture");
         return;
     }
     //create video sps pps tag
     spsPpsTag = aw_sw_encoder_create_x264_sps_pps_tag();
     if(spsPpsTag) {
-        saveFlvVideoTag(spsPpsTag);
-        LOGD("send sps pps success");
+        save_video_data(spsPpsTag);
+        LOGD("save sps pps success");
     }else{
         LOGE("spsPpsTag null pointer");
     }
@@ -348,8 +393,8 @@ void FFMediaRecorder::sendSpsPpsAndAudioSpecificConfigTag() {
     //audio specific config tag
     audioSpecificConfigTag = aw_sw_encoder_create_faac_specific_config_tag();
     if(audioSpecificConfigTag){
-        saveFlvAudioTag(audioSpecificConfigTag);
-        LOGD("send audio Specific Tag success");
+        save_audio_data(audioSpecificConfigTag);
+        LOGD("save audio Specific Tag success");
     }else{
         LOGE("audioSpecificConfigTag null pointer");
     }
@@ -358,10 +403,42 @@ void FFMediaRecorder::sendSpsPpsAndAudioSpecificConfigTag() {
     LOGD("is sps pps and audio sepcific config sent=%d", isSpsPpsAndAudioSpecificConfigSent);
 }
 
-void FFMediaRecorder::save_audio_data(aw_flv_audio_tag *audio_tag){
-    aw_streamer_send_flv_tag_to_rtmp(&audio_tag->common_tag);
+void FLVRecorder::save_audio_data(aw_flv_audio_tag *audio_tag){
+    save_flv_tag_to_file(&audio_tag->common_tag);
 }
 
-void FFMediaRecorder::save_video_data(aw_flv_video_tag *video_tag) {
+void FLVRecorder::save_video_data(aw_flv_video_tag *video_tag) {
+    save_flv_tag_to_file(&video_tag->common_tag);
+}
 
+void FLVRecorder::save_script_data(aw_flv_script_tag *script_tag) {
+    save_flv_tag_to_file(&script_tag->common_tag);
+}
+
+void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
+    if (commonTag) {
+        aw_write_flv_tag(&s_output_buf, commonTag);
+        switch (commonTag->tag_type) {
+            case aw_flv_tag_type_audio: {
+                free_aw_flv_audio_tag(&commonTag->audio_tag);
+            }
+            case aw_flv_tag_type_video: {
+                free_aw_flv_video_tag(&commonTag->video_tag);
+            }
+            case aw_flv_tag_type_script: {
+                free_aw_flv_script_tag(&commonTag->script_tag);
+            }
+        }
+    }
+
+    if (s_output_buf->size <= 0) {
+        return;
+    }
+
+    aw_data *data = alloc_aw_data(s_output_buf->size);
+    memcpy(data->data, s_output_buf->data, s_output_buf->size);
+    data->size = s_output_buf->size;
+    aw_write_data_to_file(mRecordParams->dstFile, data);
+
+    aw_log("save flv tag size=%d", s_output_buf->size);
 }

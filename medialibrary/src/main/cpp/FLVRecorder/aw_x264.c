@@ -21,6 +21,7 @@ static void aw_create_x264_param(aw_x264_context *aw_ctx, x264_param_t ** param)
     }
     
     x264_param_default(x264_param);
+
     x264_param_default_preset(x264_param, "fast" , "zerolatency" );
     
     //视频属性
@@ -40,18 +41,22 @@ static void aw_create_x264_param(aw_x264_context *aw_ctx, x264_param_t ** param)
     x264_param->i_fps_num = aw_ctx->config.fps;
     x264_param->i_timebase_den = x264_param->i_fps_num;
     x264_param->i_timebase_num = x264_param->i_fps_den;
+    aw_log("%d %d %d %d", x264_param->i_width, x264_param->i_height, x264_param->rc.i_bitrate, x264_param->i_fps_num);
 }
 
 static void aw_open_x264_handler(aw_x264_context *aw_ctx, x264_param_t *x264_param){
     x264_t *x264_handler = NULL;
-    
+    int ret = 0;
     int i = 0;
     for (; i < 7; i++) {
         aw_log("x264_profile_names[%d] = %s", i, x264_profile_names[i]);
     }
     
-    x264_param_apply_profile(x264_param, x264_profile_names[1]);
-    
+    ret = x264_param_apply_profile(x264_param, x264_profile_names[1]);
+    if (ret < 0) {
+        aw_log("[E] x264_param_apply_profile error");
+        return;
+    }
     x264_handler = x264_encoder_open(x264_param);
     aw_ctx->x264_handler = x264_handler;
     

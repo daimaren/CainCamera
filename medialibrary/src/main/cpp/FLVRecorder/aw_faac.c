@@ -54,7 +54,7 @@ static void aw_open_faac_enc_handler(aw_faac_context *faac_ctx){
         faac_ctx->audio_specific_config_data = alloc_aw_data(0);
         memcpy_aw_data(&faac_ctx->audio_specific_config_data, audio_specific_data, (uint32_t)audio_specific_data_len);
     }
-    
+    aw_log("[d] faacEncEncode open success");
 }
 
 extern void aw_encode_pcm_frame_2_aac(aw_faac_context *ctx, int8_t *pcm_data, long len){

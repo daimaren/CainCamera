@@ -31,7 +31,7 @@ import java.util.List;
 public class FLVRecordPresenter implements Camera.PreviewCallback, AudioRecorder.OnRecordCallback,
         SurfaceTexture.OnFrameAvailableListener, FLVRecorder.OnRecordListener {
 
-    private static final String TAG = "FFMediaRecordPresenter";
+    private static final String TAG = "FLVRecordPresenter";
     private static final boolean VERBOSE = true;
 
     private Activity mActivity;
@@ -394,7 +394,7 @@ public class FLVRecordPresenter implements Camera.PreviewCallback, AudioRecorder
      * @return
      */
     public String generateOutputPath() {
-        return PathConstraints.getVideoCachePath(mActivity);
+        return PathConstraints.getFlvVideoCachePath(mActivity);
     }
 
     /**

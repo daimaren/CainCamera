@@ -30,9 +30,9 @@ add_library( flv_recorder
              aw_sw_faac_encoder.c
              aw_encode_flv.c
              # 录制器
-             FFMediaRecorder.cpp
+             FLVRecorder.cpp
              RecordParams.cpp
-             com_cgfay_media_recorder_FFMediaRecorder.cpp)
+             com_cgfay_media_recorder_FLVRecorder.cpp)
 
 # 链接静态库
 target_link_libraries( flv_recorder

@@ -201,8 +201,61 @@ inline int getX264PixelFormat(PixelFormat format) {
         pixelFormat = X264_CSP_YV12;
     } else if (format == PIXEL_FORMAT_RGBA) {
         pixelFormat = X264_CSP_BGRA;
+    } else {
+        LOGE("error");
     }
     return pixelFormat;
+}
+
+/**
+ * 将像素格式转换成FFmpeg的像素格式
+ * @param format
+ * @return
+ */
+inline AVPixelFormat getPixelFormat(PixelFormat format) {
+    AVPixelFormat pixelFormat = AV_PIX_FMT_NONE;
+    if (format == PIXEL_FORMAT_NV21) {
+        pixelFormat = AV_PIX_FMT_NV21;
+    } else if (format == PIXEL_FORMAT_YV12 || format == PIXEL_FORMAT_YUV420P) {
+        pixelFormat = AV_PIX_FMT_YUV420P;
+    } else if (format == PIXEL_FORMAT_ABGR) {
+        pixelFormat = AV_PIX_FMT_ABGR;
+    }
+    return pixelFormat;
+}
+
+/**
+ * 将FFmpeg的像素格式转换成录制的像素格式
+ * @param format
+ * @return
+ */
+inline PixelFormat pixelFormatConvert(AVPixelFormat format) {
+    PixelFormat mode = PIXEL_FORMAT_NONE;
+    if (format == AV_PIX_FMT_NV12) {
+        mode = PIXEL_FORMAT_NV12;
+    } else if (format == AV_PIX_FMT_NV21) {
+        mode = PIXEL_FORMAT_NV21;
+    } else if (format == AV_PIX_FMT_YUV420P) {
+        mode = PIXEL_FORMAT_YUV420P;
+    }
+    return mode;
+}
+
+/**
+ * 将录制器采样格式转换成FFmpeg的音频采样格式
+ * @param format
+ * @return
+ */
+inline AVSampleFormat getSampleFormat(SampleFormat format) {
+    AVSampleFormat sampleFormat = AV_SAMPLE_FMT_NONE;
+    if (format == SAMPLE_FORMAT_8BIT) {
+        sampleFormat = AV_SAMPLE_FMT_U8;
+    } else if (format == SAMPLE_FORMAT_16BIT) {
+        sampleFormat = AV_SAMPLE_FMT_S16;
+    } else if (format == SAMPLE_FORMAT_FLOAT) {
+        sampleFormat = AV_SAMPLE_FMT_FLT;
+    }
+    return sampleFormat;
 }
 
 /**

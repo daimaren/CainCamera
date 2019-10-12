@@ -133,9 +133,8 @@ static void aw_write_video_tag_body(aw_data **flv_data, aw_flv_video_tag *video_
 
 static void aw_write_script_tag_body(aw_data **flv_data, aw_flv_script_tag *script_tag){
     //纪录写入了多少字节
-    data_writer.end_record_size();
-    data_writer.start_record_size();
-    
+    //data_writer.end_record_size();
+    //data_writer.start_record_size();
     //2表示类型，字符串
     data_writer.write_uint8(flv_data, 2);
     data_writer.write_string(flv_data, "onMetaData", 2);
@@ -144,13 +143,19 @@ static void aw_write_script_tag_body(aw_data **flv_data, aw_flv_script_tag *scri
     data_writer.write_uint8(flv_data, 8);
     //数组长度：11
     data_writer.write_uint32(flv_data, 11);
-    
+
+    AWLog("script tag body size = %ld", data_writer.record_size());
+    data_writer.end_record_size();
     //28字节
     
     //写入duration 0表示double，1表示uint8
-    data_writer.write_string(flv_data, "duration", 2);
-    data_writer.write_uint8(flv_data, 0);
-    data_writer.write_double(flv_data, script_tag->duration);
+    //data_writer.write_string(flv_data, "duration", 2);
+    //data_writer.write_uint8(flv_data, 0);
+    //data_writer.write_double(flv_data, script_tag->duration);
+    //写入file_size
+    //data_writer.write_string(flv_data, "filesize", 2);
+    //data_writer.write_uint8(flv_data, 0);
+    //data_writer.write_double(flv_data, script_tag->file_size);
     //写入width
     data_writer.write_string(flv_data, "width", 2);
     data_writer.write_uint8(flv_data, 0);
@@ -187,17 +192,13 @@ static void aw_write_script_tag_body(aw_data **flv_data, aw_flv_script_tag *scri
     data_writer.write_string(flv_data, "audiocodecid", 2);
     data_writer.write_uint8(flv_data, 0);
     data_writer.write_double(flv_data, script_tag->a_codec_id);
-    //写入file_size
-    data_writer.write_string(flv_data, "filesize", 2);
-    data_writer.write_uint8(flv_data, 0);
-    data_writer.write_double(flv_data, script_tag->file_size);
     
     //3字节的0x9表示metadata结束
     data_writer.write_uint24(flv_data, 9);
     
     //打印写入了多少字节
-    AWLog("script tag body size = %ld", data_writer.record_size());
-    data_writer.end_record_size();
+    //AWLog("script tag body size = %ld", data_writer.record_size());
+    //data_writer.end_record_size();
 }
 
 static void aw_write_tag_body(aw_data **flv_data, aw_flv_common_tag *common_tag){
@@ -228,6 +229,7 @@ extern void aw_write_flv_tag(aw_data **flv_data, aw_flv_common_tag *common_tag){
 }
 
 extern void aw_write_flv_header(aw_data **flv_data){
+    data_writer.start_record_size();
     uint8_t
     f = 'F', l = 'L', v = 'V',//FLV
     version = 1,//固定值
