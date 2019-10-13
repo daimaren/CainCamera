@@ -1,3 +1,5 @@
+20191013: 在住处用最新版本+华为手机连wifi后，测试人脸贴纸功能ok。公司ng很可能是因为网络问题。
+
 1. onClick()<--MainActivity.java
     2. previewCamera()
       3. new PreviewEngine()
