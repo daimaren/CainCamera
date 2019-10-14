@@ -18,25 +18,25 @@ RecordParams::RecordParams()
 
 RecordParams::~RecordParams() {
     if (videoEncoder != nullptr) {
-        av_freep(&videoEncoder);
+        free(&videoEncoder);
         videoEncoder = nullptr;
     }
     if (audioEncoder != nullptr) {
-        av_freep(&audioEncoder);
+        free(&audioEncoder);
         audioEncoder = nullptr;
     }
     if (audioFilter != nullptr) {
-        av_freep(&audioFilter);
+        free(&audioFilter);
         audioFilter = nullptr;
     }
 
     if (videoFilter != nullptr) {
-        av_freep(&videoFilter);
+        free(&videoFilter);
         videoFilter = nullptr;
     }
 
     if (dstFile != nullptr) {
-        av_freep(&dstFile);
+        free(&dstFile);
         dstFile = nullptr;
     }
 }
@@ -63,11 +63,11 @@ void RecordParams::setAudioParams(int sampleRate, int sampleFormat, int channels
 }
 
 void RecordParams::setVideoEncoder(const char *encoder) {
-    this->videoEncoder = av_strdup(encoder);
+    this->videoEncoder = strdup(encoder);
 }
 
 void RecordParams::setAudioEncoder(const char *encoder) {
-    this->audioEncoder = av_strdup(encoder);
+    this->audioEncoder = strdup(encoder);
 }
 
 void RecordParams::setMaxBitRate(int64_t maxBitRate) {
@@ -99,9 +99,9 @@ void RecordParams::setMirror(bool mirror) {
 }
 
 void RecordParams::setVideoFilter(const char *videoFilter) {
-    this->videoFilter = av_strdup(videoFilter);
+    this->videoFilter = strdup(videoFilter);
 }
 
 void RecordParams::setAudioFilter(const char *audioFilter) {
-    this->audioFilter = av_strdup(audioFilter);
+    this->audioFilter = strdup(audioFilter);
 }

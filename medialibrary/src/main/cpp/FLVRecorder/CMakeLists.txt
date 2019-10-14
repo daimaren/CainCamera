@@ -11,9 +11,7 @@ add_library( flv_recorder
              SHARED
 
              # 通用类
-             ${common_dir}/AVFrameFilter.cpp
-             ${common_dir}/AVMediaWriter.cpp
-             ${common_dir}/AVFormatter.cpp
+             ${common_dir}/AVFormat.cpp
              ${common_dir}/AVMediaData.cpp
              ${common_dir}/YuvConvertor.cpp
              ${common_dir}/YuvData.cpp
@@ -37,7 +35,6 @@ add_library( flv_recorder
 # 链接静态库
 target_link_libraries( flv_recorder
 
-                       ffmpeg
                        x264
                        faac
                        yuv

@@ -1,7 +1,7 @@
 //
 // Created by CainHuang on 2019/8/17.
 //
-
+#include "unistd.h"
 #include "FLVRecorder.h"
 
 FLVRecorder::FLVRecorder() : mRecordListener(nullptr), mAbortRequest(true),
@@ -50,6 +50,32 @@ void FLVRecorder::release() {
         delete mRecordThread;
         mRecordThread = nullptr;
     }
+    //update duration and file size
+    if (mFile == nullptr) {
+        aw_log("mFile nullptr");
+        return;
+    }
+
+    int64_t  file_size = ftello(mFile);
+    aw_data* flv_data = alloc_aw_data(30);
+
+    //写入duration 0表示double，1表示uint8
+    data_writer.write_string(&flv_data, "duration", 2);
+    data_writer.write_uint8(&flv_data, 0);
+    data_writer.write_double(&flv_data, duration);
+    //写入file_size
+    data_writer.write_string(&flv_data, "filesize", 2);
+    data_writer.write_uint8(&flv_data, 0);
+    data_writer.write_double(&flv_data, file_size);
+
+    if (mFile) {
+        fseek(mFile, 42, SEEK_SET);
+
+        size_t write_item_count = fwrite(flv_data->data, 1, flv_data->size, mFile);
+        fclose(mFile);
+    }
+    aw_sw_encoder_close_faac_encoder();
+    aw_sw_encoder_close_x264_encoder();
 }
 
 RecordParams* FLVRecorder::getRecordParams() {
@@ -123,6 +149,9 @@ int FLVRecorder::prepare() {
     aw_write_flv_header(&awData);
     aw_write_data_to_file(params->dstFile, awData);
 
+    usleep(1000);
+    mFile = fopen(params->dstFile, "wb");
+
     // write Metadata Tag
     aw_flv_script_tag *script_tag = alloc_aw_flv_script_tag();
 
@@ -146,6 +175,7 @@ int FLVRecorder::prepare() {
     }else{
         LOGE("pScriptTag null pointer");
     }
+    aw_log("prepare done");
     return 0;
 }
 
@@ -212,30 +242,6 @@ void FLVRecorder::stopRecord() {
         delete mRecordThread;
         mRecordThread = nullptr;
     }
-    //update duration and file size
-    FILE *file = fopen(mRecordParams->dstFile, "w");
-    int64_t  file_size = ftello(file);
-    aw_data* flv_data = alloc_aw_data(30);
-
-    //写入duration 0表示double，1表示uint8
-    data_writer.write_string(&flv_data, "duration", 2);
-    data_writer.write_uint8(&flv_data, 0);
-    data_writer.write_double(&flv_data, duration);
-    //写入file_size
-    data_writer.write_string(&flv_data, "filesize", 2);
-    data_writer.write_uint8(&flv_data, 0);
-    data_writer.write_double(&flv_data, file_size);
-
-    if (file) {
-        //todo
-        fseek(file, 28, SEEK_SET);
-
-        size_t write_item_count = fwrite(flv_data->data, flv_data->size, 1, file);
-        fflush(file);
-        fclose(file);
-    }
-    aw_sw_encoder_close_faac_encoder();
-    aw_sw_encoder_close_x264_encoder();
 }
 
 /**
@@ -266,7 +272,7 @@ void FLVRecorder::run() {
         if (mAbortRequest) { // 停止请求则直接退出
             break;
         } else { // 睡眠10毫秒继续
-            av_usleep(10 * 1000);
+            usleep(10 * 1000);
         }
     }
 
@@ -421,12 +427,15 @@ void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
         switch (commonTag->tag_type) {
             case aw_flv_tag_type_audio: {
                 free_aw_flv_audio_tag(&commonTag->audio_tag);
+                break;
             }
             case aw_flv_tag_type_video: {
                 free_aw_flv_video_tag(&commonTag->video_tag);
+                break;
             }
             case aw_flv_tag_type_script: {
                 free_aw_flv_script_tag(&commonTag->script_tag);
+                break;
             }
         }
     }
@@ -438,7 +447,9 @@ void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
     aw_data *data = alloc_aw_data(s_output_buf->size);
     memcpy(data->data, s_output_buf->data, s_output_buf->size);
     data->size = s_output_buf->size;
-    aw_write_data_to_file(mRecordParams->dstFile, data);
-
-    aw_log("save flv tag size=%d", s_output_buf->size);
+    if (mFile) {
+        size_t count = fwrite(data->data, 1, data->size, mFile);
+        aw_log("save flv tag size=%d", count);
+    }
+    reset_aw_data(&s_output_buf);
 }

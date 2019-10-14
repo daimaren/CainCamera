@@ -62,7 +62,6 @@ void YuvConvertor::setInputParams(int width, int height, int pixelFormat) {
     mWidth = width;
     mHeight = height;
     mPixelFormat = pixelFormat;
-    LOGE("input video params:[%d, %d, %s]", width, height, av_get_pix_fmt_name(getPixelFormat((PixelFormat)pixelFormat)));
 }
 
 /**

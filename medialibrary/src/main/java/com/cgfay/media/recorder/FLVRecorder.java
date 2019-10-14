@@ -10,7 +10,6 @@ public final class FLVRecorder {
     private static final String TAG = "FLVRecorder";
 
     static {
-        System.loadLibrary("ffmpeg");
         System.loadLibrary("soundtouch");
         System.loadLibrary("yuv");
         System.loadLibrary("flv_recorder");

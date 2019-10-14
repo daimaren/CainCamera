@@ -29,7 +29,6 @@ static JNIEnv *getJNIEnv() {
 
 extern "C" JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *vm, void *reserved) {
-    av_jni_set_java_vm(vm, nullptr);
     javaVM = vm;
     JNIEnv *env;
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_4) != JNI_OK) {

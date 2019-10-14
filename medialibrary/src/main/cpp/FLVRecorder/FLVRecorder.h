@@ -82,6 +82,7 @@ private:
     void save_script_data(aw_flv_script_tag *script_tag);
     void save_flv_tag_to_file(aw_flv_common_tag *commonTag);
 private:
+    FILE* mFile;
     Mutex mMutex;
     Condition mCondition;
     Thread *mRecordThread;

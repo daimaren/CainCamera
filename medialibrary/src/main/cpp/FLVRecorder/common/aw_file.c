@@ -81,10 +81,10 @@ extern aw_data *aw_read_data_from_file(const char *file_path){
 }
 
 extern int8_t aw_write_data_to_file(const char *file_path, aw_data *data){
-    FILE *file = fopen(file_path, "w");
+    FILE *file = fopen(file_path, "wb");
     if (file) {
         size_t file_size = data->size;
-        size_t write_item_count = fwrite(data->data, file_size, 1, file);
+        size_t write_item_count = fwrite(data->data, 1, file_size, file);
         fflush(file);
         fclose(file);
         return write_item_count != 0;
