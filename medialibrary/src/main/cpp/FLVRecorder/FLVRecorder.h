@@ -89,7 +89,7 @@ private:
     OnRecordListener *mRecordListener;
     SafetyQueue<AVMediaData *> *mFrameQueue;
     aw_data *s_output_buf = NULL;
-    int64_t duration;
+    double duration;
 
     bool mAbortRequest; // 停止请求
     bool mStartRequest; // 开始录制请求

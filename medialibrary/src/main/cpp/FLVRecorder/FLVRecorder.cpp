@@ -56,7 +56,7 @@ void FLVRecorder::release() {
         return;
     }
 
-    int64_t  file_size = ftello(mFile);
+    double  file_size = ftello(mFile);
     aw_data* flv_data = alloc_aw_data(30);
 
     //写入duration 0表示double，1表示uint8
@@ -144,14 +144,24 @@ int FLVRecorder::prepare() {
 
     aw_sw_encoder_open_x264_encoder(pX264_config);
 
-    // write FLV Header
-    aw_data *awData = alloc_aw_data(13);
-    aw_write_flv_header(&awData);
-    aw_write_data_to_file(params->dstFile, awData);
-
-    usleep(1000);
     mFile = fopen(params->dstFile, "wb");
-
+    // write FLV Header
+    aw_data *flvHeader = alloc_aw_data(13);
+    uint8_t
+    f = 'F', l = 'L', v = 'V',//FLV
+    version = 1,//固定值
+    av_flag = 5;//5表示av，5表示只有a，1表示只有v
+    uint32_t flv_header_len = 9;
+    data_writer.write_uint8(&flvHeader, f);
+    data_writer.write_uint8(&flvHeader, l);
+    data_writer.write_uint8(&flvHeader, v);
+    data_writer.write_uint8(&flvHeader, version);
+    data_writer.write_uint8(&flvHeader, av_flag);
+    data_writer.write_uint32(&flvHeader, flv_header_len);
+    //first previous tag size
+    data_writer.write_uint32(&flvHeader, 0);
+    size_t write_item_count = fwrite(flvHeader->data, 1, flvHeader->size, mFile);
+    aw_log("count %d", write_item_count);
     // write Metadata Tag
     aw_flv_script_tag *script_tag = alloc_aw_flv_script_tag();
 
@@ -454,7 +464,7 @@ void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
     data->size = s_output_buf->size;
     if (mFile) {
         size_t count = fwrite(data->data, 1, data->size, mFile);
-        //aw_log("save flv tag size=%d", count);
+        aw_log("save flv tag size=%d", count);
     }
     reset_aw_data(&s_output_buf);
 }

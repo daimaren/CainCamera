@@ -126,7 +126,7 @@ public class FLVRecordPresenter implements Camera.PreviewCallback, AudioRecorder
         if (mMediaRecorder != null) {
             mMediaRecorder.release();
         }
-        mMediaRecorder = new FLVRecorder.RecordBuilder(generateOutputPath())
+        mMediaRecorder = new FLVRecorder.RecordBuilder("/storage/emulated/0/dump.flv") //generateOutputPath()
                 .setVideoParams(mRecordWidth, mRecordHeight, AVFormatter.PIXEL_FORMAT_NV21, 25)
 //                .setVideoFilter("lutyuv='u=128:v=128'") // 黑白滤镜
 //                .setVideoFilter("noise=alls=20:allf=t+p") // 噪点
