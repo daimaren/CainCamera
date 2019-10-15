@@ -309,6 +309,8 @@ void FLVRecorder::run() {
                     aw_flv_video_tag *video_tag = aw_sw_encoder_encode_x264_data((int8_t*)data->image, data->length, data->pts);
                     if (video_tag) {
                         saveFlvVideoTag(video_tag);
+                    } else {
+                        aw_log("video_tag error");
                     }
                 } else if (data->getType() == MediaAudio) {
                     // faac编码
@@ -426,14 +428,17 @@ void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
         aw_write_flv_tag(&s_output_buf, commonTag);
         switch (commonTag->tag_type) {
             case aw_flv_tag_type_audio: {
+                //aw_log("save audio tag");
                 free_aw_flv_audio_tag(&commonTag->audio_tag);
                 break;
             }
             case aw_flv_tag_type_video: {
+                aw_log("save video tag");
                 free_aw_flv_video_tag(&commonTag->video_tag);
                 break;
             }
             case aw_flv_tag_type_script: {
+                aw_log("save script tag");
                 free_aw_flv_script_tag(&commonTag->script_tag);
                 break;
             }
@@ -449,7 +454,7 @@ void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
     data->size = s_output_buf->size;
     if (mFile) {
         size_t count = fwrite(data->data, 1, data->size, mFile);
-        aw_log("save flv tag size=%d", count);
+        //aw_log("save flv tag size=%d", count);
     }
     reset_aw_data(&s_output_buf);
 }

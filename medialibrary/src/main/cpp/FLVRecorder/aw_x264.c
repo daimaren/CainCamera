@@ -8,7 +8,6 @@
 #include "aw_alloc.h"
 #include "aw_utils.h"
 #include <string.h>
-#include <x264.h>
 
 static void aw_create_x264_param(aw_x264_context *aw_ctx, x264_param_t ** param){
     if (!param) {
@@ -195,6 +194,7 @@ extern void aw_encode_yuv_frame_2_x264(aw_x264_context *aw_ctx, int8_t *yuv_fram
         }else if(aw_ctx->config.input_data_format == X264_CSP_BGRA){
             aw_ctx->pic_in->img.plane[0] = (uint8_t *)yuv_frame;
         }else{//YUV420
+            aw_log("YUV420");
             aw_ctx->pic_in->img.plane[0] = (uint8_t *)yuv_frame;
             aw_ctx->pic_in->img.plane[1] = (uint8_t *)yuv_frame + actual_width * aw_ctx->config.height;
             aw_ctx->pic_in->img.plane[2] = (uint8_t *)yuv_frame + actual_width * aw_ctx->config.height * 5 / 4;
@@ -235,12 +235,14 @@ extern aw_x264_context *alloc_aw_x264_context(aw_x264_config config){
     if (!config.input_data_format) {
         config.input_data_format = X264_CSP_I420;
     }
+    if (config.input_data_format != X264_CSP_I420)
+        config.input_data_format = X264_CSP_I420;
     
     //创建handler do nothing
     memcpy(&ctx->config, &config, sizeof(aw_x264_config));
     x264_param_t *x264_param = NULL;
-    aw_create_x264_param2(ctx, &x264_param);
-    aw_open_x264_handler2(ctx, x264_param);
+    aw_create_x264_param(ctx, &x264_param);
+    aw_open_x264_handler(ctx, x264_param);
     aw_free(x264_param);
     
     //创建pic_in
