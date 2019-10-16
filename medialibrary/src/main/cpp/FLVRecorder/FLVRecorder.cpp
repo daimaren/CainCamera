@@ -4,13 +4,13 @@
 #include "unistd.h"
 #include "FLVRecorder.h"
 
-FLVRecorder::FLVRecorder() : mRecordListener(nullptr), mAbortRequest(true),
+MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr){
     mRecordParams = new RecordParams();
 }
 
-FLVRecorder::~FLVRecorder() {
+MediaRecorder::~MediaRecorder() {
     release();
     if (mRecordParams != nullptr) {
         delete mRecordParams;
@@ -22,14 +22,14 @@ FLVRecorder::~FLVRecorder() {
  * 设置录制监听器
  * @param listener
  */
-void FLVRecorder::setOnRecordListener(OnRecordListener *listener) {
+void MediaRecorder::setOnRecordListener(OnRecordListener *listener) {
     mRecordListener = listener;
 }
 
 /**
  * 释放资源
  */
-void FLVRecorder::release() {
+void MediaRecorder::release() {
     stopRecord();
     // 等待退出
     mMutex.lock();
@@ -78,7 +78,7 @@ void FLVRecorder::release() {
     aw_sw_encoder_close_x264_encoder();
 }
 
-RecordParams* FLVRecorder::getRecordParams() {
+RecordParams* MediaRecorder::getRecordParams() {
     return mRecordParams;
 }
 
@@ -87,7 +87,7 @@ RecordParams* FLVRecorder::getRecordParams() {
  * @param params
  * @return
  */
-int FLVRecorder::prepare() {
+int MediaRecorder::prepare() {
 
     RecordParams *params = mRecordParams;
     if (params->rotateDegree % 90 != 0) {
@@ -194,7 +194,7 @@ int FLVRecorder::prepare() {
  * @param data
  * @return
  */
-int FLVRecorder::recordFrame(AVMediaData *data) {
+int MediaRecorder::recordFrame(AVMediaData *data) {
     if (mAbortRequest || mExit) {
         LOGE("Recoder is not recording.");
         delete data;
@@ -225,7 +225,7 @@ int FLVRecorder::recordFrame(AVMediaData *data) {
 /**
  * 开始录制
  */
-void FLVRecorder::startRecord() {
+void MediaRecorder::startRecord() {
     mMutex.lock();
     mAbortRequest = false;
     mStartRequest = true;
@@ -242,7 +242,7 @@ void FLVRecorder::startRecord() {
 /**
  * 停止录制
  */
-void FLVRecorder::stopRecord() {
+void MediaRecorder::stopRecord() {
     mMutex.lock();
     mAbortRequest = true;
     mCondition.signal();
@@ -258,7 +258,7 @@ void FLVRecorder::stopRecord() {
  * 判断是否正在录制
  * @return
  */
-bool FLVRecorder::isRecording() {
+bool MediaRecorder::isRecording() {
     bool recording = false;
     mMutex.lock();
     recording = !mAbortRequest && mStartRequest && !mExit;
@@ -266,7 +266,7 @@ bool FLVRecorder::isRecording() {
     return recording;
 }
 
-void FLVRecorder::run() {
+void MediaRecorder::run() {
     int ret = 0;
     int64_t start = 0;
     int64_t current = 0;
@@ -359,7 +359,7 @@ void FLVRecorder::run() {
 /**
  * Save Flv AudioTag
  */
-void FLVRecorder::saveFlvAudioTag(aw_flv_audio_tag *audio_tag) {
+void MediaRecorder::saveFlvAudioTag(aw_flv_audio_tag *audio_tag) {
     if(!audio_tag){
         LOGE("audio_tag null pointer");
         return;;
@@ -375,7 +375,7 @@ void FLVRecorder::saveFlvAudioTag(aw_flv_audio_tag *audio_tag) {
 /**
  * Save Flv VideoTag
  */
-void FLVRecorder::saveFlvVideoTag(aw_flv_video_tag *video_tag) {
+void MediaRecorder::saveFlvVideoTag(aw_flv_video_tag *video_tag) {
 
     if(!video_tag){
         LOGE("video_tag null pointer");
@@ -392,7 +392,7 @@ void FLVRecorder::saveFlvVideoTag(aw_flv_video_tag *video_tag) {
 /**
  * 根据flv，h264，aac协议，提供首帧需要发送的tag
  */
-void FLVRecorder::saveSpsPpsAndAudioSpecificConfigTag() {
+void MediaRecorder::saveSpsPpsAndAudioSpecificConfigTag() {
     aw_flv_video_tag *spsPpsTag = NULL;
     aw_flv_audio_tag *audioSpecificConfigTag = NULL;
     if(isSpsPpsAndAudioSpecificConfigSent){
@@ -421,19 +421,19 @@ void FLVRecorder::saveSpsPpsAndAudioSpecificConfigTag() {
     LOGD("is sps pps and audio sepcific config sent=%d", isSpsPpsAndAudioSpecificConfigSent);
 }
 
-void FLVRecorder::save_audio_data(aw_flv_audio_tag *audio_tag){
+void MediaRecorder::save_audio_data(aw_flv_audio_tag *audio_tag){
     save_flv_tag_to_file(&audio_tag->common_tag);
 }
 
-void FLVRecorder::save_video_data(aw_flv_video_tag *video_tag) {
+void MediaRecorder::save_video_data(aw_flv_video_tag *video_tag) {
     save_flv_tag_to_file(&video_tag->common_tag);
 }
 
-void FLVRecorder::save_script_data(aw_flv_script_tag *script_tag) {
+void MediaRecorder::save_script_data(aw_flv_script_tag *script_tag) {
     save_flv_tag_to_file(&script_tag->common_tag);
 }
 
-void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
+void MediaRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
     if (commonTag) {
         aw_write_flv_tag(&s_output_buf, commonTag);
         switch (commonTag->tag_type) {

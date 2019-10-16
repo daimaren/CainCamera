@@ -2,22 +2,24 @@ package com.cgfay.media.recorder;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.view.Surface;
 
 /**
  * 基于FFmpeg的音频/视频录制器
  */
 public final class MediaRecorder {
-    private static final String TAG = "FFMediaRecorder";
+    private static final String TAG = "MediaRecorder";
 
     static {
-        System.loadLibrary("ffmpeg");
         System.loadLibrary("soundtouch");
         System.loadLibrary("yuv");
-        System.loadLibrary("ffrecorder");
+        System.loadLibrary("media_recorder");
     }
 
     // 初始化
     private native long nativeInit();
+    //
+    public native void prepareEGLContext(Surface surface, int width, int height, int cameraFacingId);
     // 释放资源
     private native void nativeRelease(long handle);
     // 设置录制监听回调

@@ -10,8 +10,6 @@
 #include <AVMediaData.h>
 #include <Thread.h>
 #include <AVFormatter.h>
-#include <AVFrameFilter.h>
-#include <AVMediaWriter.h>
 #include <YuvConvertor.h>
 #include "RecordParams.h"
 
@@ -42,11 +40,11 @@ public:
     virtual void onRecordError(const char *msg) = 0;
 };
 
-class FLVRecorder : public Runnable {
+class MediaRecorder : public Runnable {
 public:
-    FLVRecorder();
+    MediaRecorder();
 
-    virtual ~FLVRecorder();
+    virtual ~MediaRecorder();
 
     // 设置录制监听器
     void setOnRecordListener(OnRecordListener *listener);
@@ -97,7 +95,6 @@ private:
     bool isSpsPpsAndAudioSpecificConfigSent = false;
 
     RecordParams *mRecordParams;    // 录制参数
-
     YuvConvertor *mYuvConvertor;    // Yuv转换器
 };
 

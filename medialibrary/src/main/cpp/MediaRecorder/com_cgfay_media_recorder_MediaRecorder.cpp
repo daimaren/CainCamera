@@ -9,7 +9,7 @@
 #include <string.h>
 #include <Mutex.h>
 #include <assert.h>
-#include "FLVRecorder.h"
+#include "MediaRecorder.h"
 #include "AVMediaHeader.h"
 
 extern "C" {
@@ -152,17 +152,28 @@ void JNIOnRecordListener::onRecordError(const char *msg) {
  * 初始化一个录制器对象
  */
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_nativeInit(JNIEnv *env, jobject thiz) {
-    FLVRecorder *recorder = new FLVRecorder();
+Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz) {
+    MediaRecorder *recorder = new MediaRecorder();
     return (jlong) recorder;
+}
+
+/**
+ * prepareEGLContext
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jobject surface, jint width, jint height, jint facingId) {
+    MediaRecorder *recorder = new MediaRecorder();
+    if (surface != 0) {
+
+    }
 }
 
 /**
  * 释放录制器对象
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_nativeRelease(JNIEnv *env, jobject thiz, jlong handle) {
-    FLVRecorder *recorder = (FLVRecorder *)handle;
+Java_com_cgfay_media_recorder_MediaRecorder_nativeRelease(JNIEnv *env, jobject thiz, jlong handle) {
+    MediaRecorder *recorder = (MediaRecorder *)handle;
     if (recorder != nullptr) {
         recorder->release();
         delete recorder;
@@ -173,8 +184,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_nativeRelease(JNIEnv *env, jobject thi
  * 设置录制监听器
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setRecordListener(JNIEnv *env, jobject thiz, jlong handle, jobject listener) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_setRecordListener(JNIEnv *env, jobject thiz, jlong handle, jobject listener) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         JNIOnRecordListener *recordListener = new JNIOnRecordListener(javaVM, env, listener);
         recorder->setOnRecordListener(recordListener);
@@ -185,8 +196,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_setRecordListener(JNIEnv *env, jobject
  * 设置录制输出路径
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setOutput(JNIEnv *env, jobject thiz, jlong handle, jstring dstPath_) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_setOutput(JNIEnv *env, jobject thiz, jlong handle, jstring dstPath_) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         const char *dstPath = env->GetStringUTFChars(dstPath_, nullptr);
         RecordParams *recordParams = recorder->getRecordParams();
@@ -199,8 +210,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_setOutput(JNIEnv *env, jobject thiz, j
  * 设置音频编码器名称
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setAudioEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_setAudioEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         const char *encoder = env->GetStringUTFChars(encoder_, nullptr);
         RecordParams *recordParams = recorder->getRecordParams();
@@ -213,8 +224,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_setAudioEncoder(JNIEnv *env, jobject t
  * 设置视频编码器名称
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setVideoEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_setVideoEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         const char *encoder = env->GetStringUTFChars(encoder_, nullptr);
         RecordParams *recordParams = recorder->getRecordParams();
@@ -227,8 +238,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_setVideoEncoder(JNIEnv *env, jobject t
  * 设置音频AVFilter
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setAudioFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_setAudioFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         const char *filter = env->GetStringUTFChars(filter_, nullptr);
         RecordParams *recordParams = recorder->getRecordParams();
@@ -241,9 +252,9 @@ Java_com_cgfay_media_recorder_FLVRecorder_setAudioFilter(JNIEnv *env, jobject th
  * 设置视频AVFilter
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setVideoFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
+Java_com_cgfay_media_recorder_MediaRecorder_setVideoFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
 
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         const char *filter = env->GetStringUTFChars(filter_, nullptr);
         RecordParams *recordParams = recorder->getRecordParams();
@@ -257,8 +268,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_setVideoFilter(JNIEnv *env, jobject th
  * 设置录制视频旋转角度
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setVideoRotate(JNIEnv *env, jobject thiz, jlong handle, jint rotate) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_setVideoRotate(JNIEnv *env, jobject thiz, jlong handle, jint rotate) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         RecordParams *recordParams = recorder->getRecordParams();
         recordParams->setRotate(rotate);
@@ -269,9 +280,9 @@ Java_com_cgfay_media_recorder_FLVRecorder_setVideoRotate(JNIEnv *env, jobject th
  * 设置视频录制参数
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setVideoParams(JNIEnv *env, jobject thiz, jlong handle,
+Java_com_cgfay_media_recorder_MediaRecorder_setVideoParams(JNIEnv *env, jobject thiz, jlong handle,
         jint width, jint height, jint frameRate, jint pixelFormat, jlong maxBitRate, jint quality) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         RecordParams *recordParams = recorder->getRecordParams();
         recordParams->setVideoParams(width, height, frameRate, pixelFormat, maxBitRate, quality);
@@ -282,9 +293,9 @@ Java_com_cgfay_media_recorder_FLVRecorder_setVideoParams(JNIEnv *env, jobject th
  * 设置音频录制参数
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_setAudioParams(JNIEnv *env, jobject thiz, jlong handle,
+Java_com_cgfay_media_recorder_MediaRecorder_setAudioParams(JNIEnv *env, jobject thiz, jlong handle,
         jint sampleRate, jint sampleFormat, jint channels) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         RecordParams *recordParams = recorder->getRecordParams();
         recordParams->setAudioParams(sampleRate, sampleFormat, channels);
@@ -295,9 +306,9 @@ Java_com_cgfay_media_recorder_FLVRecorder_setAudioParams(JNIEnv *env, jobject th
  * 录制一帧视频帧
  */
 extern "C" JNIEXPORT jint JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_recordVideoFrame(JNIEnv *env, jobject thiz, jlong handle,
+Java_com_cgfay_media_recorder_MediaRecorder_recordVideoFrame(JNIEnv *env, jobject thiz, jlong handle,
         jbyteArray data_, jint length, jint width, jint height, jint pixelFormat) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
         uint8_t *yuvData = (uint8_t *) malloc((size_t) length);
         if (yuvData == nullptr) {
@@ -320,9 +331,9 @@ Java_com_cgfay_media_recorder_FLVRecorder_recordVideoFrame(JNIEnv *env, jobject 
  * 录制一帧音频帧
  */
 extern "C" JNIEXPORT jint JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_recordAudioFrame(JNIEnv *env, jobject thiz, jlong handle,
+Java_com_cgfay_media_recorder_MediaRecorder_recordAudioFrame(JNIEnv *env, jobject thiz, jlong handle,
         jbyteArray data_, jint length) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
         uint8_t *pcmData = (uint8_t *) malloc((size_t) length);
         if (pcmData == nullptr) {
@@ -345,8 +356,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_recordAudioFrame(JNIEnv *env, jobject 
  * 开始录制
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_startRecord(JNIEnv *env, jobject thiz, jlong handle) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_startRecord(JNIEnv *env, jobject thiz, jlong handle) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         int ret = recorder->prepare();
         if (ret < 0) {
@@ -361,8 +372,8 @@ Java_com_cgfay_media_recorder_FLVRecorder_startRecord(JNIEnv *env, jobject thiz,
  * 停止录制
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_FLVRecorder_stopRecord(JNIEnv *env, jobject thiz, jlong handle) {
-    FLVRecorder *recorder = (FLVRecorder *) handle;
+Java_com_cgfay_media_recorder_MediaRecorder_stopRecord(JNIEnv *env, jobject thiz, jlong handle) {
+    MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
         recorder->stopRecord();
     }

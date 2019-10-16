@@ -42,11 +42,11 @@ public:
     virtual void onRecordError(const char *msg) = 0;
 };
 
-class FLVRecorder : public Runnable {
+class MediaRecorder : public Runnable {
 public:
-    FLVRecorder();
+    MediaRecorder();
 
-    virtual ~FLVRecorder();
+    virtual ~MediaRecorder();
 
     // 设置录制监听器
     void setOnRecordListener(OnRecordListener *listener);
