@@ -44,6 +44,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/FFCommand)
 add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
 
 # 媒体录制器
+#add_subdirectory(${CMAKE_SOURCE_DIR}/AVRecorder)
+
+# MediaRecorder
 add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
 
 # FLV录制器

@@ -1,0 +1,5 @@
+界面复用FFMediaRecorder框架，流程如下：
+
+1. jni调用底层创建OES纹理，绑定到java层的相机，设置frameavailableListener。suface创建后设置到底层初始化nativeWindow
+
+2. 开始预览

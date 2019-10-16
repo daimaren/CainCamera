@@ -74,6 +74,14 @@
             android:textColor="@color/white"
             android:text="@string/btn_flv_record"/>
 
+        <Button
+            android:id="@+id/btn_media_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/dp5"
+            android:background="@android:color/transparent"
+            android:textColor="@color/white"
+            android:text="@string/btn_flv_record"/>
     </LinearLayout>
 
 </ScrollView>

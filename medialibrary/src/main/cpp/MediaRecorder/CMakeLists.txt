@@ -3,51 +3,43 @@ set(common_dir ../Common)
 
 # 添加头文件路径
 include_directories(${common_dir} )
+include_directories(common)
 
-# 添加源文件
 # 添加源文件
 add_library( media_recorder
 
-        SHARED
+             SHARED
 
-        # 通用类
-
-        # 录制器
-        live_audio_packet_queue.cpp
-        live_video_packet_queue.cpp
-        #live_common_packet_pool.cpp
-        #live_yuy2_packet_pool.cpp
-        #host_gpu_copier.cpp
-        #handler.cpp
-        #message_queue.cpp
-        matrix.cpp
-        texture_frame_copier.cpp
-        gpu_texture_frame_copier.cpp
-        texture_frame.cpp
-        gpu_texture_frame.cpp
-        #video_gl_surface_render.cpp
-        #recording_preview_renderer.cpp
-        #recording_preview_controller.cpp
-        #video_x264_encoder.cpp
-        #video_encoder_adapter.cpp
-        #soft_encoder_adapter.cpp
-        #hw_encoder_adapter.cpp
-        egl_share_context.cpp
-        egl_core.cpp
-        #MediaRecorder.cpp
-        #com_cgfay_media_recorder_MediaRecorder.cpp
-        )
+             # 通用类
+             ${common_dir}/AVFormat.cpp
+             ${common_dir}/AVMediaData.cpp
+             ${common_dir}/YuvConvertor.cpp
+             ${common_dir}/YuvData.cpp
+             common/aw_alloc.c
+             common/aw_array.c
+             common/aw_data.c
+             common/aw_dict.c
+             common/aw_file.c
+             common/aw_thread_poll.c
+             # encoder & muxer
+             aw_x264.c
+             aw_sw_x264_encoder.c
+             aw_faac.c
+             aw_sw_faac_encoder.c
+             aw_encode_flv.c
+             # 录制器
+             FLVRecorder.cpp
+             RecordParams.cpp
+             com_cgfay_media_recorder_FLVRecorder.cpp)
 
 # 链接静态库
 target_link_libraries( media_recorder
 
-        ffmpeg
-        yuv
+                       x264
+                       faac
+                       yuv
 
-        -landroid
-        -llog
-        -lOpenSLES
-        -lEGL
-        GLESv2
-        #${GLES-lib}
-        )
+                       android
+                       jnigraphics
+                       log )
+

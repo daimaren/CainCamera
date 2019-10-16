@@ -2,27 +2,24 @@ package com.cgfay.media.recorder;
 
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
-import android.view.Surface;
 
 /**
- * 音频/视频录制器
+ * 基于FFmpeg的音频/视频录制器
  */
 public final class MediaRecorder {
-    private static final String TAG = "MediaRecorder";
+    private static final String TAG = "FFMediaRecorder";
 
     static {
         System.loadLibrary("ffmpeg");
         System.loadLibrary("soundtouch");
         System.loadLibrary("yuv");
-        System.loadLibrary("media_recorder");
+        System.loadLibrary("ffrecorder");
     }
 
     // 初始化
     private native long nativeInit();
     // 释放资源
     private native void nativeRelease(long handle);
-    // prepareEGLContext
-    public native void prepareEGLContext(Surface surface, int width, int height, int cameraFacingId);
     // 设置录制监听回调
     private native void setRecordListener(long handle, Object listener);
     // 设置录制输出文件
@@ -42,6 +39,11 @@ public final class MediaRecorder {
                                        int pixelFormat, long maxBitRate, int quality);
     // 设置录制音频参数
     private native void setAudioParams(long handle, int sampleRate, int sampleFormat, int channels);
+    // 录制一帧视频帧
+    private native int recordVideoFrame(long handle, byte[] data, int length, int width, int height,
+                                        int pixelFormat);
+    // 录制一帧音频帧
+    private native int recordAudioFrame(long handle, byte[] data, int length);
     // 开始录制
     private native void startRecord(long handle);
     // 停止录制
@@ -157,6 +159,27 @@ public final class MediaRecorder {
      */
     public void setAudioParams(int sampleRate, int sampleForamt, int channels) {
         setAudioParams(handle, sampleRate, sampleForamt, channels);
+    }
+
+    /**
+     * 录制一帧视频帧
+     * @param data
+     * @param length
+     * @param width
+     * @param height
+     * @param pixelFormat
+     */
+    public void recordVideoFrame(byte[] data, int length, int width, int height, int pixelFormat) {
+        recordVideoFrame(handle, data, length, width, height, pixelFormat);
+    }
+
+    /**
+     * 录制一帧音频帧
+     * @param data
+     * @param length
+     */
+    public void recordAudioFrame(byte[] data, int length) {
+        recordAudioFrame(handle, data, length);
     }
 
     /**
