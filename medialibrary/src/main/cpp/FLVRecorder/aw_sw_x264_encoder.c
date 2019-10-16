@@ -7,9 +7,10 @@
 #include "aw_sw_x264_encoder.h"
 #include "aw_all.h"
 
+#define DUMP_YUV_DATA   0
 static aw_x264_context *s_x264_ctx = NULL;
 static aw_x264_config *s_x264_config = NULL;
-
+static FILE*    yuvDumpFile;
 //debug使用
 static int32_t video_count = 0;
 
@@ -31,14 +32,20 @@ extern aw_flv_video_tag * aw_sw_encoder_encode_x264_data(int8_t *yuv_data, long 
     aw_encode_yuv_frame_2_x264(s_x264_ctx, yuv_data, (int32_t)len);
     
     if (s_x264_ctx->encoded_h264_data->size <= 0) {
+#if DUMP_YUV_DATA
+        int count = fwrite(yuv_data, len, 1, yuvDumpFile);
+        aw_log("write yuv size %d len %d, encoded_h264_data error", count, len);
+#else
+        aw_log("encoded_h264_data error");
+#endif
         return NULL;
     }
     
     x264_picture_t *pic_out = s_x264_ctx->pic_out;
     
     aw_flv_video_tag *video_tag = aw_encoder_create_video_tag((int8_t *)s_x264_ctx->encoded_h264_data->data, s_x264_ctx->encoded_h264_data->size, timeStamp, (uint32_t)((pic_out->i_pts - pic_out->i_dts) * 1000.0 / 90000), pic_out->b_keyframe);
-    
-    //    aw_log("----------------timestamp=%d, composition_time=%d, s_video_time_stamp=%d", video_tag->common_tag.timestamp, video_tag->h264_composition_time, s_video_time_stamp);
+
+    aw_log("timestamp=%d, composition_time=%d, timeStamp=%d", video_tag->common_tag.timestamp, video_tag->h264_composition_time, timeStamp);
     
     video_count++;
     
@@ -77,10 +84,23 @@ extern void aw_sw_encoder_open_x264_encoder(aw_x264_config *x264_config){
     memcpy(s_x264_config, x264_config, x264_cfg_len);
     
     s_x264_ctx = alloc_aw_x264_context(*x264_config);
+#if DUMP_YUV_DATA
+    yuvDumpFile = fopen("/storage/emulated/0/dump.yuv", "wb");
+    if (yuvDumpFile) {
+        aw_log("yuvDumpFile open error");
+    }
+#endif
 }
 
 //关闭编码器
 extern void aw_sw_encoder_close_x264_encoder(){
+
+#if DUMP_YUV_DATA
+    if (yuvDumpFile) {
+        fclose(yuvDumpFile);
+    }
+#endif
+
     if (!aw_sw_x264_encoder_is_valid()) {
         aw_log("[E] aw_sw_encoder_close_video_encoder s_faac_ctx is NULL");
         return;

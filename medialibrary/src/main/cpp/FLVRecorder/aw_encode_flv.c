@@ -149,13 +149,13 @@ static void aw_write_script_tag_body(aw_data **flv_data, aw_flv_script_tag *scri
     //28字节
     
     //写入duration 0表示double，1表示uint8
-    //data_writer.write_string(flv_data, "duration", 2);
-    //data_writer.write_uint8(flv_data, 0);
-    //data_writer.write_double(flv_data, script_tag->duration);
+    data_writer.write_string(flv_data, "duration", 2);
+    data_writer.write_uint8(flv_data, 0);
+    data_writer.write_double(flv_data, 0);//script_tag->duration
     //写入file_size
-    //data_writer.write_string(flv_data, "filesize", 2);
-    //data_writer.write_uint8(flv_data, 0);
-    //data_writer.write_double(flv_data, script_tag->file_size);
+    data_writer.write_string(flv_data, "filesize", 2);
+    data_writer.write_uint8(flv_data, 0);
+    data_writer.write_double(flv_data, 0);//script_tag->duration
     //写入width
     data_writer.write_string(flv_data, "width", 2);
     data_writer.write_uint8(flv_data, 0);

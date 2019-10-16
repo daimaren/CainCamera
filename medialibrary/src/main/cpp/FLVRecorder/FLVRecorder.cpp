@@ -56,7 +56,7 @@ void FLVRecorder::release() {
         return;
     }
 
-    int64_t  file_size = ftello(mFile);
+    double  file_size = ftello(mFile);
     aw_data* flv_data = alloc_aw_data(30);
 
     //写入duration 0表示double，1表示uint8
@@ -144,14 +144,24 @@ int FLVRecorder::prepare() {
 
     aw_sw_encoder_open_x264_encoder(pX264_config);
 
-    // write FLV Header
-    aw_data *awData = alloc_aw_data(13);
-    aw_write_flv_header(&awData);
-    aw_write_data_to_file(params->dstFile, awData);
-
-    usleep(1000);
     mFile = fopen(params->dstFile, "wb");
-
+    // write FLV Header
+    aw_data *flvHeader = alloc_aw_data(13);
+    uint8_t
+    f = 'F', l = 'L', v = 'V',//FLV
+    version = 1,//固定值
+    av_flag = 5;//5表示av，5表示只有a，1表示只有v
+    uint32_t flv_header_len = 9;
+    data_writer.write_uint8(&flvHeader, f);
+    data_writer.write_uint8(&flvHeader, l);
+    data_writer.write_uint8(&flvHeader, v);
+    data_writer.write_uint8(&flvHeader, version);
+    data_writer.write_uint8(&flvHeader, av_flag);
+    data_writer.write_uint32(&flvHeader, flv_header_len);
+    //first previous tag size
+    data_writer.write_uint32(&flvHeader, 0);
+    size_t write_item_count = fwrite(flvHeader->data, 1, flvHeader->size, mFile);
+    aw_log("count %d", write_item_count);
     // write Metadata Tag
     aw_flv_script_tag *script_tag = alloc_aw_flv_script_tag();
 
@@ -309,6 +319,8 @@ void FLVRecorder::run() {
                     aw_flv_video_tag *video_tag = aw_sw_encoder_encode_x264_data((int8_t*)data->image, data->length, data->pts);
                     if (video_tag) {
                         saveFlvVideoTag(video_tag);
+                    } else {
+                        aw_log("video_tag error");
                     }
                 } else if (data->getType() == MediaAudio) {
                     // faac编码
@@ -426,14 +438,17 @@ void FLVRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
         aw_write_flv_tag(&s_output_buf, commonTag);
         switch (commonTag->tag_type) {
             case aw_flv_tag_type_audio: {
+                //aw_log("save audio tag");
                 free_aw_flv_audio_tag(&commonTag->audio_tag);
                 break;
             }
             case aw_flv_tag_type_video: {
+                aw_log("save video tag");
                 free_aw_flv_video_tag(&commonTag->video_tag);
                 break;
             }
             case aw_flv_tag_type_script: {
+                aw_log("save script tag");
                 free_aw_flv_script_tag(&commonTag->script_tag);
                 break;
             }
