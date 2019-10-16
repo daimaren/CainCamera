@@ -10,15 +10,13 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.cgfay.caincamera.fragment.FFMediaRecordFragment;
-import com.cgfay.caincamera.fragment.MediaRecorderFragment;
+import com.cgfay.caincamera.fragment.MediaRecordFragment;
 import com.cgfay.camera.engine.camera.CameraEngine;
 import com.cgfay.camera.engine.camera.CameraParam;
 import com.cgfay.camera.utils.PathConstraints;
 import com.cgfay.media.CainCommandEditor;
 import com.cgfay.media.recorder.AVFormatter;
 import com.cgfay.media.recorder.AudioRecorder;
-import com.cgfay.media.recorder.FFMediaRecorder;
 import com.cgfay.media.recorder.MediaRecorder;
 import com.cgfay.uitls.utils.FileUtils;
 import com.cgfay.video.activity.VideoEditActivity;
@@ -36,7 +34,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
     private static final boolean VERBOSE = true;
 
     private Activity mActivity;
-    private MediaRecorderFragment mFragment;
+    private MediaRecordFragment mFragment;
 
     // 命令行编辑器
     private CainCommandEditor mCommandEditor;
@@ -55,7 +53,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
 
     private final List<VideoInfo> mVideoList;
 
-    public MediaRecordPresenter(Activity activity, MediaRecorderFragment fragment) {
+    public MediaRecordPresenter(Activity activity, MediaRecordFragment fragment) {
         mActivity = activity;
         mFragment = fragment;
         mIsRecording = false;

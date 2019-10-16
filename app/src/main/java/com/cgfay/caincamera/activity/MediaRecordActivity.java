@@ -4,9 +4,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
 import com.cgfay.caincamera.R;
-import com.cgfay.caincamera.fragment.FFMediaRecordFragment;
 import com.cgfay.caincamera.fragment.MediaRecordFragment;
-import com.cgfay.caincamera.fragment.MediaRecorderFragment;
 
 public class MediaRecordActivity extends AppCompatActivity {
 
@@ -16,7 +14,7 @@ public class MediaRecordActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_media_record);
         if (null == savedInstanceState) {
-            MediaRecorderFragment fragment = new MediaRecorderFragment();
+            MediaRecordFragment fragment = new MediaRecordFragment();
             getSupportFragmentManager()
                     .beginTransaction()
                     .add(R.id.fragment_container, fragment, FRAGMENT_MEDIA_RECORD)
