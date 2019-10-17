@@ -11,6 +11,10 @@
 #include <Thread.h>
 #include <AVFormatter.h>
 #include <YuvConvertor.h>
+#include <jni.h>
+#include <android/native_window.h>
+#include <EGL/egl.h>
+
 #include "RecordParams.h"
 
 #ifdef __cplusplus
@@ -46,6 +50,7 @@ public:
 
     virtual ~MediaRecorder();
 
+    void prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobject obj, int screenWidth, int screenHeight, int cameraFacingId);
     // 设置录制监听器
     void setOnRecordListener(OnRecordListener *listener);
 
@@ -79,6 +84,9 @@ private:
     void save_video_data(aw_flv_video_tag *video_tag);
     void save_script_data(aw_flv_script_tag *script_tag);
     void save_flv_tag_to_file(aw_flv_common_tag *commonTag);
+    // EGL functions
+    bool initEGL();
+    EGLSurface createWindowSurface(ANativeWindow* pWindow);
 private:
     FILE* mFile;
     Mutex mMutex;
@@ -94,8 +102,20 @@ private:
     bool mExit;         // 完成退出标志
     bool isSpsPpsAndAudioSpecificConfigSent = false;
 
+    ANativeWindow *mNativeWindow;
+    JavaVM *mJvm;
+    jobject mObj;
+    int mScreenWidth;
+    int mScreenHeight;
+    int mFacingId;
+
     RecordParams *mRecordParams;    // 录制参数
     YuvConvertor *mYuvConvertor;    // Yuv转换器
+
+    //EGL
+    EGLDisplay mEGLDisplay;
+    EGLConfig mEGLConfig;
+    EGLContext mEGLContext;
 };
 
 

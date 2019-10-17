@@ -15,6 +15,10 @@ add_library( media_recorder
              ${common_dir}/AVMediaData.cpp
              ${common_dir}/YuvConvertor.cpp
              ${common_dir}/YuvData.cpp
+#             ../CainFilter/common/CainEGLContext.cpp
+#             ../CainFilter/common/EglHelper.cpp
+#             ../CainFilter/common/CoordinateUtils.cpp
+#             ../CainFilter/common/OpenGLUtils.cpp
              common/aw_alloc.c
              common/aw_array.c
              common/aw_data.c
@@ -28,9 +32,9 @@ add_library( media_recorder
              aw_sw_faac_encoder.c
              aw_encode_flv.c
              # 录制器
-             FLVRecorder.cpp
+             MediaRecorder.cpp
              RecordParams.cpp
-             com_cgfay_media_recorder_FLVRecorder.cpp)
+             com_cgfay_media_recorder_MediaRecorder.cpp)
 
 # 链接静态库
 target_link_libraries( media_recorder

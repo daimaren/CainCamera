@@ -4,6 +4,9 @@
 #include "unistd.h"
 #include "MediaRecorder.h"
 
+/**
+ * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
+ */
 MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr){
@@ -16,6 +19,20 @@ MediaRecorder::~MediaRecorder() {
         delete mRecordParams;
         mRecordParams = nullptr;
     }
+}
+/**
+ * prepareEGLContext
+ */
+
+void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobject obj,
+                                      int screenWidth, int screenHeight, int cameraFacingId) {
+    aw_log("prepareEGLContext");
+    mJvm = g_jvm;
+    mObj = obj;
+    mScreenWidth = screenWidth;
+    mScreenHeight = screenHeight;
+    mFacingId = cameraFacingId;
+    initEGL();
 }
 
 /**
@@ -452,4 +469,43 @@ void MediaRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
         aw_log("save flv tag size=%d", count);
     }
     reset_aw_data(&s_output_buf);
+}
+
+bool MediaRecorder::initEGL() {
+    mEGLDisplay = EGL_NO_DISPLAY;
+    mEGLContext = EGL_NO_CONTEXT;
+
+    EGLint numConfigs;
+    EGLint width;
+    EGLint height;
+    const EGLint attribs[] = { EGL_BUFFER_SIZE, 32, EGL_ALPHA_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_RED_SIZE, 8, EGL_RENDERABLE_TYPE,
+                               EGL_OPENGL_ES2_BIT, EGL_SURFACE_TYPE, EGL_WINDOW_BIT, EGL_NONE };
+    if((mEGLDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
+        aw_log("eglGetDisplay error %d", eglGetError());
+        return false;
+    }
+    if (!eglInitialize(mEGLDisplay, 0 , 0)) {
+        aw_log("eglInitialize error %d", eglGetError());
+        return false;
+    }
+    if (!eglChooseConfig(mEGLDisplay, attribs, &mEGLConfig, 1, &numConfigs)) {
+        aw_log("eglChooseConfig error %d", eglGetError());
+        return false;
+    }
+    EGLint  eglContextAttributes[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
+    if (!(mEGLContext = eglCreateContext(mEGLDisplay, mEGLConfig, EGL_NO_CONTEXT, eglContextAttributes ))) {
+        aw_log("eglCreateContext error %d", eglGetError());
+        // release res
+        if(EGL_NO_DISPLAY != mEGLDisplay && EGL_NO_CONTEXT != mEGLContext){
+            eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            eglDestroyContext(mEGLDisplay, mEGLContext);
+            aw_log("eglDestroyContext");
+        }
+        return false;
+    }
+    return true;
+}
+
+EGLSurface MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
+
 }

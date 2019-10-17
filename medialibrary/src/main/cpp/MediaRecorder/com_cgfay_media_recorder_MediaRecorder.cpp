@@ -9,14 +9,16 @@
 #include <string.h>
 #include <Mutex.h>
 #include <assert.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
+
 #include "MediaRecorder.h"
 #include "AVMediaHeader.h"
 
-extern "C" {
-#include <libavcodec/jni.h>
-};
-
 static JavaVM *javaVM = nullptr;
+static jobject g_obj = nullptr;
 
 static JNIEnv *getJNIEnv() {
     JNIEnv *env;
@@ -161,10 +163,17 @@ Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz
  * prepareEGLContext
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jobject surface, jint width, jint height, jint facingId) {
+Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jobject surface, jint screenWidth, jint screenHeight,
+        jint cameraFacingId) {
     MediaRecorder *recorder = new MediaRecorder();
-    if (surface != 0) {
+    JavaVM *jvm = NULL;
+    env->GetJavaVM(&jvm);
+    g_obj = env->NewGlobalRef(thiz);
+    if (surface != 0 && recorder) {
+        ANativeWindow *pWindow = ANativeWindow_fromSurface(env, surface);
+        if (pWindow) {
 
+        }
     }
 }
 
