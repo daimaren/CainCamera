@@ -14,6 +14,8 @@
 #include <jni.h>
 #include <android/native_window.h>
 #include <EGL/egl.h>
+#include <GLES3/gl3.h>
+#include <GLES3/gl3ext.h>
 
 #include "RecordParams.h"
 
@@ -28,6 +30,23 @@ extern "C" {
 #ifdef __cplusplus
 };
 #endif
+
+static char* OUTPUT_VIEW_VERTEX_SHADER =
+        "attribute vec4 position;    \n"
+        "attribute vec2 texcoord;   \n"
+        "varying vec2 v_texcoord;     \n"
+        "void main(void)               \n"
+        "{                            \n"
+        "   gl_Position = position;  \n"
+        "   v_texcoord = texcoord;  \n"
+        "}                            \n";
+
+static char* OUTPUT_VIEW_FRAG_SHADER =
+        "varying highp vec2 v_texcoord;\n"
+        "uniform sampler2D yuvTexSampler;\n"
+        "void main() {\n"
+        "  gl_FragColor = texture2D(yuvTexSampler, v_texcoord);\n"
+        "}\n";
 
 /**
  * 录制监听器
@@ -86,7 +105,15 @@ private:
     void save_flv_tag_to_file(aw_flv_common_tag *commonTag);
     // EGL functions
     bool initEGL();
-    EGLSurface createWindowSurface(ANativeWindow* pWindow);
+    bool createWindowSurface(ANativeWindow* pWindow);
+    //
+    void configCamera();
+    bool initRenderer();
+    // OpenGL
+    GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
+    GLuint loadShader(GLenum shaderType, const char* pSource);
+    void   checkGlError(const char* op);
+    int initTexture();
 private:
     FILE* mFile;
     Mutex mMutex;
@@ -105,8 +132,11 @@ private:
     ANativeWindow *mNativeWindow;
     JavaVM *mJvm;
     jobject mObj;
+
     int mScreenWidth;
     int mScreenHeight;
+    int mTextureWidth;
+    int mTextureHeight;
     int mFacingId;
 
     RecordParams *mRecordParams;    // 录制参数
@@ -116,6 +146,16 @@ private:
     EGLDisplay mEGLDisplay;
     EGLConfig mEGLConfig;
     EGLContext mEGLContext;
+    EGLSurface mPreviewSurface;
+    //OpenGL
+    char* mVertexShader;
+    char* mFragmentShader;
+    GLuint mGLProgramId;
+    GLuint mGLVertexCoords;
+    GLuint mGLTextureCoords;
+    GLint mGLUniformTexture;
+    bool mIsGLInitialized;
+    GLuint mDecodeTexId;
 };
 
 

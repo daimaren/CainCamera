@@ -45,5 +45,7 @@ target_link_libraries( media_recorder
 
                        android
                        jnigraphics
-                       log )
+                       log
+                       -lEGL
+                       ${GLES-lib})
 

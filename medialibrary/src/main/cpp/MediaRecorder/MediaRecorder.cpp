@@ -11,6 +11,8 @@ MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr){
     mRecordParams = new RecordParams();
+    mVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
+    mFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -33,6 +35,16 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
     mScreenHeight = screenHeight;
     mFacingId = cameraFacingId;
     initEGL();
+    createWindowSurface(window);
+    if (mPreviewSurface != NULL) {
+        eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
+    }
+    mScreenWidth = 720;
+    mScreenHeight = 1280;
+    mTextureWidth = 360; //720
+    mTextureHeight = 640; //1280
+    aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
+    aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
 }
 
 /**
@@ -501,11 +513,184 @@ bool MediaRecorder::initEGL() {
             eglDestroyContext(mEGLDisplay, mEGLContext);
             aw_log("eglDestroyContext");
         }
+        mEGLDisplay = EGL_NO_DISPLAY;
+        mEGLContext = EGL_NO_CONTEXT;
         return false;
     }
     return true;
 }
 
-EGLSurface MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
-
+bool MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
+    EGLint format;
+    if (!pWindow) {
+        aw_log("pWindow null");
+        return false;
+    }
+    if (!eglGetConfigAttrib(mEGLDisplay, mEGLConfig, EGL_NATIVE_VISUAL_ID, &format)) {
+        aw_log("eglGetConfigAttrib error");
+        // release res
+        if(EGL_NO_DISPLAY != mEGLDisplay && EGL_NO_CONTEXT != mEGLContext){
+            eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+            eglDestroyContext(mEGLDisplay, mEGLContext);
+            aw_log("eglDestroyContext");
+        }
+        mEGLDisplay = EGL_NO_DISPLAY;
+        mEGLContext = EGL_NO_CONTEXT;
+        return false;
+    }
+    ANativeWindow_setBuffersGeometry(pWindow, 0, 0, format);
+    if (!(mPreviewSurface = eglCreateWindowSurface(mEGLDisplay, mEGLConfig, pWindow, 0))) {
+        aw_log("eglCreateWindowSurface error %d", eglGetError());
+        return false;
+    }
+    return true;
 }
+
+void MediaRecorder::configCamera() {
+    aw_log("configCamera");
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        aw_log("%s AttachCurrentThread failed", __FUNCTION__);
+        return;
+    }
+    if (env == NULL) {
+        aw_log("%s getJNIEnv failed", __FUNCTION__);
+        return;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    if (NULL != jcls) {
+        env->GetMethodID(jcls, "configCameraFromNative", "(I)Lcom/changba/songstudio/recording/camera/preview/CameraConfigInfo;");
+    }
+}
+
+bool MediaRecorder::initRenderer() {
+    mGLProgramId = loadProgram(mVertexShader, mFragmentShader);
+    if (!mGLProgramId) {
+        aw_log("%s loadProgram failed", __FUNCTION__);
+        return false;
+    }
+
+    if (!mGLProgramId) {
+        LOGE("Could not create program.");
+        return false;
+    }
+    mGLVertexCoords = glGetAttribLocation(mGLProgramId, "position");
+    checkGlError("glGetAttribLocation vPosition");
+    mGLTextureCoords = glGetAttribLocation(mGLProgramId, "texcoord");
+    checkGlError("glGetAttribLocation vTexCords");
+    mGLUniformTexture = glGetUniformLocation(mGLProgramId, "yuvTexSampler");
+    checkGlError("glGetAttribLocation yuvTexSampler");
+    mIsGLInitialized = true;
+    return true;
+}
+
+GLuint MediaRecorder::loadProgram(char *pVertexSource, char *pFragmentSource) {
+    GLuint vertexShader = loadShader(GL_VERTEX_SHADER, pVertexSource);
+    if (!vertexShader) {
+        aw_log("vertexShader null");
+        return 0;
+    }
+    GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, pFragmentSource);
+    if (!fragmentShader) {
+        aw_log("vertexShader null");
+        return 0;
+    }
+    mGLProgramId = glCreateProgram();
+    if (mGLProgramId) {
+        glAttachShader(mGLProgramId, vertexShader);
+        checkGlError("glAttachShader");
+        glAttachShader(mGLProgramId, fragmentShader);
+        checkGlError("glAttachShader");
+        glLinkProgram(mGLProgramId);
+
+        GLint linkStatus = GL_FALSE;
+        glGetProgramiv(mGLProgramId, GL_LINK_STATUS, &linkStatus);
+        if (linkStatus != GL_TRUE) {
+            GLint bufLength = 0;
+            glGetProgramiv(mGLProgramId, GL_INFO_LOG_LENGTH, &bufLength);
+            if (bufLength) {
+                char* buf = (char*) malloc(bufLength);
+                if (buf) {
+                    glGetProgramInfoLog(mGLProgramId, bufLength, NULL, buf);
+                    LOGI("Could not link program:\n%s\n", buf);
+                    free(buf);
+                }
+            }
+            glDeleteProgram(mGLProgramId);
+            mGLProgramId = 0;
+        }
+    }
+}
+
+GLuint MediaRecorder::loadShader(GLenum shaderType, const char *pSource) {
+    GLuint shader = glCreateShader(shaderType);
+    if (shader) {
+        glShaderSource(shader, 1, &pSource, NULL);
+        glCompileShader(shader);
+        GLint compiled = 0;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+        if (!compiled) {
+            GLint infoLen = 0;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+            if (infoLen) {
+                char* buf = (char*)malloc(infoLen);
+                if (buf) {
+                    glGetShaderInfoLog(shader, infoLen, NULL, buf);
+                    aw_log("%s %S glCompileShader error %d\n %s\n", __FUNCTION__, __LINE__, shaderType, buf);
+                    free(buf);
+                }
+            } else {
+                aw_log("Guessing at GL_INFO_LOG_LENGTH size\n");
+                char* buf = (char*) malloc(0x1000);
+                if (buf) {
+                    glGetShaderInfoLog(shader, 0x1000, NULL, buf);
+                    LOGI("%s %S Could not compile shader %d:\n%s\n",__FUNCTION__, __LINE__, shaderType, buf);
+                    free(buf);
+                }
+            }
+            glDeleteShader(shader);
+            shader = 0;
+        }
+    }
+    return shader;
+}
+
+int MediaRecorder::initTexture() {
+    glGenTextures(1, &mDecodeTexId);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, mDecodeTexId);
+    if (checkGlError("glBindTexture")) {
+        return -1;
+    }
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    if (checkGlError("glTexParameteri")) {
+        return -1;
+    }
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (checkGlError("glTexParameteri")) {
+        return -1;
+    }
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    if (checkGlError("glTexParameteri")) {
+        return -1;
+    }
+    glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    if (checkGlError("glTexParameteri")) {
+        return -1;
+    }
+    return 1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

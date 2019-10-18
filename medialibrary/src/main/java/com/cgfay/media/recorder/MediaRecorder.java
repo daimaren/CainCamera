@@ -82,6 +82,10 @@ public final class MediaRecorder {
         setRecordListener(handle, listener);
     }
 
+    public void configCameraFromNative(int cameraFacingId) {
+
+    }
+
     /**
      * 设置输出文件
      * @param dstPath
