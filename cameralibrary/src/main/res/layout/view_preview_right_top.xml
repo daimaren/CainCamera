@@ -37,8 +37,8 @@
         android:gravity="center"
         android:layout_marginTop="@dimen/dp20">
         <ImageView
-            android:layout_width="@dimen/top_button_width_height"
-            android:layout_height="@dimen/top_button_width_height"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
             android:background="@drawable/ic_camera_speed_light_new" />
         <TextView
             android:id="@+id/tv_speed_status"
