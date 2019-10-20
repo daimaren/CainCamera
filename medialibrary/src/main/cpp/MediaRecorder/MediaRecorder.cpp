@@ -54,6 +54,10 @@ MediaRecorder::~MediaRecorder() {
         LOGI("delete mFBO");
         glDeleteFramebuffers(1, &mFBO);
     }
+    if (mDownloadFBO) {
+        LOGI("delete mDownloadFBO");
+        glDeleteFramebuffers(1, &mDownloadFBO);
+    }
     if (mDecodeTexId) {
         LOGI("delete mDecodeTexId");
         glDeleteTextures(1, &mDecodeTexId);
@@ -95,7 +99,10 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
     }
     // init FBO
     glGenFramebuffers(1, &mFBO);
-    checkGlError("glGenFramebuffers");
+    checkGlError("glGenFramebuffers mFBO");
+    glGenFramebuffers(1, &mDownloadFBO);
+    checkGlError("glGenFramebuffers mDownloadFBO");
+    // init texture
     glGenTextures(1,&mRotateTexId);
     checkGlError("glGenTextures mRotateTexId");
     glBindTexture(GL_TEXTURE_2D, mRotateTexId);
@@ -112,6 +119,7 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
 }
 
 void MediaRecorder::notifyFrameAvailable() {
+    byte* packetBuffer = new byte[mTextureWidth * mTextureHeight * 4];
     updateTexImage();
     // processFrame
     processFrame();
@@ -121,7 +129,7 @@ void MediaRecorder::notifyFrameAvailable() {
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (isEncoding) {
-        //todo encode, pending
+        downloadImageFromTexture(mRotateTexId, packetBuffer, mTextureWidth, mTextureHeight);
     }
 }
 
@@ -886,6 +894,28 @@ void MediaRecorder::matrixSetIdentityM(float *m)
 {
     memset((void*)m, 0, 16*sizeof(float));
     m[0] = m[5] = m[10] = m[15] = 1.0f;
+}
+
+void MediaRecorder::downloadImageFromTexture(GLuint texId, void *imageBuf, unsigned int imageWidth,
+                                             unsigned int imageHeight) {
+    glBindTexture(GL_TEXTURE_2D, texId);
+    checkGlError("glBindTexture texId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, mDownloadFBO);
+    checkGlError("glBindFramebuffer mDownloadFBO");
+    // attach tex to FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texId, 0);
+    checkGlError("glFramebufferTexture2D");
+    // download image
+    glReadPixels(0, 0, (GLsizei)imageWidth, (GLsizei)imageHeight, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)imageBuf);
+    checkGlError("glReadPixels failed");
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void MediaRecorder::updateTexImage() {

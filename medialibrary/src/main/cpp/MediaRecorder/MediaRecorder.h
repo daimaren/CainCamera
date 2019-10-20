@@ -31,6 +31,8 @@ extern "C" {
 };
 #endif
 
+typedef unsigned char byte;
+
 static char* OUTPUT_VIEW_VERTEX_SHADER =
         "attribute vec4 position;    \n"
         "attribute vec2 texcoord;   \n"
@@ -152,6 +154,8 @@ private:
     void processFrame();
     void renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat* textureCoords);
     void matrixSetIdentityM(float *m);
+    void copyYUY2Image(GLuint ipTex, byte* yuy2ImageBuffer, int width, int height);
+    void downloadImageFromTexture(GLuint texId, void *imageBuf, unsigned int imageWidth, unsigned int imageHeight);
     // callback function
     void startCameraPreview();
     void updateTexImage();
@@ -216,6 +220,8 @@ private:
     GLint mCopyUniformTexture;
     bool mCopyIsInitialized;
 
+    //OpenGL download
+    GLuint mDownloadFBO;
     //OpenGL Filter
 };
 
