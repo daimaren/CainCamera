@@ -10,10 +10,21 @@
  */
 MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
-                                     mYuvConvertor(nullptr), mFrameQueue(nullptr){
+                                     mYuvConvertor(nullptr), mFrameQueue(nullptr), mCopyIsInitialized(false),
+                                    mIsGLInitialized(false){
     mRecordParams = new RecordParams();
-    mVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
-    mFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
+    mGLVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
+    mGLFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
+
+    mCopyVertexShader = NO_FILTER_VERTEX_SHADER;
+    mCopyFragmentShader = GPU_FRAME_FRAGMENT_SHADER;
+    mTextureCoords = NULL;
+    mTextureCoordsSize = 8;
+
+    mTextureCoords = new GLfloat[mTextureCoordsSize];
+    GLfloat* tempTextureCoords;
+    tempTextureCoords = CAMERA_TEXTURE_NO_ROTATION;
+    memcpy(mTextureCoords, tempTextureCoords, mTextureCoordsSize * sizeof(GLfloat));
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -21,6 +32,35 @@ MediaRecorder::~MediaRecorder() {
     if (mRecordParams != nullptr) {
         delete mRecordParams;
         mRecordParams = nullptr;
+    }
+
+    mCopyIsInitialized = false;
+    if (mCopyProgramId) {
+        glDeleteProgram(mCopyProgramId);
+        mCopyProgramId = 0;
+    }
+    LOGI("after delete Copier");
+    mIsGLInitialized = false;
+    if (mGLProgramId) {
+        glDeleteProgram(mGLProgramId);
+        mGLProgramId = 0;
+    }
+    LOGI("after delete render");
+    if (mRotateTexId) {
+        LOGI("delete mRotateTexId");
+        glDeleteTextures(1, &mRotateTexId);
+    }
+    if (mFBO) {
+        LOGI("delete mFBO");
+        glDeleteFramebuffers(1, &mFBO);
+    }
+    if (mDecodeTexId) {
+        LOGI("delete mDecodeTexId");
+        glDeleteTextures(1, &mDecodeTexId);
+    }
+    if(mTextureCoords){
+        delete[] mTextureCoords;
+        mTextureCoords = NULL;
     }
 }
 /**
@@ -44,24 +84,40 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
     mTextureHeight = 640; //1280
     aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
+    initCopier();
     initRenderer();
-    int ret = initTexture();
+    int ret = initDecodeTexture();
     if (ret < 0) {
         LOGI("init texture failed");
         if (mDecodeTexId) {
             glDeleteTextures(1, &mDecodeTexId);
         }
     }
-    //todo init inputTexId outputTexId
+    // init FBO
+    glGenFramebuffers(1, &mFBO);
+    checkGlError("glGenFramebuffers");
+    glGenTextures(1,&mRotateTexId);
+    checkGlError("glGenTextures mRotateTexId");
+    glBindTexture(GL_TEXTURE_2D, mRotateTexId);
+    checkGlError("glBindTexture mRotateTexId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screenWidth, screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     startCameraPreview();
 }
 
 void MediaRecorder::notifyFrameAvailable() {
     updateTexImage();
-    // todo processVideoFrame
+    // processFrame
+    processFrame();
     if (mPreviewSurface != EGL_NO_SURFACE) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
-        renderToViewWithAutofit(mDecodeTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
+        renderToViewWithAutofit(mRotateTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (isEncoding) {
@@ -593,7 +649,7 @@ void MediaRecorder::startCameraPreview() {
 }
 
 bool MediaRecorder::initRenderer() {
-    mGLProgramId = loadProgram(mVertexShader, mFragmentShader);
+    mGLProgramId = loadProgram(mGLVertexShader, mGLFragmentShader);
     if (!mGLProgramId) {
         aw_log("%s loadProgram failed", __FUNCTION__);
         return false;
@@ -613,7 +669,30 @@ bool MediaRecorder::initRenderer() {
     return true;
 }
 
+bool MediaRecorder::initCopier() {
+    mCopyProgramId = loadProgram(mCopyVertexShader, mCopyFragmentShader);
+    if (!mCopyProgramId) {
+        LOGE("Could not create program.");
+        return false;
+    }
+    mCopyVertexCoords = glGetAttribLocation(mCopyProgramId, "vPosition");
+    checkGlError("glGetAttribLocation vPosition");
+    mCopyTextureCoords = glGetAttribLocation(mCopyProgramId, "vTexCords");
+    checkGlError("glGetAttribLocation vTexCords");
+    mCopyUniformTexture = glGetUniformLocation(mCopyProgramId, "yuvTexSampler");
+    checkGlError("glGetAttribLocation yuvTexSampler");
+
+    mCopyUniformTexMatrix = glGetUniformLocation(mCopyProgramId, "texMatrix");
+    checkGlError("glGetUniformLocation mUniformTexMatrix");
+
+    mCopyUniformTransforms = glGetUniformLocation(mCopyProgramId, "trans");
+    checkGlError("glGetUniformLocation mUniformTransforms");
+
+    mCopyIsInitialized = true;
+}
+
 GLuint MediaRecorder::loadProgram(char *pVertexSource, char *pFragmentSource) {
+    GLuint programId;
     GLuint vertexShader = loadShader(GL_VERTEX_SHADER, pVertexSource);
     if (!vertexShader) {
         aw_log("vertexShader null");
@@ -624,31 +703,32 @@ GLuint MediaRecorder::loadProgram(char *pVertexSource, char *pFragmentSource) {
         aw_log("vertexShader null");
         return 0;
     }
-    mGLProgramId = glCreateProgram();
-    if (mGLProgramId) {
-        glAttachShader(mGLProgramId, vertexShader);
+    programId = glCreateProgram();
+    if (programId) {
+        glAttachShader(programId, vertexShader);
         checkGlError("glAttachShader");
-        glAttachShader(mGLProgramId, fragmentShader);
+        glAttachShader(programId, fragmentShader);
         checkGlError("glAttachShader");
-        glLinkProgram(mGLProgramId);
+        glLinkProgram(programId);
 
         GLint linkStatus = GL_FALSE;
-        glGetProgramiv(mGLProgramId, GL_LINK_STATUS, &linkStatus);
+        glGetProgramiv(programId, GL_LINK_STATUS, &linkStatus);
         if (linkStatus != GL_TRUE) {
             GLint bufLength = 0;
-            glGetProgramiv(mGLProgramId, GL_INFO_LOG_LENGTH, &bufLength);
+            glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &bufLength);
             if (bufLength) {
                 char* buf = (char*) malloc(bufLength);
                 if (buf) {
-                    glGetProgramInfoLog(mGLProgramId, bufLength, NULL, buf);
+                    glGetProgramInfoLog(programId, bufLength, NULL, buf);
                     LOGI("Could not link program:\n%s\n", buf);
                     free(buf);
                 }
             }
-            glDeleteProgram(mGLProgramId);
-            mGLProgramId = 0;
+            glDeleteProgram(programId);
+            programId = 0;
         }
     }
+    return programId;
 }
 
 GLuint MediaRecorder::loadShader(GLenum shaderType, const char *pSource) {
@@ -692,7 +772,7 @@ bool MediaRecorder::checkGlError(const char *op) {
     return false;
 }
 
-int MediaRecorder::initTexture() {
+int MediaRecorder::initDecodeTexture() {
     mDecodeTexId = 0;
     glGenTextures(1, &mDecodeTexId);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, mDecodeTexId);
@@ -744,13 +824,68 @@ void MediaRecorder::renderToViewWithAutofit(GLuint texId, int screenWidth, int s
     glEnableVertexAttribArray(mGLTextureCoords);
     //bind texture
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
     glUniform1i(mGLUniformTexture, 0);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     glDisableVertexAttribArray(mGLVertexCoords);
     glDisableVertexAttribArray(mGLTextureCoords);
-    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void MediaRecorder::processFrame() {
+    glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+    checkGlError("glBindFramebuffer mFBO");
+
+    glViewport(0, 0, mScreenWidth, mScreenHeight);
+
+    GLfloat* vertexCoords = CAMERA_TRIANGLE_VERTICES;
+    renderWithCoords(mRotateTexId, vertexCoords, mTextureCoords);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void MediaRecorder::renderWithCoords(GLuint texId, GLfloat *vertexCoords, GLfloat *textureCoords) {
+    glBindTexture(GL_TEXTURE_2D, texId);
+    checkGlError("glBindTexture");
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           texId, 0);
+    checkGlError("glFramebufferTexture2D");
+
+    glUseProgram(mCopyProgramId);
+    if (!mCopyIsInitialized) {
+        return;
+    }
+
+    glVertexAttribPointer(mCopyVertexCoords, 2, GL_FLOAT, GL_FALSE, 0, vertexCoords);
+    glEnableVertexAttribArray (mCopyVertexCoords);
+    glVertexAttribPointer(mCopyTextureCoords, 2, GL_FLOAT, GL_FALSE, 0, textureCoords);
+    glEnableVertexAttribArray (mCopyTextureCoords);
+    /* Binding the input texture */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, mDecodeTexId);
+    glUniform1i(mCopyUniformTexture, 0);
+
+    float texTransMatrix[4 * 4];
+    matrixSetIdentityM(texTransMatrix);
+    glUniformMatrix4fv(mCopyUniformTexMatrix, 1, GL_FALSE, (GLfloat *) texTransMatrix);
+
+    float rotateMatrix[4 * 4];
+    matrixSetIdentityM(rotateMatrix);
+    glUniformMatrix4fv(mCopyUniformTransforms, 1, GL_FALSE, (GLfloat *) rotateMatrix);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(mCopyVertexCoords);
+    glDisableVertexAttribArray(mCopyTextureCoords);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+}
+
+void MediaRecorder::matrixSetIdentityM(float *m)
+{
+    memset((void*)m, 0, 16*sizeof(float));
+    m[0] = m[5] = m[10] = m[15] = 1.0f;
 }
 
 void MediaRecorder::updateTexImage() {

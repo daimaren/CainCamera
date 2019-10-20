@@ -48,6 +48,39 @@ static char* OUTPUT_VIEW_FRAG_SHADER =
         "  gl_FragColor = texture2D(yuvTexSampler, v_texcoord);\n"
         "}\n";
 
+static char* NO_FILTER_VERTEX_SHADER =
+        "attribute vec4 vPosition;\n"
+        "attribute vec4 vTexCords;\n"
+        "varying vec2 yuvTexCoords;\n"
+        "uniform highp mat4 texMatrix;\n"
+        "uniform highp mat4 trans; \n"
+        "void main() {\n"
+        "  yuvTexCoords = (texMatrix*vTexCords).xy;\n"
+        "  gl_Position = trans * vPosition;\n"
+        "}\n";
+
+static char* GPU_FRAME_FRAGMENT_SHADER =
+        "#extension GL_OES_EGL_image_external : require\n"
+        "precision mediump float;\n"
+        "uniform samplerExternalOES yuvTexSampler;\n"
+        "varying vec2 yuvTexCoords;\n"
+        "void main() {\n"
+        "  gl_FragColor = texture2D(yuvTexSampler, yuvTexCoords);\n"
+        "}\n";
+
+static GLfloat CAMERA_TRIANGLE_VERTICES[8] = {
+        -1.0f, -1.0f,	// 0 top left
+        1.0f, -1.0f,	// 1 bottom left
+        -1.0f, 1.0f,  // 2 bottom right
+        1.0f, 1.0f,	// 3 top right
+};
+static GLfloat CAMERA_TEXTURE_NO_ROTATION[8] = {
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f
+};
+
 /**
  * 录制监听器
  */
@@ -107,13 +140,18 @@ private:
     // EGL functions
     bool initEGL();
     bool createWindowSurface(ANativeWindow* pWindow);
-    bool initRenderer();
     // OpenGL
+    bool initRenderer();
+    bool initCopier();
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
     GLuint loadShader(GLenum shaderType, const char* pSource);
     bool   checkGlError(const char* op);
-    int initTexture();
+    int initDecodeTexture();
     void renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight);
+    void initFilter();
+    void processFrame();
+    void renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat* textureCoords);
+    void matrixSetIdentityM(float *m);
     // callback function
     void startCameraPreview();
     void updateTexImage();
@@ -138,6 +176,9 @@ private:
     JavaVM *mJvm;
     jobject mObj;
 
+    GLfloat* mTextureCoords;
+    int mTextureCoordsSize;
+
     int mScreenWidth;
     int mScreenHeight;
     int mTextureWidth;
@@ -147,20 +188,35 @@ private:
     RecordParams *mRecordParams;    // 录制参数
     YuvConvertor *mYuvConvertor;    // Yuv转换器
 
+    GLuint mDecodeTexId = 0;
+    GLuint mFBO;
+    GLuint mRotateTexId = 0;
     //EGL
     EGLDisplay mEGLDisplay;
     EGLConfig mEGLConfig;
     EGLContext mEGLContext;
     EGLSurface mPreviewSurface;
-    //OpenGL
-    char* mVertexShader;
-    char* mFragmentShader;
+    //OpenGL Render
+    char* mGLVertexShader;
+    char* mGLFragmentShader;
     GLuint mGLProgramId;
     GLuint mGLVertexCoords;
     GLuint mGLTextureCoords;
     GLint mGLUniformTexture;
     bool mIsGLInitialized;
-    GLuint mDecodeTexId;
+
+    //OpenGL Copier
+    char* mCopyVertexShader;
+    char* mCopyFragmentShader;
+    GLuint mCopyProgramId;
+    GLuint mCopyVertexCoords;
+    GLuint mCopyTextureCoords;
+    GLint mCopyUniformTexMatrix;
+    GLint mCopyUniformTransforms;
+    GLint mCopyUniformTexture;
+    bool mCopyIsInitialized;
+
+    //OpenGL Filter
 };
 
 
