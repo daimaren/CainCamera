@@ -1,14 +1,22 @@
 package com.cgfay.media.recorder;
 
+import android.graphics.Camera;
+import android.graphics.SurfaceTexture;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.view.Surface;
+
+import java.io.IOException;
 
 /**
  * 基于FFmpeg的音频/视频录制器
  */
 public final class MediaRecorder {
     private static final String TAG = "MediaRecorder";
+    private int defaultCameraFacingId = android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT;
+
+    private android.hardware.Camera mCamera;
+    private SurfaceTexture mCameraSurfaceTexture;
 
     static {
         System.loadLibrary("soundtouch");
@@ -18,8 +26,10 @@ public final class MediaRecorder {
 
     // 初始化
     private native long nativeInit();
-    //
+    // prepareEGLContext
     public native void prepareEGLContext(Surface surface, int width, int height, int cameraFacingId);
+    // notifyFrameAvailable
+    public native void notifyFrameAvailable();
     // 释放资源
     private native void nativeRelease(long handle);
     // 设置录制监听回调
@@ -82,10 +92,28 @@ public final class MediaRecorder {
         setRecordListener(handle, listener);
     }
 
-    public void configCameraFromNative(int cameraFacingId) {
-
+    public void startPreviewFromNative(int textureId) {
+        mCamera = android.hardware.Camera.open(defaultCameraFacingId);
+        mCameraSurfaceTexture = new SurfaceTexture(textureId);
+        try {
+            mCamera.setPreviewTexture(mCameraSurfaceTexture);
+            mCameraSurfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+                @Override
+                public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+                    notifyFrameAvailable();
+                }
+            });
+            mCamera.startPreview();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    public void updateTexImageFromNative() {
+        if (null != mCameraSurfaceTexture) {
+            mCameraSurfaceTexture.updateTexImage();
+        }
+    }
     /**
      * 设置输出文件
      * @param dstPath

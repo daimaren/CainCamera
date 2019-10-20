@@ -47,5 +47,5 @@ target_link_libraries( media_recorder
                        jnigraphics
                        log
                        -lEGL
-                       ${GLES-lib})
+                       GLESv2)
 

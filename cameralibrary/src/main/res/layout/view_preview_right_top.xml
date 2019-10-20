@@ -23,11 +23,11 @@
             android:background="@drawable/ic_camera_switch_camera_light_new" />
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/dp25"
             android:textColor="@color/white"
             android:text="翻转" />
     </LinearLayout>
-
+    <!--速度开关-->
     <LinearLayout
         android:id="@+id/btn_speed"
         android:layout_width="wrap_content"
@@ -37,13 +37,14 @@
         android:gravity="center"
         android:layout_marginTop="@dimen/dp20">
         <ImageView
+            android:id="@+id/iv_speed_status"
             android:layout_width="25dp"
             android:layout_height="25dp"
             android:background="@drawable/ic_camera_speed_light_new" />
         <TextView
             android:id="@+id/tv_speed_status"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/dp25"
             android:textColor="@color/white"
             android:text="速度关" />
     </LinearLayout>
@@ -63,7 +64,7 @@
             android:background="@drawable/ic_camera_effect_light_new" />
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/dp25"
             android:textColor="@color/white"
             android:text="滤镜" />
     </LinearLayout>
@@ -83,7 +84,7 @@
             android:background="@drawable/ic_camera_beauty_light_new" />
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/dp25"
             android:textColor="@color/white"
             android:text="美化" />
     </LinearLayout>
@@ -103,7 +104,7 @@
             android:background="@drawable/ic_camera_clock_light_new" />
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="@dimen/dp25"
             android:textColor="@color/white"
             android:text="倒计时" />
     </LinearLayout>

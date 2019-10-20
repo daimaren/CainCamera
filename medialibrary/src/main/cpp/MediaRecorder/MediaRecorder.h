@@ -2,8 +2,8 @@
 // Created by CainHuang on 2019/8/17.
 //
 
-#ifndef FLVRecorder_H
-#define FLVRecorder_H
+#ifndef MEDIA_Recorder_H
+#define MEDIA_Recorder_H
 
 #include <AVMediaHeader.h>
 #include <SafetyQueue.h>
@@ -14,8 +14,8 @@
 #include <jni.h>
 #include <android/native_window.h>
 #include <EGL/egl.h>
-#include <GLES3/gl3.h>
-#include <GLES3/gl3ext.h>
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 
 #include "RecordParams.h"
 
@@ -70,6 +70,7 @@ public:
     virtual ~MediaRecorder();
 
     void prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobject obj, int screenWidth, int screenHeight, int cameraFacingId);
+    void notifyFrameAvailable();
     // 设置录制监听器
     void setOnRecordListener(OnRecordListener *listener);
 
@@ -106,14 +107,17 @@ private:
     // EGL functions
     bool initEGL();
     bool createWindowSurface(ANativeWindow* pWindow);
-    //
-    void configCamera();
     bool initRenderer();
     // OpenGL
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
     GLuint loadShader(GLenum shaderType, const char* pSource);
-    void   checkGlError(const char* op);
+    bool   checkGlError(const char* op);
     int initTexture();
+    void renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight);
+    // callback function
+    void startCameraPreview();
+    void updateTexImage();
+
 private:
     FILE* mFile;
     Mutex mMutex;
@@ -128,6 +132,7 @@ private:
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
     bool isSpsPpsAndAudioSpecificConfigSent = false;
+    bool isEncoding = false;
 
     ANativeWindow *mNativeWindow;
     JavaVM *mJvm;

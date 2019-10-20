@@ -6,6 +6,7 @@
 
 /**
  * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
+ * 第一阶段，先把相机画面显示出来
  */
 MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
@@ -39,12 +40,33 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
     if (mPreviewSurface != NULL) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
-    mScreenWidth = 720;
-    mScreenHeight = 1280;
     mTextureWidth = 360; //720
     mTextureHeight = 640; //1280
     aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
+    initRenderer();
+    int ret = initTexture();
+    if (ret < 0) {
+        LOGI("init texture failed");
+        if (mDecodeTexId) {
+            glDeleteTextures(1, &mDecodeTexId);
+        }
+    }
+    //todo init inputTexId outputTexId
+    startCameraPreview();
+}
+
+void MediaRecorder::notifyFrameAvailable() {
+    updateTexImage();
+    // todo processVideoFrame
+    if (mPreviewSurface != EGL_NO_SURFACE) {
+        eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
+        renderToViewWithAutofit(mDecodeTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
+        eglSwapBuffers(mEGLDisplay, mPreviewSurface);
+    }
+    if (isEncoding) {
+        //todo encode, pending
+    }
 }
 
 /**
@@ -546,8 +568,8 @@ bool MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
     return true;
 }
 
-void MediaRecorder::configCamera() {
-    aw_log("configCamera");
+void MediaRecorder::startCameraPreview() {
+    aw_log("startCameraPreview");
     JNIEnv *env;
     if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
         aw_log("%s AttachCurrentThread failed", __FUNCTION__);
@@ -559,7 +581,14 @@ void MediaRecorder::configCamera() {
     }
     jclass jcls = env->GetObjectClass(mObj);
     if (NULL != jcls) {
-        env->GetMethodID(jcls, "configCameraFromNative", "(I)Lcom/changba/songstudio/recording/camera/preview/CameraConfigInfo;");
+        jmethodID  startPreviewCallback = env->GetMethodID(jcls, "startPreviewFromNative", "(I)V");
+        if (startPreviewCallback != NULL) {
+            env->CallVoidMethod(mObj, startPreviewCallback, mDecodeTexId);
+        }
+    }
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        LOGE("%s %s DetachCurrentThread failed", __FUNCTION__, __LINE__);
+        return;
     }
 }
 
@@ -655,7 +684,16 @@ GLuint MediaRecorder::loadShader(GLenum shaderType, const char *pSource) {
     return shader;
 }
 
+bool MediaRecorder::checkGlError(const char *op) {
+    for (GLint error = glGetError(); error; error = glGetError()) {
+        LOGE("after %s() glError (0x%x)\n", op, error);
+        return true;
+    }
+    return false;
+}
+
 int MediaRecorder::initTexture() {
+    mDecodeTexId = 0;
     glGenTextures(1, &mDecodeTexId);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, mDecodeTexId);
     if (checkGlError("glBindTexture")) {
@@ -678,6 +716,64 @@ int MediaRecorder::initTexture() {
         return -1;
     }
     return 1;
+}
+
+void MediaRecorder::renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight) {
+    glViewport(0, 0, screenWidth, screenHeight);
+
+    if (mIsGLInitialized) {
+        LOGE("render not init");
+        return;
+    }
+
+    int fitHeight = (int) ((float) texHeight * screenWidth / texWidth + 0.5f);
+    float cropRatio = (float) (fitHeight - screenHeight) / (2 * fitHeight);
+
+    if (cropRatio < 0) {
+        cropRatio = 0.0f;
+    }
+
+    glUseProgram(mGLProgramId);
+    static const GLfloat _vertices[] = {-1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f,
+                                        1.0f, 1.0f};
+    glVertexAttribPointer(mGLVertexCoords, 2, GL_FLOAT, 0, 0, _vertices);
+    glEnableVertexAttribArray(mGLVertexCoords);
+    static const GLfloat texCoords[] = {0.0f, cropRatio, 1.0f, cropRatio, 0.0f, 1.0f - cropRatio,
+                                        1.0f, 1.0f - cropRatio};
+    glVertexAttribPointer(mGLTextureCoords, 2, GL_FLOAT, 0, 0, texCoords);
+    glEnableVertexAttribArray(mGLTextureCoords);
+    //bind texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, texId);
+    glUniform1i(mGLUniformTexture, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(mGLVertexCoords);
+    glDisableVertexAttribArray(mGLTextureCoords);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+}
+
+void MediaRecorder::updateTexImage() {
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return;
+    }
+    if (env == NULL) {
+        LOGI("getJNIEnv failed");
+        return;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    if (NULL != jcls) {
+        jmethodID updateTexImageCallback = env->GetMethodID(jcls, "updateTexImageFromNative",
+                                                            "()V");
+        if (NULL != updateTexImageCallback) {
+            env->CallVoidMethod(mObj, updateTexImageCallback);
+        }
+    }
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        LOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+    }
 }
 
 

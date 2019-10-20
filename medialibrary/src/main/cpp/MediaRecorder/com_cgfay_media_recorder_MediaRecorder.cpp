@@ -172,11 +172,21 @@ Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobje
     if (surface != 0 && recorder) {
         ANativeWindow *pWindow = ANativeWindow_fromSurface(env, surface);
         if (pWindow) {
-
+            recorder->prepareEGLContext(pWindow, jvm, thiz, screenWidth, screenHeight, cameraFacingId);
         }
     }
 }
 
+/**
+ * prepareEGLContext
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_cgfay_media_recorder_MediaRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz) {
+    MediaRecorder *recorder = new MediaRecorder();
+    if (recorder) {
+        recorder->notifyFrameAvailable();
+    }
+}
 /**
  * 释放录制器对象
  */

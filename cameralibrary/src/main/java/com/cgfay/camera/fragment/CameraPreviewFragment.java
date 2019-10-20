@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -415,6 +416,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
         mSpeedBarShowing = show;
         mSpeedBar.setVisibility(show ? View.VISIBLE : View.GONE);
         ((TextView)mContentView.findViewById(R.id.tv_speed_status)).setText(show ? "速度开" : "速度关");
+        ((ImageView)mContentView.findViewById(R.id.iv_speed_status)).setBackgroundResource(show ? R.drawable.ic_camera_speed_dark_new : R.drawable.ic_camera_speed_light_new);
         if (show) {
             if (mSettingView != null) {
                 mSettingView.dismiss();

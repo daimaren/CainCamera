@@ -10,6 +10,7 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.cgfay.caincamera.fragment.FFMediaRecordFragment;
 import com.cgfay.caincamera.fragment.MediaRecordFragment;
 import com.cgfay.camera.engine.camera.CameraEngine;
 import com.cgfay.camera.engine.camera.CameraParam;
@@ -17,6 +18,7 @@ import com.cgfay.camera.utils.PathConstraints;
 import com.cgfay.media.CainCommandEditor;
 import com.cgfay.media.recorder.AVFormatter;
 import com.cgfay.media.recorder.AudioRecorder;
+import com.cgfay.media.recorder.FFMediaRecorder;
 import com.cgfay.media.recorder.MediaRecorder;
 import com.cgfay.uitls.utils.FileUtils;
 import com.cgfay.video.activity.VideoEditActivity;
@@ -30,7 +32,7 @@ import java.util.List;
 public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecorder.OnRecordCallback,
         SurfaceTexture.OnFrameAvailableListener, MediaRecorder.OnRecordListener {
 
-    private static final String TAG = "FFMediaRecordPresenter";
+    private static final String TAG = "MediaRecordPresenter";
     private static final boolean VERBOSE = true;
 
     private Activity mActivity;
@@ -192,7 +194,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
         if (VERBOSE) {
             Log.d(TAG, "onRecordStart: ");
         }
-        mFragment.hidViews();
+        //mFragment.hidViews();
         mIsRecording = true;
     }
 
@@ -202,7 +204,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
             Log.d(TAG, "onRecording: " + duration);
         }
         float progress = duration / mMaxDuration;
-        mFragment.setProgress(progress);
+        //mFragment.setProgress(progress);
         if (duration > mRemainDuration) {
             stopRecord();
         }
@@ -219,13 +221,13 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
                 mVideoList.add(new VideoInfo(mMediaRecorder.getOutput(), duration));
                 mRemainDuration = mRemainDuration - (int)duration;
                 float currentProgress = duration / mMaxDuration;
-                mFragment.addProgressSegment(currentProgress);
+                //mFragment.addProgressSegment(currentProgress);
             }
             mMediaRecorder.release();
             mMediaRecorder = null;
         }
-        mFragment.showViews();
-        mFragment.showToast("录制成功");
+        //mFragment.showViews();
+        //mFragment.showToast("录制成功");
     }
 
     @Override
@@ -233,7 +235,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
         if (VERBOSE) {
             Log.d(TAG, "onRecordError: ");
         }
-        mFragment.showToast(msg);
+        //mFragment.showToast(msg);
         if (mMediaRecorder != null) {
             mMediaRecorder.release();
             mMediaRecorder = null;
@@ -256,7 +258,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
 
     @Override
     public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        mFragment.onFrameAvailable();
+        //mFragment.onFrameAvailable();
     }
 
     @Override
@@ -283,7 +285,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
                 mVideoList.remove(index);
             }
         }
-        mFragment.deleteProgressSegment();
+        //mFragment.deleteProgressSegment();
     }
 
     /**
@@ -318,7 +320,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
             height = CameraParam.getInstance().previewHeight;
         }
 
-        mFragment.updateTextureSize(width, height);
+        //mFragment.updateTextureSize(width, height);
     }
 
     /**
@@ -350,7 +352,7 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
             intent.putExtra(VideoEditActivity.VIDEO_PATH, outputPath);
             mActivity.startActivity(intent);
         } else {
-            mFragment.showProgressDialog();
+            //mFragment.showProgressDialog();
             List<String> videos = new ArrayList<>();
             for (VideoInfo info : mVideoList) {
                 if (info != null && !TextUtils.isEmpty(info.getFileName())) {
@@ -360,13 +362,13 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
             String finalPath = generateOutputPath();
             mCommandEditor.execCommand(CainCommandEditor.concatVideo(mActivity, videos, finalPath),
                     (result) -> {
-                        mFragment.hideProgressDialog();
+                        //mFragment.hideProgressDialog();
                         if (result == 0) {
                             Intent intent = new Intent(mActivity, VideoEditActivity.class);
                             intent.putExtra(VideoEditActivity.VIDEO_PATH, finalPath);
                             mActivity.startActivity(intent);
                         } else {
-                            mFragment.showToast("合成失败");
+                            //mFragment.showToast("合成失败");
                         }
                     });
         }

@@ -32,7 +32,7 @@ import com.cgfay.uitls.utils.NotchUtils;
 import com.cgfay.uitls.utils.StatusBarUtils;
 
 public class MediaRecordFragment extends Fragment implements View.OnClickListener, SurfaceHolder.Callback,
-        Camera.PreviewCallback, SurfaceTexture.OnFrameAvailableListener, MediaRecorder.OnRecordListener{
+        MediaRecorder.OnRecordListener{
 
     private static final String TAG = "FFMediaRecordFragment";
     private static final int CAMERA_FACING_BACK = 0;
@@ -139,17 +139,6 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-
-    }
-
-    // camera callback
-    @Override
-    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-
-    }
-
-    @Override
-    public void onPreviewFrame(byte[] bytes, Camera camera) {
 
     }
 
