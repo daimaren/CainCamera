@@ -172,7 +172,7 @@ Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobje
     if (surface != 0 && recorder) {
         ANativeWindow *pWindow = ANativeWindow_fromSurface(env, surface);
         if (pWindow) {
-            recorder->prepareEGLContext(pWindow, jvm, thiz, screenWidth, screenHeight, cameraFacingId);
+            recorder->prepareEGLContext(pWindow, env, jvm, thiz, screenWidth, screenHeight, cameraFacingId);
         }
     }
 }

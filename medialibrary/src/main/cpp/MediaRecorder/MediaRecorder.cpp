@@ -71,7 +71,7 @@ MediaRecorder::~MediaRecorder() {
  * prepareEGLContext
  */
 
-void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobject obj,
+void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM *g_jvm, jobject obj,
                                       int screenWidth, int screenHeight, int cameraFacingId) {
     aw_log("prepareEGLContext");
     mJvm = g_jvm;
@@ -84,11 +84,14 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
     if (mPreviewSurface != NULL) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
-    mTextureWidth = 360; //720
-    mTextureHeight = 640; //1280
+    mTextureWidth = 720; //720
+    mTextureHeight = 1280; //1280
     aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
-    initCopier();
+    if (!initCopier()) {
+        LOGE("initCopier failed");
+        return;
+    }
     initRenderer();
     int ret = initDecodeTexture();
     if (ret < 0) {
@@ -115,11 +118,15 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobj
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screenWidth, screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    startCameraPreview();
+    startCameraPreview(env);
 }
 
 void MediaRecorder::notifyFrameAvailable() {
     byte* packetBuffer = new byte[mTextureWidth * mTextureHeight * 4];
+    if (!packetBuffer) {
+        LOGE("packetBuffer null");
+        return;
+    }
     updateTexImage();
     // processFrame
     processFrame();
@@ -632,13 +639,9 @@ bool MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
     return true;
 }
 
-void MediaRecorder::startCameraPreview() {
+void MediaRecorder::startCameraPreview(JNIEnv *env) {
     aw_log("startCameraPreview");
-    JNIEnv *env;
-    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
-        aw_log("%s AttachCurrentThread failed", __FUNCTION__);
-        return;
-    }
+
     if (env == NULL) {
         aw_log("%s getJNIEnv failed", __FUNCTION__);
         return;
@@ -649,10 +652,6 @@ void MediaRecorder::startCameraPreview() {
         if (startPreviewCallback != NULL) {
             env->CallVoidMethod(mObj, startPreviewCallback, mDecodeTexId);
         }
-    }
-    if (mJvm->DetachCurrentThread() != JNI_OK) {
-        LOGE("%s %s DetachCurrentThread failed", __FUNCTION__, __LINE__);
-        return;
     }
 }
 
@@ -683,6 +682,7 @@ bool MediaRecorder::initCopier() {
         LOGE("Could not create program.");
         return false;
     }
+
     mCopyVertexCoords = glGetAttribLocation(mCopyProgramId, "vPosition");
     checkGlError("glGetAttribLocation vPosition");
     mCopyTextureCoords = glGetAttribLocation(mCopyProgramId, "vTexCords");
@@ -697,6 +697,7 @@ bool MediaRecorder::initCopier() {
     checkGlError("glGetUniformLocation mUniformTransforms");
 
     mCopyIsInitialized = true;
+    return true;
 }
 
 GLuint MediaRecorder::loadProgram(char *pVertexSource, char *pFragmentSource) {

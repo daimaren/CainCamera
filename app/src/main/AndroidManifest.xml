@@ -58,6 +58,9 @@
             android:theme="@style/NoActionBarTheme" />
 
         <activity
+            android:name=".activity.MediaRecordActivity"
+            android:theme="@style/NoActionBarTheme" />
+        <activity
             android:name=".activity.FLVRecordActivity"
             android:theme="@style/NoActionBarTheme" />
         <!-- 全面屏兼容逻辑 -->

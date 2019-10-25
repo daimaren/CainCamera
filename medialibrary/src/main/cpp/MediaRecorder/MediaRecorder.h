@@ -104,7 +104,7 @@ public:
 
     virtual ~MediaRecorder();
 
-    void prepareEGLContext(ANativeWindow *window, JavaVM *g_jvm, jobject obj, int screenWidth, int screenHeight, int cameraFacingId);
+    void prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM *g_jvm, jobject obj, int screenWidth, int screenHeight, int cameraFacingId);
     void notifyFrameAvailable();
     // 设置录制监听器
     void setOnRecordListener(OnRecordListener *listener);
@@ -157,7 +157,7 @@ private:
     void copyYUY2Image(GLuint ipTex, byte* yuy2ImageBuffer, int width, int height);
     void downloadImageFromTexture(GLuint texId, void *imageBuf, unsigned int imageWidth, unsigned int imageHeight);
     // callback function
-    void startCameraPreview();
+    void startCameraPreview(JNIEnv *env);
     void updateTexImage();
 
 private:
