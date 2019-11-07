@@ -115,7 +115,7 @@ class MediaRecorderHandler;
 
 class MediaRecorder : public Runnable {
 public:
-    MediaRecorder(jobject listener);
+    MediaRecorder();
 
     virtual ~MediaRecorder();
 

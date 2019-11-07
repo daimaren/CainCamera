@@ -25,7 +25,7 @@ public final class MediaRecorder {
     }
 
     // 初始化
-    private native long nativeInit(Object listener);
+    private native long nativeInit();
     // prepareEGLContext
     public native void prepareEGLContext(long handle, Surface surface, int width, int height, int cameraFacingId);
     // notifyFrameAvailable
@@ -65,7 +65,7 @@ public final class MediaRecorder {
     private String dstPath;
 
     private MediaRecorder() {
-        handle = nativeInit(this);
+        handle = nativeInit();
     }
 
     @Override

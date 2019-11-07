@@ -18,7 +18,6 @@
 #include "AVMediaHeader.h"
 
 static JavaVM *javaVM = nullptr;
-static jobject g_obj = nullptr;
 
 static JNIEnv *getJNIEnv() {
     JNIEnv *env;
@@ -154,14 +153,8 @@ void JNIOnRecordListener::onRecordError(const char *msg) {
  * 初始化一个录制器对象
  */
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz, jobject listener) {
-    jobject g_obj = 0;
-    if (listener != nullptr) {
-        g_obj = env->NewGlobalRef(listener);
-    } else {
-        g_obj = nullptr;
-    }
-    MediaRecorder *recorder = new MediaRecorder(g_obj);
+Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz) {
+    MediaRecorder *recorder = new MediaRecorder();
     return (jlong) recorder;
 }
 
@@ -172,13 +165,13 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jlong handle, jobject surface, jint screenWidth, jint screenHeight,
         jint cameraFacingId) {
     MediaRecorder *recorder = (MediaRecorder *)handle;
-    //JavaVM *jvm = NULL;
-    //env->GetJavaVM(&jvm);
-    g_obj = env->NewGlobalRef(thiz);
+    JavaVM *jvm = NULL;
+    env->GetJavaVM(&jvm);
+    jobject obj = env->NewGlobalRef(thiz);
     if (surface != 0 && recorder) {
         ANativeWindow *pWindow = ANativeWindow_fromSurface(env, surface);
         if (pWindow) {
-            recorder->prepareEGLContext(pWindow, env, javaVM, g_obj, screenWidth, screenHeight, cameraFacingId);
+            recorder->prepareEGLContext(pWindow, env, jvm, obj, screenWidth, screenHeight, cameraFacingId);
         }
     }
 }

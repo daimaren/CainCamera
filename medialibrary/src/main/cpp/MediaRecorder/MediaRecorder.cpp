@@ -8,7 +8,7 @@
  * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
  * 第一阶段，先把相机画面显示出来
  */
-MediaRecorder::MediaRecorder(jobject listener) : mRecordListener(nullptr), mAbortRequest(true),
+MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr), mCopyIsInitialized(false),
                                     mIsGLInitialized(false){
@@ -28,7 +28,6 @@ MediaRecorder::MediaRecorder(jobject listener) : mRecordListener(nullptr), mAbor
 
     mMsgQueue = new MsgQueue("MediaRecorder MsgQueue");
     mHandler = new MediaRecorderHandler(this, mMsgQueue);
-    mObj = listener;
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -125,7 +124,7 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM
                                       int screenWidth, int screenHeight, int cameraFacingId) {
     aw_log("prepareEGLContext");
     mJvm = g_jvm;
-    //mObj = obj;
+    mObj = obj;
     mNativeWindow = window;
     mScreenWidth = screenWidth;
     mScreenHeight = screenHeight;
