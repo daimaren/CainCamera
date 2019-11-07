@@ -8,7 +8,7 @@
  * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
  * 第一阶段，先把相机画面显示出来
  */
-MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
+MediaRecorder::MediaRecorder(jobject listener) : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr), mCopyIsInitialized(false),
                                     mIsGLInitialized(false){
@@ -25,6 +25,10 @@ MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
     GLfloat* tempTextureCoords;
     tempTextureCoords = CAMERA_TEXTURE_NO_ROTATION;
     memcpy(mTextureCoords, tempTextureCoords, mTextureCoordsSize * sizeof(GLfloat));
+
+    mMsgQueue = new MsgQueue("MediaRecorder MsgQueue");
+    mHandler = new MediaRecorderHandler(this, mMsgQueue);
+    mObj = listener;
 }
 
 MediaRecorder::~MediaRecorder() {
@@ -66,21 +70,12 @@ MediaRecorder::~MediaRecorder() {
         delete[] mTextureCoords;
         mTextureCoords = NULL;
     }
+    destroyEGLContext();
 }
-/**
- * prepareEGLContext
- */
 
-void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM *g_jvm, jobject obj,
-                                      int screenWidth, int screenHeight, int cameraFacingId) {
-    aw_log("prepareEGLContext");
-    mJvm = g_jvm;
-    mObj = obj;
-    mScreenWidth = screenWidth;
-    mScreenHeight = screenHeight;
-    mFacingId = cameraFacingId;
+bool MediaRecorder::initialize() {
     initEGL();
-    createWindowSurface(window);
+    createWindowSurface(mNativeWindow);
     if (mPreviewSurface != NULL) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
@@ -90,7 +85,7 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
     if (!initCopier()) {
         LOGE("initCopier failed");
-        return;
+        return false;
     }
     initRenderer();
     int ret = initDecodeTexture();
@@ -115,18 +110,76 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, screenWidth, screenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mScreenWidth, mScreenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    startCameraPreview(env);
+    startCameraPreview();
+    return true;
 }
 
-void MediaRecorder::notifyFrameAvailable() {
+/**
+ * prepareEGLContext
+ */
+
+void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM *g_jvm, jobject obj,
+                                      int screenWidth, int screenHeight, int cameraFacingId) {
+    aw_log("prepareEGLContext");
+    mJvm = g_jvm;
+    //mObj = obj;
+    mNativeWindow = window;
+    mScreenWidth = screenWidth;
+    mScreenHeight = screenHeight;
+    mFacingId = cameraFacingId;
+    mHandler->postMessage(new Msg(MSG_EGL_THREAD_CREATE));
+    pthread_create(&mThreadId, 0, threadStartCallback, this);
+}
+
+void *MediaRecorder::threadStartCallback(void *myself) {
+    aw_log("threadStartCallback");
+    MediaRecorder *recorder = (MediaRecorder *) myself;
+    recorder->processMessage();
+    pthread_exit(0);
+    return 0;
+}
+
+void MediaRecorder::processMessage() {
+    bool renderingEnabled = true;
+    while (renderingEnabled) {
+        Msg *msg = NULL;
+        if (mMsgQueue->dequeueMessage(&msg, true) > 0) {
+            if (MESSAGE_QUEUE_LOOP_QUIT_FLAG == msg->execute()) {
+                renderingEnabled = false;
+            }
+            delete msg;
+        }
+    }
+}
+
+void MediaRecorder::destroyEGLContext() {
+    LOGI("destroyEGLContext");
+    if (mHandler) {
+        mHandler->postMessage(new Msg(MSG_EGL_THREAD_EXIT));
+        mHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
+    }
+    pthread_join(mThreadId, 0);
+    if (mMsgQueue) {
+        mMsgQueue->abort();
+        delete mMsgQueue;
+        mMsgQueue = NULL;
+    }
+    delete mHandler;
+    mHandler = NULL;
+    LOGI("MediaRecorder thread stopped");
+}
+
+void MediaRecorder::renderFrame() {
+#if 0
     byte* packetBuffer = new byte[mTextureWidth * mTextureHeight * 4];
     if (!packetBuffer) {
         LOGE("packetBuffer null");
         return;
     }
+#endif
     updateTexImage();
     // processFrame
     processFrame();
@@ -136,7 +189,13 @@ void MediaRecorder::notifyFrameAvailable() {
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (isEncoding) {
-        downloadImageFromTexture(mRotateTexId, packetBuffer, mTextureWidth, mTextureHeight);
+        //downloadImageFromTexture(mRotateTexId, packetBuffer, mTextureWidth, mTextureHeight);
+    }
+}
+
+void MediaRecorder::notifyFrameAvailable() {
+    if (mHandler) {
+        mHandler->postMessage(new Msg(MSG_RENDER_FRAME));
     }
 }
 
@@ -639,11 +698,19 @@ bool MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
     return true;
 }
 
-void MediaRecorder::startCameraPreview(JNIEnv *env) {
+void MediaRecorder::startCameraPreview() {
     aw_log("startCameraPreview");
-
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return;
+    }
     if (env == NULL) {
-        aw_log("%s getJNIEnv failed", __FUNCTION__);
+        LOGE("%s getJNIEnv failed", __FUNCTION__);
+        return;
+    }
+    if (mObj == NULL) {
+        LOGE("%s mObj failed", __FUNCTION__);
         return;
     }
     jclass jcls = env->GetObjectClass(mObj);
@@ -652,6 +719,10 @@ void MediaRecorder::startCameraPreview(JNIEnv *env) {
         if (startPreviewCallback != NULL) {
             env->CallVoidMethod(mObj, startPreviewCallback, mDecodeTexId);
         }
+    }
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        LOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+        return;
     }
 }
 
@@ -810,7 +881,7 @@ int MediaRecorder::initDecodeTexture() {
 void MediaRecorder::renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight) {
     glViewport(0, 0, screenWidth, screenHeight);
 
-    if (mIsGLInitialized) {
+    if (!mIsGLInitialized) {
         LOGE("render not init");
         return;
     }

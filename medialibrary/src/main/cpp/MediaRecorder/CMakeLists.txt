@@ -31,6 +31,8 @@ add_library( media_recorder
              aw_faac.c
              aw_sw_faac_encoder.c
              aw_encode_flv.c
+             Handler.cpp
+             MsgQueue.cpp
              # 录制器
              MediaRecorder.cpp
              RecordParams.cpp

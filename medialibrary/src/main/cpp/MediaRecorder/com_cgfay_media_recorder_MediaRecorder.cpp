@@ -154,8 +154,14 @@ void JNIOnRecordListener::onRecordError(const char *msg) {
  * 初始化一个录制器对象
  */
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz) {
-    MediaRecorder *recorder = new MediaRecorder();
+Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz, jobject listener) {
+    jobject g_obj = 0;
+    if (listener != nullptr) {
+        g_obj = env->NewGlobalRef(listener);
+    } else {
+        g_obj = nullptr;
+    }
+    MediaRecorder *recorder = new MediaRecorder(g_obj);
     return (jlong) recorder;
 }
 
@@ -163,16 +169,16 @@ Java_com_cgfay_media_recorder_MediaRecorder_nativeInit(JNIEnv *env, jobject thiz
  * prepareEGLContext
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jobject surface, jint screenWidth, jint screenHeight,
+Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jlong handle, jobject surface, jint screenWidth, jint screenHeight,
         jint cameraFacingId) {
-    MediaRecorder *recorder = new MediaRecorder();
-    JavaVM *jvm = NULL;
-    env->GetJavaVM(&jvm);
+    MediaRecorder *recorder = (MediaRecorder *)handle;
+    //JavaVM *jvm = NULL;
+    //env->GetJavaVM(&jvm);
     g_obj = env->NewGlobalRef(thiz);
     if (surface != 0 && recorder) {
         ANativeWindow *pWindow = ANativeWindow_fromSurface(env, surface);
         if (pWindow) {
-            recorder->prepareEGLContext(pWindow, env, jvm, thiz, screenWidth, screenHeight, cameraFacingId);
+            recorder->prepareEGLContext(pWindow, env, javaVM, g_obj, screenWidth, screenHeight, cameraFacingId);
         }
     }
 }
@@ -181,8 +187,8 @@ Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobje
  * prepareEGLContext
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MediaRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz) {
-    MediaRecorder *recorder = new MediaRecorder();
+Java_com_cgfay_media_recorder_MediaRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz, jlong handle) {
+    MediaRecorder *recorder = (MediaRecorder *)handle;
     if (recorder) {
         recorder->notifyFrameAvailable();
     }

@@ -18,6 +18,7 @@
 #include <GLES2/gl2ext.h>
 
 #include "RecordParams.h"
+#include "handler.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,6 +31,18 @@ extern "C" {
 #ifdef __cplusplus
 };
 #endif
+
+enum RenderThreadMessage {
+    MSG_RENDER_FRAME = 0,
+    MSG_EGL_THREAD_CREATE,
+    MSG_EGL_CREATE_PREVIEW_SURFACE,
+    MSG_SWITCH_CAMERA_FACING,
+    MSG_SWITCH_FILTER,
+    MSG_START_RECORDING,
+    MSG_STOP_RECORDING,
+    MSG_EGL_DESTROY_PREVIEW_SURFACE,
+    MSG_EGL_THREAD_EXIT
+};
 
 typedef unsigned char byte;
 
@@ -98,9 +111,11 @@ public:
     virtual void onRecordError(const char *msg) = 0;
 };
 
+class MediaRecorderHandler;
+
 class MediaRecorder : public Runnable {
 public:
-    MediaRecorder();
+    MediaRecorder(jobject listener);
 
     virtual ~MediaRecorder();
 
@@ -131,6 +146,9 @@ public:
 
     RecordParams *getRecordParams();
 
+    virtual bool initialize();
+    virtual void renderFrame();
+    virtual void destroyEGLContext();
 private:
     void saveFlvAudioTag(aw_flv_audio_tag *audio_tag);
     void saveFlvVideoTag(aw_flv_video_tag *video_tag);
@@ -157,8 +175,11 @@ private:
     void copyYUY2Image(GLuint ipTex, byte* yuy2ImageBuffer, int width, int height);
     void downloadImageFromTexture(GLuint texId, void *imageBuf, unsigned int imageWidth, unsigned int imageHeight);
     // callback function
-    void startCameraPreview(JNIEnv *env);
+    void startCameraPreview();
     void updateTexImage();
+
+    static void *threadStartCallback(void *myself);
+    void processMessage();
 
 private:
     FILE* mFile;
@@ -223,7 +244,35 @@ private:
     //OpenGL download
     GLuint mDownloadFBO;
     //OpenGL Filter
+
+    //msg
+    MediaRecorderHandler *mHandler;
+    MsgQueue *mMsgQueue;
+    pthread_t mThreadId;
 };
 
+class MediaRecorderHandler : public Handler{
+private:
+    MediaRecorder *mMediaRecorder;
+
+public:
+    MediaRecorderHandler(MediaRecorder *recorder, MsgQueue *queue)
+        : Handler(queue) {
+        mMediaRecorder = recorder;
+}
+
+void handleMessage(Msg *msg) {
+    int what = msg->getWhat();
+    //LOGD("handle msg is %d", what);
+    switch(what) {
+        case MSG_EGL_THREAD_CREATE:
+            mMediaRecorder->initialize();
+            break;
+        case MSG_RENDER_FRAME:
+            mMediaRecorder->renderFrame();
+            break;
+    }
+}
+};
 
 #endif //FLVRecorder_H

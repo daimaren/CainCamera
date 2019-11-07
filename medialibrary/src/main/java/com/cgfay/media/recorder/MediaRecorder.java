@@ -25,11 +25,11 @@ public final class MediaRecorder {
     }
 
     // 初始化
-    private native long nativeInit();
+    private native long nativeInit(Object listener);
     // prepareEGLContext
-    public native void prepareEGLContext(Surface surface, int width, int height, int cameraFacingId);
+    public native void prepareEGLContext(long handle, Surface surface, int width, int height, int cameraFacingId);
     // notifyFrameAvailable
-    public native void notifyFrameAvailable();
+    public native void notifyFrameAvailable(long handle);
     // 释放资源
     private native void nativeRelease(long handle);
     // 设置录制监听回调
@@ -65,7 +65,7 @@ public final class MediaRecorder {
     private String dstPath;
 
     private MediaRecorder() {
-        handle = nativeInit();
+        handle = nativeInit(this);
     }
 
     @Override
@@ -122,7 +122,18 @@ public final class MediaRecorder {
         this.dstPath = dstPath;
         setOutput(handle, dstPath);
     }
-
+    /**
+     * prepareEGLContext
+     */
+    public void prepareEGLContext(Surface surface, int width, int height, int cameraFacingId) {
+        prepareEGLContext(handle, surface, width, height, cameraFacingId);
+    }
+    /**
+     * notifyFrameAvailable
+     */
+    public void notifyFrameAvailable() {
+        notifyFrameAvailable(handle);
+    }
     /**
      * 获取输出文件
      * @return
