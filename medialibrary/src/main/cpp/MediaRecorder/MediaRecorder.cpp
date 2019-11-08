@@ -172,13 +172,6 @@ void MediaRecorder::destroyEGLContext() {
 }
 
 void MediaRecorder::renderFrame() {
-#if 0
-    byte* packetBuffer = new byte[mTextureWidth * mTextureHeight * 4];
-    if (!packetBuffer) {
-        LOGE("packetBuffer null");
-        return;
-    }
-#endif
     updateTexImage();
     // processFrame
     processFrame();
@@ -187,8 +180,20 @@ void MediaRecorder::renderFrame() {
         renderToViewWithAutofit(mRotateTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
-    if (isEncoding) {
-        //downloadImageFromTexture(mRotateTexId, packetBuffer, mTextureWidth, mTextureHeight);
+    if (mIsEncoding) {
+#if 1
+        //get RGBA data, then convert to I420
+        uint8_t *rgbaData = (uint8_t *) malloc((size_t) mTextureWidth * mTextureHeight * 4);
+        if (rgbaData == nullptr) {
+            LOGE("Could not allocate memory");
+            return;
+        }
+#endif
+        downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
+        auto mediaData = new AVMediaData();
+        mediaData->setVideo(rgbaData, mTextureWidth * mTextureHeight * 4, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
+        mediaData->setPts(getCurrentTimeMs());
+        recordFrame(mediaData);
     }
 }
 
@@ -270,6 +275,7 @@ RecordParams* MediaRecorder::getRecordParams() {
 int MediaRecorder::prepare() {
 
     RecordParams *params = mRecordParams;
+    mRecordParams->pixelFormat = PIXEL_FORMAT_RGBA;
     if (params->rotateDegree % 90 != 0) {
         LOGE("invalid rotate degree: %d", params->rotateDegree);
         return -1;
@@ -406,6 +412,7 @@ void MediaRecorder::startRecord() {
         mRecordThread = new Thread(this);
         mRecordThread->start();
         mRecordThread->detach();
+        mIsEncoding = true;
     }
 }
 
@@ -985,6 +992,7 @@ void MediaRecorder::downloadImageFromTexture(GLuint texId, void *imageBuf, unsig
     glReadPixels(0, 0, (GLsizei)imageWidth, (GLsizei)imageHeight, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)imageBuf);
     checkGlError("glReadPixels failed");
 
+    glBindTexture(GL_TEXTURE_2D, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

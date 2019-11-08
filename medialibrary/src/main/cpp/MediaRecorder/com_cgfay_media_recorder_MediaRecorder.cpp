@@ -377,6 +377,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MediaRecorder_startRecord(JNIEnv *env, jobject thiz, jlong handle) {
     MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
+        // 准备好yuv转换器 video_encoder audio_encoder flv_muxer
         int ret = recorder->prepare();
         if (ret < 0) {
             LOGE("Failed to prepare recorder");

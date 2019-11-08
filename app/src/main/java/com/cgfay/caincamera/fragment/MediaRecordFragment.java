@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.media.AudioFormat;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.os.Handler;
@@ -11,6 +12,7 @@ import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -26,15 +28,16 @@ import com.cgfay.camera.engine.model.CameraInfo;
 import com.cgfay.camera.utils.PathConstraints;
 import com.cgfay.camera.widget.RecordProgressView;
 import com.cgfay.media.recorder.AVFormatter;
+import com.cgfay.media.recorder.AudioRecorder;
 import com.cgfay.media.recorder.FFMediaRecorder;
 import com.cgfay.media.recorder.MediaRecorder;
 import com.cgfay.uitls.utils.NotchUtils;
 import com.cgfay.uitls.utils.StatusBarUtils;
 
 public class MediaRecordFragment extends Fragment implements View.OnClickListener, SurfaceHolder.Callback,
-        MediaRecorder.OnRecordListener{
+        MediaRecorder.OnRecordListener, AudioRecorder.OnRecordCallback{
 
-    private static final String TAG = "FFMediaRecordFragment";
+    private static final String TAG = "MediaRecordFragment";
     private static final int CAMERA_FACING_BACK = 0;
     private static final int CAMERA_FACING_FRONT = 1;
 
@@ -50,6 +53,10 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
     private Button mBtnDelete;
 
     private MediaRecorder mMediaRecorder;
+    private AudioRecorder mAudioRecorder;
+
+    private boolean mIsRecording = false;
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
@@ -78,6 +85,7 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
         mMediaRecorder.setRecordListener(this);
         initView();
         bindListener();
+        initAudioRecorder();
     }
 
     private void initView() {
@@ -91,7 +99,16 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
         mRecordButton = (Button) mContentView.findViewById(R.id.record_button);
         mRecordButton.setOnClickListener(v -> {
             mRecordButton.setEnabled(false);
-            //todo
+            if (!mIsRecording) {
+                mMediaRecorder.startRecord();
+                mAudioRecorder.start();
+                mIsRecording = true;
+            } else {
+                mMediaRecorder.stopRecord();
+                mAudioRecorder.stop();
+                mIsRecording = false;
+            }
+
         });
 
         // 下一步
@@ -111,8 +128,32 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
         }
     }
 
+    private void initAudioRecorder() {
+        mAudioRecorder = new AudioRecorder();
+        mAudioRecorder.setOnRecordCallback(this);
+        mAudioRecorder.setSampleFormat(AudioFormat.ENCODING_PCM_16BIT);
+    }
+
     private void bindListener() {
 
+    }
+
+    /**
+     * 录制一帧音频帧数据
+     * @param data
+     */
+    @Override
+    public void onRecordSample(byte[] data) {
+        if (mIsRecording) {
+            if (mMediaRecorder != null) {
+                mMediaRecorder.recordAudioFrame(data, data.length);
+            }
+        }
+    }
+
+    @Override
+    public void onRecordFinish() {
+        Log.d(TAG, "onRecordFinish: audio record finish");
     }
 
     @Override

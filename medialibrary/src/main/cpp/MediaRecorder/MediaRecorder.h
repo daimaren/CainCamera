@@ -195,7 +195,7 @@ private:
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
     bool isSpsPpsAndAudioSpecificConfigSent = false;
-    bool isEncoding = false;
+    bool mIsEncoding = false;
 
     ANativeWindow *mNativeWindow;
     JavaVM *mJvm;

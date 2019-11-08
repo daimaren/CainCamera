@@ -90,6 +90,7 @@ RecordParams* MediaRecorder::getRecordParams() {
 int MediaRecorder::prepare() {
 
     RecordParams *params = mRecordParams;
+    mRecordParams->pixelFormat = PIXEL_FORMAT_NV21;
     if (params->rotateDegree % 90 != 0) {
         LOGE("invalid rotate degree: %d", params->rotateDegree);
         return -1;
