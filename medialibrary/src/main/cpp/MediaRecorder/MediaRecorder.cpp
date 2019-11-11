@@ -78,8 +78,13 @@ bool MediaRecorder::initialize() {
     if (mPreviewSurface != NULL) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
-    mTextureWidth = 720; //720
-    mTextureHeight = 1280; //1280
+    //get camera info from app layer
+    mCameraWidth = 640;
+    mCameraHeight = 480;
+    mDegress = 270;
+
+    mTextureWidth = 360; //720
+    mTextureHeight = 640; //1280
     aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
     if (!initCopier()) {
@@ -181,14 +186,12 @@ void MediaRecorder::renderFrame() {
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (mIsEncoding) {
-#if 1
         //get RGBA data, then convert to I420
         uint8_t *rgbaData = (uint8_t *) malloc((size_t) mTextureWidth * mTextureHeight * 4);
         if (rgbaData == nullptr) {
             LOGE("Could not allocate memory");
             return;
         }
-#endif
         downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
         auto mediaData = new AVMediaData();
         mediaData->setVideo(rgbaData, mTextureWidth * mTextureHeight * 4, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);

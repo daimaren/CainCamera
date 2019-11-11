@@ -206,9 +206,13 @@ private:
 
     int mScreenWidth;
     int mScreenHeight;
+
+    int mCameraWidth;
+    int mCameraHeight;
+    int mDegress;
+    int mFacingId;
     int mTextureWidth;
     int mTextureHeight;
-    int mFacingId;
 
     RecordParams *mRecordParams;    // 录制参数
     YuvConvertor *mYuvConvertor;    // Yuv转换器
