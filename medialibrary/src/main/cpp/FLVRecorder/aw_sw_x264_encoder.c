@@ -30,14 +30,12 @@ extern aw_flv_video_tag * aw_sw_encoder_encode_x264_data(int8_t *yuv_data, long 
     }
     
     aw_encode_yuv_frame_2_x264(s_x264_ctx, yuv_data, (int32_t)len);
-    
-    if (s_x264_ctx->encoded_h264_data->size <= 0) {
 #if DUMP_YUV_DATA
-        int count = fwrite(yuv_data, len, 1, yuvDumpFile);
+    int count = fwrite(yuv_data, len, 1, yuvDumpFile);
         aw_log("write yuv size %d len %d, encoded_h264_data error", count, len);
-#else
-        aw_log("encoded_h264_data error");
 #endif
+    if (s_x264_ctx->encoded_h264_data->size <= 0) {
+        aw_log("encoded_h264_data error");
         return NULL;
     }
     

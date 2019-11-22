@@ -1,6 +1,7 @@
 //
 // Created by CainHuang on 2019/8/17.
 //
+#include <android/native_window_jni.h>
 #include "unistd.h"
 #include "MediaRecorder.h"
 
@@ -11,7 +12,7 @@
 MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true), mRecordThread(nullptr),
                                      mYuvConvertor(nullptr), mFrameQueue(nullptr), mCopyIsInitialized(false),
-                                    mIsGLInitialized(false){
+                                    mIsGLInitialized(false), mIsSurfaceRenderInit(false){
     mRecordParams = new RecordParams();
     mGLVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
     mGLFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
@@ -20,6 +21,9 @@ MediaRecorder::MediaRecorder() : mRecordListener(nullptr), mAbortRequest(true),
     mCopyFragmentShader = GPU_FRAME_FRAGMENT_SHADER;
     mTextureCoords = NULL;
     mTextureCoordsSize = 8;
+
+    mSurfaceRenderVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
+    mSurfaceRenderFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
 
     mTextureCoords = new GLfloat[mTextureCoordsSize];
     GLfloat* tempTextureCoords;
@@ -69,22 +73,20 @@ MediaRecorder::~MediaRecorder() {
         delete[] mTextureCoords;
         mTextureCoords = NULL;
     }
-    destroyEGLContext();
 }
 
 bool MediaRecorder::initialize() {
     initEGL();
-    createWindowSurface(mNativeWindow);
+    mPreviewSurface = createWindowSurface(mNativeWindow);
     if (mPreviewSurface != NULL) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
     //get camera info from app layer
-    mCameraWidth = 640;
-    mCameraHeight = 480;
     mDegress = 270;
-
     mTextureWidth = 360; //720
     mTextureHeight = 640; //1280
+    mBitRateKbs = 900;
+    mFrameRate = 20;
     aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
     if (!initCopier()) {
@@ -186,17 +188,28 @@ void MediaRecorder::renderFrame() {
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (mIsEncoding) {
-        //get RGBA data, then convert to I420
-        uint8_t *rgbaData = (uint8_t *) malloc((size_t) mTextureWidth * mTextureHeight * 4);
-        if (rgbaData == nullptr) {
-            LOGE("Could not allocate memory");
-            return;
+        if (mIsHWEncode) {
+            //hw encode
+            eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
+            renderToView(mRotateTexId, mTextureWidth, mTextureHeight);
+            //postMessage
+            if (mHandler) {
+                mHandler->postMessage(new Msg(MSG_FRAME_AVAILIBLE));
+            }
+            eglSwapBuffers(mEGLDisplay, mEncoderSurface);
+        } else {
+            //get RGBA data, then convert to I420
+            uint8_t *rgbaData = (uint8_t *) malloc((size_t) mTextureWidth * mTextureHeight * 4);
+            if (rgbaData == nullptr) {
+                LOGE("Could not allocate memory");
+                return;
+            }
+            downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
+            auto mediaData = new AVMediaData();
+            mediaData->setVideo(rgbaData, mTextureWidth * mTextureHeight * 4, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
+            mediaData->setPts(getCurrentTimeMs());
+            recordFrame(mediaData);
         }
-        downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
-        auto mediaData = new AVMediaData();
-        mediaData->setVideo(rgbaData, mTextureWidth * mTextureHeight * 4, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
-        mediaData->setPts(getCurrentTimeMs());
-        recordFrame(mediaData);
     }
 }
 
@@ -218,7 +231,6 @@ void MediaRecorder::setOnRecordListener(OnRecordListener *listener) {
  * 释放资源
  */
 void MediaRecorder::release() {
-    stopRecord();
     // 等待退出
     mMutex.lock();
     while (!mExit) {
@@ -238,32 +250,6 @@ void MediaRecorder::release() {
         delete mRecordThread;
         mRecordThread = nullptr;
     }
-    //update duration and file size
-    if (mFile == nullptr) {
-        aw_log("mFile nullptr");
-        return;
-    }
-
-    int64_t  file_size = ftello(mFile);
-    aw_data* flv_data = alloc_aw_data(30);
-
-    //写入duration 0表示double，1表示uint8
-    data_writer.write_string(&flv_data, "duration", 2);
-    data_writer.write_uint8(&flv_data, 0);
-    data_writer.write_double(&flv_data, duration);
-    //写入file_size
-    data_writer.write_string(&flv_data, "filesize", 2);
-    data_writer.write_uint8(&flv_data, 0);
-    data_writer.write_double(&flv_data, file_size);
-
-    if (mFile) {
-        fseek(mFile, 42, SEEK_SET);
-
-        size_t write_item_count = fwrite(flv_data->data, 1, flv_data->size, mFile);
-        fclose(mFile);
-    }
-    aw_sw_encoder_close_faac_encoder();
-    aw_sw_encoder_close_x264_encoder();
 }
 
 RecordParams* MediaRecorder::getRecordParams() {
@@ -276,7 +262,6 @@ RecordParams* MediaRecorder::getRecordParams() {
  * @return
  */
 int MediaRecorder::prepare() {
-
     RecordParams *params = mRecordParams;
     mRecordParams->pixelFormat = PIXEL_FORMAT_RGBA;
     if (params->rotateDegree % 90 != 0) {
@@ -290,56 +275,66 @@ int MediaRecorder::prepare() {
 
     LOGI("Record to file: %s, width: %d, height: %d", params->dstFile, params->width,
          params->height);
-
-    // yuv转换
     int outputWidth = params->width;
     int outputHeight = params->height;
 
-    // yuv转换器
-    mYuvConvertor = new YuvConvertor();
-    mYuvConvertor->setInputParams(params->width, params->height, params->pixelFormat);
-    mYuvConvertor->setCrop(params->cropX, params->cropY, params->cropWidth, params->cropHeight);
-    mYuvConvertor->setRotate(params->rotateDegree);
-    mYuvConvertor->setScale(params->scaleWidth, params->scaleHeight);
-    mYuvConvertor->setMirror(params->mirror);
-    // 准备
-    if (mYuvConvertor->prepare() < 0) {
-        delete mYuvConvertor;
-        mYuvConvertor = nullptr;
-    } else {
-        outputWidth = mYuvConvertor->getOutputWidth();
-        outputHeight = mYuvConvertor->getOutputHeight();
-        if (outputWidth == 0 || outputHeight == 0) {
-            outputWidth = params->rotateDegree % 180 == 0 ? params->width : params->height;
-            outputHeight = params->rotateDegree % 180 == 0 ? params->height : params->width;
+    if (mIsHWEncode) {
+        //todo audio hw encoder
+        createHWEncoder();
+        createSurfaceRender();
+        mIsSPSUnWriteFlag = true;
+#if DUMP_HW_ENCODER_H264_BUFFER
+        mDumpH264File = fopen("/storage/emulated/0/dump.mp4", "wb");
+        if (!mDumpH264File) {
+            aw_log("DumpH264File open error");
         }
+#endif
+    } else {
+        // yuv转换器 NV21 to I420
+        mYuvConvertor = new YuvConvertor();
+        mYuvConvertor->setInputParams(params->width, params->height, params->pixelFormat);
+        mYuvConvertor->setCrop(params->cropX, params->cropY, params->cropWidth, params->cropHeight);
+        mYuvConvertor->setRotate(params->rotateDegree);
+        mYuvConvertor->setScale(params->scaleWidth, params->scaleHeight);
+        mYuvConvertor->setMirror(params->mirror);
+        // 准备
+        if (mYuvConvertor->prepare() < 0) {
+            delete mYuvConvertor;
+            mYuvConvertor = nullptr;
+        } else {
+            outputWidth = mYuvConvertor->getOutputWidth();
+            outputHeight = mYuvConvertor->getOutputHeight();
+            if (outputWidth == 0 || outputHeight == 0) {
+                outputWidth = params->rotateDegree % 180 == 0 ? params->width : params->height;
+                outputHeight = params->rotateDegree % 180 == 0 ? params->height : params->width;
+            }
+        }
+
+        // 准备好A/V编码器, 复用器
+        aw_faac_config faacConfig;
+        faacConfig.sample_rate = params->sampleRate;
+        faacConfig.bitrate = 100000;
+        faacConfig.channel_count = params->channels;
+        faacConfig.sample_size = params->sampleFormat;
+
+        aw_sw_encoder_open_faac_encoder(&faacConfig);
+
+        aw_x264_config *pX264_config = alloc_aw_x264_config();
+        pX264_config->width = outputWidth;
+        pX264_config->height = outputHeight;
+        pX264_config->bitrate = 1000000;
+        pX264_config->fps = params->frameRate;
+        pX264_config->input_data_format = getX264PixelFormat((PixelFormat)params->pixelFormat);
+
+        aw_sw_encoder_open_x264_encoder(pX264_config);
     }
-
-    // 准备好A/V编码器, 复用器
-    aw_faac_config faacConfig;
-    faacConfig.sample_rate = params->sampleRate;
-    faacConfig.bitrate = 100000;
-    faacConfig.channel_count = params->channels;
-    faacConfig.sample_size = params->sampleFormat;
-
-    aw_sw_encoder_open_faac_encoder(&faacConfig);
-
-    aw_x264_config *pX264_config = alloc_aw_x264_config();
-    pX264_config->width = outputWidth;
-    pX264_config->height = outputHeight;
-    pX264_config->bitrate = 1000000;
-    pX264_config->fps = params->frameRate;
-    pX264_config->input_data_format = getX264PixelFormat((PixelFormat)params->pixelFormat);
-
-    aw_sw_encoder_open_x264_encoder(pX264_config);
-
     // write FLV Header
     aw_data *awData = alloc_aw_data(13);
     aw_write_flv_header(&awData);
     aw_write_data_to_file(params->dstFile, awData);
 
     usleep(1000);
-    mFile = fopen(params->dstFile, "wb");
+    mflvFile = fopen(params->dstFile, "wb");
 
     // write Metadata Tag
     aw_flv_script_tag *script_tag = alloc_aw_flv_script_tag();
@@ -366,6 +361,117 @@ int MediaRecorder::prepare() {
     }
     aw_log("prepare done");
     return 0;
+}
+
+void MediaRecorder::createHWEncoder() {
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return;
+    }
+    if (env == NULL) {
+        LOGI("getJNIEnv failed");
+        return;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    if (NULL != jcls) {
+        jmethodID createMediaCodecSurfaceEncoderFunc = env->GetMethodID(jcls, "createMediaCodecSurfaceEncoderFromNative",
+                                                            "(IIII)V");
+        if (NULL != createMediaCodecSurfaceEncoderFunc) {
+            env->CallVoidMethod(mObj, createMediaCodecSurfaceEncoderFunc, mTextureWidth, mTextureHeight, mBitRateKbs, mFrameRate);
+        }
+        jmethodID getEncodeSurfaceFromNativeFunc = env->GetMethodID(jcls,
+                                                                    "getEncodeSurfaceFromNative",
+                                                                    "()Landroid/view/Surface;");
+        if (NULL != getEncodeSurfaceFromNativeFunc) {
+            jobject surface = env->CallObjectMethod(mObj, getEncodeSurfaceFromNativeFunc);
+            mEncoderWindow = ANativeWindow_fromSurface(env, surface);
+            mEncoderSurface = createWindowSurface(mEncoderWindow);
+        }
+    }
+    jbyteArray  tempOutputBuf = env->NewByteArray(mTextureWidth * mTextureHeight * 3 / 2);
+    mEncoderOutputBuf = static_cast<jbyteArray >(env->NewGlobalRef(tempOutputBuf));
+    env->DeleteLocalRef(tempOutputBuf);
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        LOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+    }
+}
+
+void MediaRecorder::createSurfaceRender() {
+    mSurfaceRenderProgId = loadProgram(mSurfaceRenderVertexShader, mSurfaceRenderFragmentShader);
+    if (!mSurfaceRenderProgId) {
+        aw_log("mSurfaceRenderProgId nullptr");
+        return;
+    }
+    mSurfaceRenderVertexCoords = glGetAttribLocation(mSurfaceRenderProgId, "position");
+    checkGlError("glGetAttribLocation vPosition");
+    mSurfaceRenderTextureCoords = glGetAttribLocation(mSurfaceRenderProgId, "texcoord");
+    checkGlError("glGetAttribLocation vTexCords");
+    mSurfaceRenderUniformTexture = glGetUniformLocation(mSurfaceRenderProgId, "yuvTexSampler");
+    checkGlError("glGetAttribLocation yuvTexSampler");
+    mIsSurfaceRenderInit = true;
+}
+
+void MediaRecorder::drainEncodedData() {
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return;
+    }
+    if (env == NULL) {
+        LOGI("getJNIEnv failed");
+        return;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    if (NULL != jcls) {
+        jmethodID drainEncoderFunc = env->GetMethodID(jcls, "pullH264StreamFromDrainEncoderFromNative",
+                                                         "([B)J");
+        if (NULL != drainEncoderFunc) {
+            long bufferSize = (long) env->CallLongMethod(mObj, drainEncoderFunc, mEncoderOutputBuf); //bug here
+            byte* outputData = (uint8_t*)env->GetByteArrayElements(mEncoderOutputBuf, 0);
+            int size = (int) bufferSize;
+#ifdef DUMP_HW_ENCODER_H264_BUFFER
+            //dump H.264 data to file
+            int count = fwrite(outputData, size, 1, mDumpH264File);
+            //aw_log("write h264 size %d len %d", count, size);
+#endif
+            //todo push to queue
+            //auto mediaData = new AVMediaData();
+            //mediaData->setVideo(outputData, size, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
+            //mediaData->setPts(getCurrentTimeMs());
+            //recordFrame(mediaData);
+            env->ReleaseByteArrayElements(mEncoderOutputBuf, (jbyte *) outputData, 0);
+        }
+    }
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        LOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+    }
+}
+
+void MediaRecorder::destroyHWEncoder() {
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return;
+    }
+    if (env == NULL) {
+        LOGI("getJNIEnv failed");
+        return;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    if (NULL != jcls) {
+        jmethodID closeMediaCodecFunc = env->GetMethodID(jcls, "closeMediaCodecCalledFromNative",
+                                                                        "()V");
+        if (NULL != closeMediaCodecFunc) {
+            env->CallVoidMethod(mObj, closeMediaCodecFunc);
+        }
+    }
+    if (mEncoderOutputBuf) {
+        env->DeleteGlobalRef(mEncoderOutputBuf);
+    }
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        LOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+    }
 }
 
 /**
@@ -401,10 +507,15 @@ int MediaRecorder::recordFrame(AVMediaData *data) {
     return 0;
 }
 
+void MediaRecorder::startRecord() {
+    if (mHandler) {
+        mHandler->postMessage(new Msg(MSG_START_RECORDING));
+    }
+}
 /**
  * 开始录制
  */
-void MediaRecorder::startRecord() {
+void MediaRecorder::startRecord_l() {
     mMutex.lock();
     mAbortRequest = false;
     mStartRequest = true;
@@ -423,6 +534,14 @@ void MediaRecorder::startRecord() {
  * 停止录制
  */
 void MediaRecorder::stopRecord() {
+    if (mHandler) {
+        mHandler->postMessage(new Msg(MSG_STOP_RECORDING));
+    }
+}
+
+void MediaRecorder::stopRecord_l() {
+    aw_log("stopRecord_l");
+    mIsEncoding = false;
     mMutex.lock();
     mAbortRequest = true;
     mCondition.signal();
@@ -431,6 +550,51 @@ void MediaRecorder::stopRecord() {
         mRecordThread->join();
         delete mRecordThread;
         mRecordThread = nullptr;
+    }
+    if (mIsHWEncode) {
+        destroyHWEncoder();
+#if DUMP_HW_ENCODER_H264_BUFFER
+        if (mDumpH264File) {
+            fclose(mDumpH264File);
+        }
+#endif
+        if (EGL_NO_SURFACE != mEncoderSurface) {
+            eglDestroySurface(mEGLDisplay, mEncoderSurface);
+            mEncoderSurface = EGL_NO_SURFACE;
+        }
+        if (NULL != mEncoderWindow) {
+            ANativeWindow_release(mEncoderWindow);
+            mEncoderWindow = NULL;
+        }
+        mIsSurfaceRenderInit = false;
+        glDeleteProgram(mSurfaceRenderProgId);
+    } else {
+        aw_sw_encoder_close_faac_encoder();
+        aw_sw_encoder_close_x264_encoder();
+    }
+    //update duration and file size
+    if (mflvFile == nullptr) {
+        aw_log("mflvFile nullptr");
+        return;
+    }
+
+    int64_t  file_size = ftello(mflvFile);
+    aw_data* flv_data = alloc_aw_data(30);
+
+    //写入duration 0表示double，1表示uint8
+    data_writer.write_string(&flv_data, "duration", 2);
+    data_writer.write_uint8(&flv_data, 0);
+    data_writer.write_double(&flv_data, duration);
+    //写入file_size
+    data_writer.write_string(&flv_data, "filesize", 2);
+    data_writer.write_uint8(&flv_data, 0);
+    data_writer.write_double(&flv_data, file_size);
+
+    if (mflvFile) {
+        fseek(mflvFile, 42, SEEK_SET);
+
+        size_t write_item_count = fwrite(flv_data->data, 1, flv_data->size, mflvFile);
+        fclose(mflvFile);
     }
 }
 
@@ -485,34 +649,39 @@ void MediaRecorder::run() {
                     current = data->getPts();
                 }
 
-                // yuv转码
-                if (data->getType() == MediaVideo && mYuvConvertor != nullptr) {
-                    // 将数据转换成Yuv数据，处理失败则开始处理下一帧
-                    if (mYuvConvertor->convert(data) < 0) {
-                        LOGE("Failed to convert video data to yuv420");
-                        delete data;
-                        continue;
+                if(mIsHWEncode) {
+                    //input is h.264 and aac data
+                    //todo
+                } else {
+                    // yuv转码
+                    if (data->getType() == MediaVideo && mYuvConvertor != nullptr) {
+                        // 将数据转换成Yuv数据，处理失败则开始处理下一帧
+                        if (mYuvConvertor->convert(data) < 0) {
+                            LOGE("Failed to convert video data to yuv420");
+                            delete data;
+                            continue;
+                        }
                     }
-                }
-                if (data->getType() == MediaVideo) {
-                    // x264编码
-                    aw_flv_video_tag *video_tag = aw_sw_encoder_encode_x264_data((int8_t*)data->image, data->length, data->pts);
-                    if (video_tag) {
-                        saveFlvVideoTag(video_tag);
-                    }
-                } else if (data->getType() == MediaAudio) {
-                    // faac编码
-                    int timestamp = aw_sw_faac_encoder_max_input_sample_count() * 1000 / mRecordParams->sampleRate;
-                    aw_flv_audio_tag *audio_tag = aw_sw_encoder_encode_faac_data((int8_t *)data->sample, data->sample_size, timestamp);
-                    if (audio_tag) {
-                        saveFlvAudioTag(audio_tag);
+                    if (data->getType() == MediaVideo) {
+                        // x264编码
+                        aw_flv_video_tag *video_tag = aw_sw_encoder_encode_x264_data((int8_t*)data->image, data->length, data->pts);
+                        if (video_tag) {
+                            saveFlvVideoTag(video_tag);
+                        }
+                    } else if (data->getType() == MediaAudio) {
+                        // faac编码
+                        int timestamp = aw_sw_faac_encoder_max_input_sample_count() * 1000 / mRecordParams->sampleRate;
+                        aw_flv_audio_tag *audio_tag = aw_sw_encoder_encode_faac_data((int8_t *)data->sample, data->sample_size, timestamp);
+                        if (audio_tag) {
+                            saveFlvAudioTag(audio_tag);
+                        }
                     }
                 }
 
                 if (ret < 0) {
                     LOGE("Failed to encoder media data： %s", data->getName());
                 } else {
-                    LOGD("recording time: %f", (float)(current - start));
+                    //LOGD("recording time: %f", (float)(current - start));
                     if (mRecordListener != nullptr) {
                         mRecordListener->onRecording((float)(current - start));
                     }
@@ -637,8 +806,8 @@ void MediaRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
     aw_data *data = alloc_aw_data(s_output_buf->size);
     memcpy(data->data, s_output_buf->data, s_output_buf->size);
     data->size = s_output_buf->size;
-    if (mFile) {
-        size_t count = fwrite(data->data, 1, data->size, mFile);
+    if (mflvFile) {
+        size_t count = fwrite(data->data, 1, data->size, mflvFile);
         aw_log("save flv tag size=%d", count);
     }
     reset_aw_data(&s_output_buf);
@@ -681,11 +850,12 @@ bool MediaRecorder::initEGL() {
     return true;
 }
 
-bool MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
+EGLSurface MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
+    EGLSurface surface = NULL;
     EGLint format;
     if (!pWindow) {
         aw_log("pWindow null");
-        return false;
+        return NULL;
     }
     if (!eglGetConfigAttrib(mEGLDisplay, mEGLConfig, EGL_NATIVE_VISUAL_ID, &format)) {
         aw_log("eglGetConfigAttrib error");
@@ -697,14 +867,14 @@ bool MediaRecorder::createWindowSurface(ANativeWindow *pWindow) {
         }
         mEGLDisplay = EGL_NO_DISPLAY;
         mEGLContext = EGL_NO_CONTEXT;
-        return false;
+        return NULL;
     }
     ANativeWindow_setBuffersGeometry(pWindow, 0, 0, format);
-    if (!(mPreviewSurface = eglCreateWindowSurface(mEGLDisplay, mEGLConfig, pWindow, 0))) {
+    if (!(surface = eglCreateWindowSurface(mEGLDisplay, mEGLConfig, pWindow, 0))) {
         aw_log("eglCreateWindowSurface error %d", eglGetError());
-        return false;
+        return NULL;
     }
-    return true;
+    return surface;
 }
 
 void MediaRecorder::startCameraPreview() {
@@ -885,6 +1055,31 @@ int MediaRecorder::initDecodeTexture() {
         return -1;
     }
     return 1;
+}
+
+void MediaRecorder::renderToView(GLuint texID, int screenWidth, int screenHeight) {
+    glViewport(0, 0, screenWidth, screenHeight);
+    if (!mIsSurfaceRenderInit) {
+        aw_log("mIsSurfaceRenderInit false");
+        return;
+    }
+    glUseProgram(mSurfaceRenderProgId);
+
+    static const GLfloat _vertices[] = { -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+    glVertexAttribPointer(mGLVertexCoords, 2, GL_FLOAT, 0, 0, _vertices);
+    glEnableVertexAttribArray(mGLVertexCoords);
+    static const GLfloat texCoords[] = { 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f };
+    glVertexAttribPointer(mGLTextureCoords, 2, GL_FLOAT, 0, 0, texCoords);
+    glEnableVertexAttribArray(mGLTextureCoords);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D,texID);
+    glUniform1i(mSurfaceRenderUniformTexture, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(mGLVertexCoords);
+    glDisableVertexAttribArray(mGLTextureCoords);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void MediaRecorder::renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight) {

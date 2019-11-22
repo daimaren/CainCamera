@@ -32,6 +32,10 @@ extern "C" {
 };
 #endif
 
+#define DUMP_YUV_BUFFER    1
+#define DUMP_SW_ENCODER_H264_BUFFER    1
+#define DUMP_HW_ENCODER_H264_BUFFER    1
+
 enum RenderThreadMessage {
     MSG_RENDER_FRAME = 0,
     MSG_EGL_THREAD_CREATE,
@@ -41,10 +45,12 @@ enum RenderThreadMessage {
     MSG_START_RECORDING,
     MSG_STOP_RECORDING,
     MSG_EGL_DESTROY_PREVIEW_SURFACE,
-    MSG_EGL_THREAD_EXIT
+    MSG_EGL_THREAD_EXIT,
+    MSG_FRAME_AVAILIBLE
 };
 
 typedef unsigned char byte;
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLPRESENTATIONTIMEANDROIDPROC)(EGLDisplay display, EGLSurface surface, khronos_stime_nanoseconds_t time);
 
 static char* OUTPUT_VIEW_VERTEX_SHADER =
         "attribute vec4 position;    \n"
@@ -135,10 +141,12 @@ public:
 
     // 开始录制
     void startRecord();
-
+    void startRecord_l();
     // 停止录制
     void stopRecord();
-
+    void stopRecord_l();
+    // drainEncodedData
+    void drainEncodedData();
     // 是否正在录制
     bool isRecording();
 
@@ -150,6 +158,11 @@ public:
     virtual void renderFrame();
     virtual void destroyEGLContext();
 private:
+    //HW Encoder
+    void createHWEncoder();
+    void createSurfaceRender();
+    void destroyHWEncoder();
+    //FLV Muxer
     void saveFlvAudioTag(aw_flv_audio_tag *audio_tag);
     void saveFlvVideoTag(aw_flv_video_tag *video_tag);
     void saveSpsPpsAndAudioSpecificConfigTag();
@@ -159,14 +172,15 @@ private:
     void save_flv_tag_to_file(aw_flv_common_tag *commonTag);
     // EGL functions
     bool initEGL();
-    bool createWindowSurface(ANativeWindow* pWindow);
-    // OpenGL
+    EGLSurface createWindowSurface(ANativeWindow* pWindow);
+    // OpenGL functions
     bool initRenderer();
     bool initCopier();
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
     GLuint loadShader(GLenum shaderType, const char* pSource);
     bool   checkGlError(const char* op);
     int initDecodeTexture();
+    void renderToView(GLuint texID, int screenWidth, int screenHeight);
     void renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight);
     void initFilter();
     void processFrame();
@@ -182,7 +196,9 @@ private:
     void processMessage();
 
 private:
-    FILE* mFile;
+    FILE* mflvFile;
+    FILE* mDumpYuvFile;
+    FILE* mDumpH264File;
     Mutex mMutex;
     Condition mCondition;
     Thread *mRecordThread;
@@ -190,32 +206,42 @@ private:
     SafetyQueue<AVMediaData *> *mFrameQueue;
     aw_data *s_output_buf = NULL;
     int64_t duration;
-
+    //for status
     bool mAbortRequest; // 停止请求
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
+    //Encoder
     bool isSpsPpsAndAudioSpecificConfigSent = false;
     bool mIsEncoding = false;
 
+    //for HW Encode
+    jbyteArray mEncoderOutputBuf = NULL;
+    EGLSurface mEncoderSurface;
+    ANativeWindow *mEncoderWindow;
+    bool mIsHWEncode = true;
+    bool mIsSPSUnWriteFlag = false;
+    //for preview
     ANativeWindow *mNativeWindow;
+    //for callback
     JavaVM *mJvm;
     jobject mObj;
-
-    GLfloat* mTextureCoords;
-    int mTextureCoordsSize;
 
     int mScreenWidth;
     int mScreenHeight;
 
-    int mCameraWidth;
-    int mCameraHeight;
     int mDegress;
     int mFacingId;
     int mTextureWidth;
     int mTextureHeight;
+    int mBitRateKbs;
+    int mFrameRate;
 
     RecordParams *mRecordParams;    // 录制参数
     YuvConvertor *mYuvConvertor;    // Yuv转换器
+
+    //OpenGL params
+    GLfloat* mTextureCoords;
+    int mTextureCoordsSize;
 
     GLuint mDecodeTexId = 0;
     GLuint mFBO;
@@ -245,6 +271,14 @@ private:
     GLint mCopyUniformTexture;
     bool mCopyIsInitialized;
 
+    //Encoder Surface Render
+    GLuint mSurfaceRenderProgId;
+    char* mSurfaceRenderVertexShader;
+    char* mSurfaceRenderFragmentShader;
+    GLuint mSurfaceRenderVertexCoords;
+    GLuint mSurfaceRenderTextureCoords;
+    GLuint mSurfaceRenderUniformTexture;
+    bool mIsSurfaceRenderInit;
     //OpenGL download
     GLuint mDownloadFBO;
     //OpenGL Filter
@@ -274,6 +308,23 @@ void handleMessage(Msg *msg) {
             break;
         case MSG_RENDER_FRAME:
             mMediaRecorder->renderFrame();
+            break;
+        case MSG_START_RECORDING:
+        {
+            // 准备好yuv转换器 video_encoder audio_encoder flv_muxer
+            int ret = mMediaRecorder->prepare();
+            if (ret < 0) {
+                LOGE("Failed to prepare recorder");
+            } else {
+                mMediaRecorder->startRecord_l();
+            }
+            break;
+        }
+        case MSG_STOP_RECORDING:
+            mMediaRecorder->stopRecord_l();
+            break;
+        case MSG_FRAME_AVAILIBLE:
+            mMediaRecorder->drainEncodedData();
             break;
     }
 }

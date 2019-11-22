@@ -16,6 +16,6 @@ Handler::~Handler() {
 
 int Handler::postMessage(Msg* msg){
     msg->handler = this;
-	LOGD("enqueue msg what is %d", msg->getWhat());
+	//LOGD("enqueue msg what is %d", msg->getWhat());
     return mQueue->enqueueMessage(msg);
 }

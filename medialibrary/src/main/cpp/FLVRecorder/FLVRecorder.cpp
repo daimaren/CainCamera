@@ -51,12 +51,12 @@ void MediaRecorder::release() {
         mRecordThread = nullptr;
     }
     //update duration and file size
-    if (mFile == nullptr) {
-        aw_log("mFile nullptr");
+    if (mflvFile == nullptr) {
+        aw_log("mflvFile nullptr");
         return;
     }
 
-    double  file_size = ftello(mFile);
+    double  file_size = ftello(mflvFile);
     aw_data* flv_data = alloc_aw_data(30);
 
     //写入duration 0表示double，1表示uint8
@@ -68,11 +68,11 @@ void MediaRecorder::release() {
     data_writer.write_uint8(&flv_data, 0);
     data_writer.write_double(&flv_data, file_size);
 
-    if (mFile) {
-        fseek(mFile, 42, SEEK_SET);
+    if (mflvFile) {
+        fseek(mflvFile, 42, SEEK_SET);
 
-        size_t write_item_count = fwrite(flv_data->data, 1, flv_data->size, mFile);
-        fclose(mFile);
+        size_t write_item_count = fwrite(flv_data->data, 1, flv_data->size, mflvFile);
+        fclose(mflvFile);
     }
     aw_sw_encoder_close_faac_encoder();
     aw_sw_encoder_close_x264_encoder();
@@ -145,7 +145,7 @@ int MediaRecorder::prepare() {
 
     aw_sw_encoder_open_x264_encoder(pX264_config);
 
-    mFile = fopen(params->dstFile, "wb");
+    mflvFile = fopen(params->dstFile, "wb");
     // write FLV Header
     aw_data *flvHeader = alloc_aw_data(13);
     uint8_t
@@ -161,7 +161,7 @@ int MediaRecorder::prepare() {
     data_writer.write_uint32(&flvHeader, flv_header_len);
     //first previous tag size
     data_writer.write_uint32(&flvHeader, 0);
-    size_t write_item_count = fwrite(flvHeader->data, 1, flvHeader->size, mFile);
+    size_t write_item_count = fwrite(flvHeader->data, 1, flvHeader->size, mflvFile);
     aw_log("count %d", write_item_count);
     // write Metadata Tag
     aw_flv_script_tag *script_tag = alloc_aw_flv_script_tag();
@@ -463,8 +463,8 @@ void MediaRecorder::save_flv_tag_to_file(aw_flv_common_tag *commonTag) {
     aw_data *data = alloc_aw_data(s_output_buf->size);
     memcpy(data->data, s_output_buf->data, s_output_buf->size);
     data->size = s_output_buf->size;
-    if (mFile) {
-        size_t count = fwrite(data->data, 1, data->size, mFile);
+    if (mflvFile) {
+        size_t count = fwrite(data->data, 1, data->size, mflvFile);
         aw_log("save flv tag size=%d", count);
     }
     reset_aw_data(&s_output_buf);

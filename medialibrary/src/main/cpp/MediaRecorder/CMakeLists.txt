@@ -43,6 +43,7 @@ target_link_libraries( media_recorder
 
                        x264
                        faac
+                       mp4v2
                        yuv
 
                        android

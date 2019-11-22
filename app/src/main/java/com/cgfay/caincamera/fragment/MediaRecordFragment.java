@@ -98,7 +98,7 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
         // 录制按钮
         mRecordButton = (Button) mContentView.findViewById(R.id.record_button);
         mRecordButton.setOnClickListener(v -> {
-            mRecordButton.setEnabled(false);
+            //mRecordButton.setEnabled(false);
             if (!mIsRecording) {
                 mMediaRecorder.startRecord();
                 mAudioRecorder.start();
@@ -180,7 +180,7 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
 
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-
+        mMediaRecorder.destroyEGLContext();
     }
 
     //record callback

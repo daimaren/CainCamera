@@ -31,6 +31,13 @@ add_library( faac STATIC IMPORTED )
 set_target_properties( faac
                        PROPERTIES IMPORTED_LOCATION
                        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libfaac.a )
+
+# 添加mp4v2库
+add_library( mp4v2 SHARED IMPORTED )
+set_target_properties( mp4v2
+        PROPERTIES IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libmp4v2.so )
+
 # 添加yuv库
 add_library(yuv SHARED IMPORTED )
 set_target_properties( yuv

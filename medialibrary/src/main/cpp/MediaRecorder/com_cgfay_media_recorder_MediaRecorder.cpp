@@ -106,7 +106,7 @@ void JNIOnRecordListener::onRecordStart() {
 }
 
 void JNIOnRecordListener::onRecording(float duration) {
-    LOGD("onRecording");
+    //LOGD("onRecording");
     if (jmid_onRecording != nullptr) {
         JNIEnv *jniEnv;
         if (javaVM->AttachCurrentThread(&jniEnv, nullptr) != JNI_OK) {
@@ -178,6 +178,17 @@ Java_com_cgfay_media_recorder_MediaRecorder_prepareEGLContext(JNIEnv *env, jobje
 
 /**
  * prepareEGLContext
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_cgfay_media_recorder_MediaRecorder_destroyEGLContext(JNIEnv *env, jobject thiz, jlong handle) {
+    MediaRecorder *recorder = (MediaRecorder *)handle;
+    if (recorder) {
+        recorder->destroyEGLContext();
+    }
+}
+
+/**
+ * notifyFrameAvailable
  */
 extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MediaRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz, jlong handle) {
@@ -377,13 +388,7 @@ extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MediaRecorder_startRecord(JNIEnv *env, jobject thiz, jlong handle) {
     MediaRecorder *recorder = (MediaRecorder *) handle;
     if (recorder != nullptr) {
-        // 准备好yuv转换器 video_encoder audio_encoder flv_muxer
-        int ret = recorder->prepare();
-        if (ret < 0) {
-            LOGE("Failed to prepare recorder");
-        } else {
-            recorder->startRecord();
-        }
+        recorder->startRecord();
     }
 }
 

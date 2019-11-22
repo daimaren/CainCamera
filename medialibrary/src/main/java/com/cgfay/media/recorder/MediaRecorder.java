@@ -1,12 +1,18 @@
 package com.cgfay.media.recorder;
 
-import android.graphics.Camera;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
 import android.support.annotation.NonNull;
+import android.text.LoginFilter;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.Surface;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 /**
  * 基于FFmpeg的音频/视频录制器
@@ -14,9 +20,18 @@ import java.io.IOException;
 public final class MediaRecorder {
     private static final String TAG = "MediaRecorder";
     private int defaultCameraFacingId = android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT;
+    public static final String MIME_TYPE = "video/avc"; // H.264 Advanced Video
+    private static final int IFRAME_INTERVAL = 1; // sync frame every second
+    private static final int TIMEOUT_USEC = 5000;
 
+    //Camera
     private android.hardware.Camera mCamera;
     private SurfaceTexture mCameraSurfaceTexture;
+    //Encoder
+    private Surface mInputSurface;
+    private MediaCodec mEncoder;
+    private MediaCodec.BufferInfo mBufferInfo;
+    private long mLastPresentationTimeUs = -1;
 
     static {
         System.loadLibrary("soundtouch");
@@ -28,6 +43,7 @@ public final class MediaRecorder {
     private native long nativeInit();
     // prepareEGLContext
     public native void prepareEGLContext(long handle, Surface surface, int width, int height, int cameraFacingId);
+    public native void destroyEGLContext(long handle);
     // notifyFrameAvailable
     public native void notifyFrameAvailable(long handle);
     // 释放资源
@@ -94,6 +110,9 @@ public final class MediaRecorder {
 
     public void startPreviewFromNative(int textureId) {
         mCamera = android.hardware.Camera.open(defaultCameraFacingId);
+        Camera.Parameters parameters = mCamera.getParameters();
+        parameters.setPreviewSize(360, 640);
+        parameters.setPictureSize(360, 640);
         mCameraSurfaceTexture = new SurfaceTexture(textureId);
         try {
             mCamera.setPreviewTexture(mCameraSurfaceTexture);
@@ -114,6 +133,94 @@ public final class MediaRecorder {
             mCameraSurfaceTexture.updateTexImage();
         }
     }
+    /***************************************MediaCodec functions***********************************************/
+    public void createMediaCodecSurfaceEncoderFromNative(int width, int height, int bitRate, int frameRate) {
+        try {
+            Log.i(TAG, String.format("MediaCodecSurfaceEncoder width:%d, height:%d", width, height));
+            MediaFormat format = MediaFormat.createVideoFormat(MIME_TYPE, width, height);
+            format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+            format.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
+            format.setInteger(MediaFormat.KEY_FRAME_RATE, frameRate);
+            format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
+
+            mEncoder = MediaCodec.createEncoderByType(MIME_TYPE);
+            mEncoder.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            mInputSurface = mEncoder.createInputSurface();
+            mEncoder.start();
+        } catch (Exception e) {
+            Log.e(TAG, "createMediaCodecSurfaceEncoder failed");
+        }
+    }
+
+    public Surface getEncodeSurfaceFromNative() {
+        return mInputSurface;
+    }
+
+    public void closeMediaCodecCalledFromNative() {
+        try {
+            if (null != mEncoder) {
+                mEncoder.stop();
+                mEncoder.release();
+                mEncoder = null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public long pullH264StreamFromDrainEncoderFromNative(byte[] returnedData) {
+        long val = 0;
+        try {
+            mBufferInfo = new MediaCodec.BufferInfo();
+            ByteBuffer[] encoderOutputBuffers = mEncoder.getOutputBuffers();
+            int encoderStatus = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
+            if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
+                Log.i(TAG, "no output available yet");
+            } else if(encoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
+                Log.i(TAG, " not expected for an encoder");
+                encoderOutputBuffers = mEncoder.getOutputBuffers();
+            }else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                MediaFormat mEncodedFormat = mEncoder.getOutputFormat();
+                Log.d(TAG, "encoder output format changed: " + mEncodedFormat);
+            }else if (encoderStatus < 0) {
+                Log.w(TAG, "unexpected result from encoder.dequeueOutputBuffer: " + encoderStatus);
+            } else {
+                //normal case
+                ByteBuffer encodedData = encoderOutputBuffers[encoderStatus];
+                if (encodedData == null) {
+                    Log.e(TAG, "output buffer is null");
+                }
+                if((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                    if (mBufferInfo.size != 0) {
+                        encodedData.position(mBufferInfo.offset);
+                        encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+                        val = mBufferInfo.size;
+                        encodedData.get(returnedData, 0, mBufferInfo.size);
+                    } else {
+                        Log.i(TAG, "why mBufferInfo.size is equals 0");
+                    }
+                    mBufferInfo.size = 0;
+                }
+                if (mBufferInfo.size != 0) {
+                    encodedData.position(mBufferInfo.offset);
+                    encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+
+                    val = mBufferInfo.size;
+                    encodedData.get(returnedData, 0, mBufferInfo.size);
+                } else {
+                    Log.i(TAG, "why mBufferInfo.size is equals 0");
+                }
+                mEncoder.releaseOutputBuffer(encoderStatus, false);
+                if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                    Log.w(TAG, "reached end of stream unexpectedly");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return val;
+    }
+    
     /**
      * 设置输出文件
      * @param dstPath
@@ -127,6 +234,12 @@ public final class MediaRecorder {
      */
     public void prepareEGLContext(Surface surface, int width, int height, int cameraFacingId) {
         prepareEGLContext(handle, surface, width, height, cameraFacingId);
+    }
+    /**
+     * destroyEGLContext
+     */
+    public void destroyEGLContext() {
+        destroyEGLContext(handle);
     }
     /**
      * notifyFrameAvailable
