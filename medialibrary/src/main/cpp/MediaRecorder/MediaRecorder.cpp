@@ -87,7 +87,7 @@ bool MediaRecorder::initialize() {
     mTextureHeight = 640; //1280
     mBitRateKbs = 900;
     mFrameRate = 20;
-    aw_log("camera : {%d, %d}", mScreenWidth, mScreenHeight);
+    aw_log("screen : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
     if (!initCopier()) {
         LOGE("initCopier failed");
@@ -413,6 +413,10 @@ void MediaRecorder::createSurfaceRender() {
 }
 
 void MediaRecorder::drainEncodedData() {
+    if (!mIsEncoding) {
+        aw_log("have stop record, drainEncodedData return");
+        return;
+    }
     JNIEnv *env;
     if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
         LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
