@@ -26,6 +26,7 @@ extern "C" {
 
 #include "aw_encode_flv.h"
 #include "aw_all.h"
+#include "mp4record.h"
 #include "stdio.h"
 
 #ifdef __cplusplus
@@ -163,6 +164,7 @@ private:
     void createSurfaceRender();
     void destroyHWEncoder();
     //FLV Muxer
+    void initFlvWriter();
     void saveFlvAudioTag(aw_flv_audio_tag *audio_tag);
     void saveFlvVideoTag(aw_flv_video_tag *video_tag);
     void saveSpsPpsAndAudioSpecificConfigTag();
@@ -210,6 +212,8 @@ private:
     bool mAbortRequest; // 停止请求
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
+    //mp4 muxer
+    MP4V2_CONTEXT *mMp4Handle;
     //Encoder
     bool isSpsPpsAndAudioSpecificConfigSent = false;
     bool mIsEncoding = false;

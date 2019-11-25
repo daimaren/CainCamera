@@ -19,9 +19,9 @@ typedef struct MP4V2_CONTEXT{
     double m_vFrameDur;
 } MP4V2_CONTEXT;
 
-MP4V2_CONTEXT * initMp4Encoder(const char * filename,int width,int height);
-int mp4VEncode(MP4V2_CONTEXT * recordCtx, uint8_t * data, int len);
-int mp4AEncode(MP4V2_CONTEXT * recordCtx, uint8_t * data, int len);
-void closeMp4Encoder(MP4V2_CONTEXT * recordCtx);
+MP4V2_CONTEXT * initMp4Muxer(const char *filename, int width, int height);
+int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len);
+int writeAudioData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len);
+void closeMp4Muxer(MP4V2_CONTEXT *recordCtx);
 
 #endif 

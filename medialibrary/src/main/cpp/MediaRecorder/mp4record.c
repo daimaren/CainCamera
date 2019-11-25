@@ -6,7 +6,7 @@
 #import <stdlib.h>
 #import "string.h"
 
-MP4V2_CONTEXT * initMp4Encoder(const char * filename,int width,int height){
+MP4V2_CONTEXT * initMp4Muxer(const char *filename, int width, int height){
     MP4V2_CONTEXT * recordCtx = (MP4V2_CONTEXT*)malloc(sizeof(struct MP4V2_CONTEXT));
     if (!recordCtx) {
         printf("error : malloc context \n");
@@ -38,28 +38,27 @@ MP4V2_CONTEXT * initMp4Encoder(const char * filename,int width,int height){
 ////    uint8_t aacConfig[2] = {0x14, 0x10};
 //    uint8_t aacConfig[2] = {0x15,0x88};
 //    MP4SetTrackESConfiguration(recordCtx->m_mp4FHandle,recordCtx->m_aTrackId,aacConfig,2);
-    printf("ok  : initMp4Encoder file=%s  \n",filename);
-
+    printf("initMp4Muxer file=%s  \n",filename);
     return recordCtx;
 }
 
-int mp4VEncode(MP4V2_CONTEXT * recordCtx, uint8_t * _naluData ,int _naluSize){
+int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
     
     int index = -1;
     
-    if(_naluData[0]==0 && _naluData[1]==0 && _naluData[2]==0 && _naluData[3]==1 && (_naluData[4]&0x1F)==0x07){
+    if(data[0]==0 && data[1]==0 && data[2]==0 && data[3]==1 && (data[4]&0x1F)==0x07){
         index = _NALU_SPS_;
     }
     if(index!=_NALU_SPS_ && recordCtx->m_vTrackId == MP4_INVALID_TRACK_ID){
         return index;
     }
-    if(_naluData[0]==0 && _naluData[1]==0 && _naluData[2]==0 && _naluData[3]==1 && (_naluData[4]&0x1F)==0x08){
+    if(data[0]==0 && data[1]==0 && data[2]==0 && data[3]==1 && (data[4]&0x1F)==0x08){
         index = _NALU_PPS_;
     }
-    if(_naluData[0]==0 && _naluData[1]==0 && _naluData[2]==0 && _naluData[3]==1 && (_naluData[4]&0x1F)==0x05){
+    if(data[0]==0 && data[1]==0 && data[2]==0 && data[3]==1 && (data[4]&0x1F)==0x05){
         index = _NALU_I_;
     }
-    if(_naluData[0]==0 && _naluData[1]==0 && _naluData[2]==0 && _naluData[3]==1 && (_naluData[4]&0x1F)==0x01){
+    if(data[0]==0 && data[1]==0 && data[2]==0 && data[3]==1 && (data[4]&0x1F)==0x01){
         index = _NALU_P_;
     }
     //
@@ -72,22 +71,21 @@ int mp4VEncode(MP4V2_CONTEXT * recordCtx, uint8_t * _naluData ,int _naluSize){
                  recordCtx->m_vTimeScale / recordCtx->m_vFrateR,
                  recordCtx->m_vWidth,     // width
                  recordCtx->m_vHeight,    // height
-                 _naluData[5], // sps[1] AVCProfileIndication
-                 _naluData[6], // sps[2] profile_compat
-                 _naluData[7], // sps[3] AVCLevelIndication
+                 data[5], // sps[1] AVCProfileIndication
+                 data[6], // sps[2] profile_compat
+                 data[7], // sps[3] AVCLevelIndication
                  3);           // 4 bytes length before each NAL unit
                 if (recordCtx->m_vTrackId == MP4_INVALID_TRACK_ID)  {
                     return -1;
                 }
                 MP4SetVideoProfileLevel(recordCtx->m_mp4FHandle, 0x7F); //  Simple Profile @ Level 3
             }
-            MP4AddH264SequenceParameterSet(recordCtx->m_mp4FHandle,recordCtx->m_vTrackId,_naluData+4,_naluSize-4);
-            printf("sps  我排第一\n");
-            //
+            MP4AddH264SequenceParameterSet(recordCtx->m_mp4FHandle,recordCtx->m_vTrackId,data+4,len-4);
+            //printf("sps  我排第一\n");
             break;
         case _NALU_PPS_:
-            MP4AddH264PictureParameterSet(recordCtx->m_mp4FHandle,recordCtx->m_vTrackId,_naluData+4,_naluSize-4);
-            printf("pps 我排第二\n");
+            MP4AddH264PictureParameterSet(recordCtx->m_mp4FHandle,recordCtx->m_vTrackId,data+4,len-4);
+            //printf("pps 我排第二\n");
             break;
         case _NALU_I_:
         {
@@ -110,37 +108,37 @@ int mp4VEncode(MP4V2_CONTEXT * recordCtx, uint8_t * _naluData ,int _naluSize){
 //            printf("Iframe 我排第三\n");
 //            //
             {
-                _naluData[0] = (_naluSize-4) >>24;
-                _naluData[1] = (_naluSize-4) >>16;
-                _naluData[2] = (_naluSize-4) >>8;
-                _naluData[3] = (_naluSize-4) &0xff;
+                data[0] = (len-4) >>24;
+                data[1] = (len-4) >>16;
+                data[2] = (len-4) >>8;
+                data[3] = (len-4) &0xff;
                 
 //                if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, _naluData, _naluSize, recordCtx->m_vFrameDur/8000*90000, 0, 1)){
 //                    return -1;
 //                }
 //                recordCtx->m_vFrameDur = 0;
-                if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, _naluData, _naluSize, MP4_INVALID_DURATION, 0, 1)){
+                if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, data, len, MP4_INVALID_DURATION, 0, 1)){
                     return -1;
                 }
-                printf("Iframe 我排第三\n");
+                //printf("Iframe 我排第三\n");
             }
             break;
         }
         case _NALU_P_:
         {
-            _naluData[0] = (_naluSize-4) >>24;  
-            _naluData[1] = (_naluSize-4) >>16;  
-            _naluData[2] = (_naluSize-4) >>8;  
-            _naluData[3] = (_naluSize-4) &0xff;
+            data[0] = (len-4) >>24;
+            data[1] = (len-4) >>16;
+            data[2] = (len-4) >>8;
+            data[3] = (len-4) &0xff;
             
 //            if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, _naluData, _naluSize, recordCtx->m_vFrameDur/8000*90000, 0, 0)){
 //                return -1;
 //            }
 //            recordCtx->m_vFrameDur = 0;
-            if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, _naluData, _naluSize, MP4_INVALID_DURATION, 0, 0)){
+            if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, data, len, MP4_INVALID_DURATION, 0, 0)){
                 return -1;
             }
-            printf("Pframe 我排第四\n");
+            //printf("Pframe 我排第四\n");
             break;
         }
     }
@@ -148,7 +146,7 @@ int mp4VEncode(MP4V2_CONTEXT * recordCtx, uint8_t * _naluData ,int _naluSize){
 }
 
 
-int mp4AEncode(MP4V2_CONTEXT * recordCtx, uint8_t * data ,int len){
+int writeAudioData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
     if(recordCtx->m_vTrackId == MP4_INVALID_TRACK_ID){
         return -1;
     }
@@ -157,7 +155,7 @@ int mp4AEncode(MP4V2_CONTEXT * recordCtx, uint8_t * data ,int len){
     return 0;
 }
 
-void closeMp4Encoder(MP4V2_CONTEXT * recordCtx){
+void closeMp4Muxer(MP4V2_CONTEXT *recordCtx){
     if(recordCtx){
         if (recordCtx->m_mp4FHandle != MP4_INVALID_FILE_HANDLE) {
             MP4Close(recordCtx->m_mp4FHandle,0);
@@ -168,5 +166,5 @@ void closeMp4Encoder(MP4V2_CONTEXT * recordCtx){
         recordCtx = NULL;
     }
     
-    printf("ok  : closeMp4Encoder  \n");
+    printf("closeMp4Muxer  \n");
 }

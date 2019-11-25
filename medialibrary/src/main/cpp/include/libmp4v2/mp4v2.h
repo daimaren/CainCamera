@@ -54,17 +54,17 @@ extern "C" {
 
 /*****************************************************************************/
 
-#include <mp4v2/general.h>
-#include <mp4v2/file.h>
-#include <mp4v2/file_prop.h>
-#include <mp4v2/track.h>
-#include <mp4v2/track_prop.h>
-#include <mp4v2/sample.h>
-#include <mp4v2/chapter.h>
-#include <mp4v2/itmf_generic.h>
-#include <mp4v2/itmf_tags.h>
-#include <mp4v2/streaming.h>
-#include <mp4v2/isma.h>
+#include <libmp4v2/general.h>
+#include <libmp4v2/file.h>
+#include <libmp4v2/file_prop.h>
+#include <libmp4v2/track.h>
+#include <libmp4v2/track_prop.h>
+#include <libmp4v2/sample.h>
+#include <libmp4v2/chapter.h>
+#include <libmp4v2/itmf_generic.h>
+#include <libmp4v2/itmf_tags.h>
+#include <libmp4v2/streaming.h>
+#include <libmp4v2/isma.h>
 
 /*****************************************************************************/
 

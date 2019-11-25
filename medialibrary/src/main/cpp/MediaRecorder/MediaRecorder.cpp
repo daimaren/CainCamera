@@ -328,6 +328,8 @@ int MediaRecorder::prepare() {
 
         aw_sw_encoder_open_x264_encoder(pX264_config);
     }
+    //substr(params->dstFile, "mp4");
+    mMp4Handle = initMp4Muxer(params->dstFile, outputWidth, outputHeight);
     // write FLV Header
     aw_data *awData = alloc_aw_data(13);
     aw_write_flv_header(&awData);
@@ -361,6 +363,10 @@ int MediaRecorder::prepare() {
     }
     aw_log("prepare done");
     return 0;
+}
+
+void MediaRecorder::initFlvWriter() {
+
 }
 
 void MediaRecorder::createHWEncoder() {
@@ -438,6 +444,7 @@ void MediaRecorder::drainEncodedData() {
             //dump H.264 data to file
             int count = fwrite(outputData, size, 1, mDumpH264File);
             //aw_log("write h264 size %d len %d", count, size);
+            writeVideoData(mMp4Handle, outputData, size);
 #endif
             //todo push to queue
             //auto mediaData = new AVMediaData();
@@ -576,6 +583,7 @@ void MediaRecorder::stopRecord_l() {
         aw_sw_encoder_close_faac_encoder();
         aw_sw_encoder_close_x264_encoder();
     }
+    closeMp4Muxer(mMp4Handle);
     //update duration and file size
     if (mflvFile == nullptr) {
         aw_log("mflvFile nullptr");
