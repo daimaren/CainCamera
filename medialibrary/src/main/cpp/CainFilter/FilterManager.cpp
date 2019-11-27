@@ -87,6 +87,9 @@ GLFilter *FilterManager::getFilter(const char *name) {
     if (!strcmp("九屏", name)){
         return new GLFrameNineFilter();
     }
+
+    //转场特效
+
     return nullptr;
 }
 

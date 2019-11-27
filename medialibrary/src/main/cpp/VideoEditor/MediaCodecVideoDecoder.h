@@ -1,0 +1,14 @@
+//
+// Created by 1 on 2019/11/27.
+//
+
+#ifndef CAINCAMERA_MEDIACODECVIDEODECODER_H
+#define CAINCAMERA_MEDIACODECVIDEODECODER_H
+
+
+class MediaCodecVideoDecoder {
+
+};
+
+
+#endif //CAINCAMERA_MEDIACODECVIDEODECODER_H

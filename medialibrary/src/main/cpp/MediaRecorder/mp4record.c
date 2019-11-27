@@ -5,6 +5,7 @@
 #import "mp4record.h"
 #import <stdlib.h>
 #import "string.h"
+#include "aw_all.h"
 
 MP4V2_CONTEXT * initMp4Muxer(const char *filename, int width, int height){
     MP4V2_CONTEXT * recordCtx = (MP4V2_CONTEXT*)malloc(sizeof(struct MP4V2_CONTEXT));
@@ -81,11 +82,12 @@ int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
                 MP4SetVideoProfileLevel(recordCtx->m_mp4FHandle, 0x7F); //  Simple Profile @ Level 3
             }
             MP4AddH264SequenceParameterSet(recordCtx->m_mp4FHandle,recordCtx->m_vTrackId,data+4,len-4);
-            //printf("sps  我排第一\n");
+            aw_log("sps  我排第一\n");
             break;
         case _NALU_PPS_:
             MP4AddH264PictureParameterSet(recordCtx->m_mp4FHandle,recordCtx->m_vTrackId,data+4,len-4);
-            //printf("pps 我排第二\n");
+            aw_log("pps 我排第二\n");
+            //todo no pps packet
             break;
         case _NALU_I_:
         {
@@ -120,7 +122,7 @@ int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
                 if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, data, len, MP4_INVALID_DURATION, 0, 1)){
                     return -1;
                 }
-                //printf("Iframe 我排第三\n");
+                aw_log("Iframe 我排第三\n");
             }
             break;
         }
@@ -138,7 +140,7 @@ int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
             if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, data, len, MP4_INVALID_DURATION, 0, 0)){
                 return -1;
             }
-            //printf("Pframe 我排第四\n");
+            aw_log("Pframe 我排第四\n");
             break;
         }
     }

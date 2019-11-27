@@ -103,10 +103,12 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
                 mMediaRecorder.startRecord();
                 mAudioRecorder.start();
                 mIsRecording = true;
+                mRecordButton.setText(R.string.btn_record_cancel);
             } else {
                 mMediaRecorder.stopRecord();
                 mAudioRecorder.stop();
                 mIsRecording = false;
+                mRecordButton.setText(R.string.btn_record_start);
             }
 
         });
