@@ -48,7 +48,9 @@ bool VideoEditor::startMediaSync() {
         return true;
     }
     if (initMediaSync()) {
-
+        if(mDecoder && !mIsDestroyed && decoder->validAudio()) {
+            ret = initAudioOutput();
+        }
     }
     return true;
 }
@@ -56,6 +58,14 @@ bool VideoEditor::startMediaSync() {
 bool VideoEditor::initMediaSync() {
     mMediaSync = new MediaSync();
     return mMediaSync->init(mJvm, mObj, mIsHWDecode);
+}
+
+void VideoEditor::initVideoOutput(ANativeWindow *window) {
+
+}
+
+bool VideoEditor::initAudioOutput() {
+
 }
 
 void VideoEditor::play() {

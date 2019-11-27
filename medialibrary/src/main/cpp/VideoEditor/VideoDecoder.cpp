@@ -3,3 +3,11 @@
 //
 
 #include "VideoDecoder.h"
+
+VideoDecoder::VideoDecoder(JavaVM *jvm, jobject obj) {
+    mJvm = jvm;
+    mObh = obj;
+
+    connectionRetry = 0;
+}
+

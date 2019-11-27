@@ -37,6 +37,7 @@ public:
 private:
     static void* threadCallback(void* self);
     void initVideoOutput(ANativeWindow* window);
+    bool initAudioOutput();
 private:
     ANativeWindow* mWindow;
     int mScreenWidth;

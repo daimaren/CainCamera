@@ -20,3 +20,10 @@ void MediaSync::createDecoderInstance() {
 
     }
 }
+
+bool MediaSync::validAudio() {
+    if (NULL == mDecoder || mIsDecoding){
+        return false;
+    }
+    return mDecoder->validAudio();
+}
