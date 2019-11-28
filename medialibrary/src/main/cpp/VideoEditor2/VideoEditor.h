@@ -5,19 +5,38 @@
 #include <queue>
 #include <unistd.h>
 #include <GLES2/gl2.h>
+#include <string>
+#include <EGL/egl.h>
+
 extern "C" {
 #include <libavutil/frame.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
+#include <libswresample/swresample.h>
 };
 
 #include "utils.h"
 #include "movie_frame.h"
-
+#include "circle_texture_queue.h"
+#include "audio_output.h"
 //解码文件时的缓冲区的最小和最大值
 #define LOCAL_MIN_BUFFERED_DURATION   			0.5
 #define LOCAL_MAX_BUFFERED_DURATION   			0.8
-#define LOCAL_AV_SYNC_MAX_TIME_DIFF         	0.05
+#define LOCAL_AV_SYNC_MAX_TIME_DIFF         	    0.05
+#define OPENGL_VERTEX_COORDNATE_CNT			    8
+static GLfloat DECODER_COPIER_GL_VERTEX_COORDS[8] = {
+        -1.0f, -1.0f,	// 0 top left
+        1.0f, -1.0f,	// 1 bottom left
+        -1.0f, 1.0f,  // 2 bottom right
+        1.0f, 1.0f,	// 3 top right
+};
+
+static GLfloat DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION[8] = {
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f
+};
 
 //模块化设计
 class VideoEditor {
@@ -34,9 +53,6 @@ public:
 
     static int audioCallbackFillData(byte* buf, size_t bufSize, void* ctx);
     int consumeAudioFrames(byte* outData, size_t bufSize);
-    static int videoCallbackGetTex();
-
-    bool initMediaSync();
 
     void onSurfaceCreated(ANativeWindow* window, int widht, int height);
     void onSurfaceDestroyed();
@@ -45,10 +61,20 @@ public:
 
 private:
     bool prepare_l();
-    static void* threadCB(void *self);
-    static void* upThreadCB(void *myself);
+    bool openFile();
+    bool initEGL();
+    EGLSurface createWindowSurface(ANativeWindow *pWindow);
+    EGLSurface createOffscreenSurface(int width, int height);
+
     void initVideoOutput(ANativeWindow* window);
     bool initAudioOutput();
+    void initDecoderThread();
+    void decode();
+    void destroyDecoderThread();
+
+    static void* startDecoderThread(void* ptr);
+    static void* prepareThreadCB(void *self);
+    static void* upThreadCB(void *myself);
 private:
     JavaVM *mJvm;
     jobject mObj;
@@ -59,39 +85,60 @@ private:
     int mScreenHeight;
     bool mIsPlaying;
     bool mIsHWDecode;
-    bool mIsDestroyed;
-    bool mIsDecoding;
+    bool isDestroyed;
+    bool isOnDecoding;;
 
     bool mIsUserCancelled;
     pthread_t mThreadId;
+    /** decoder **/
+    pthread_t videoDecoderThread;
+    bool isDecodingFrames;
+    bool pauseDecodeThreadFlag;
+    pthread_mutex_t videoDecoderLock;
+    pthread_cond_t videoDecoderCondition;
+
+    AudioOutput* audioOutput;
     //video Queue & audio Queue manager
     pthread_mutex_t audioFrameQueueMutex;
     std::queue<AudioFrame*> *audioFrameQueue;
-    /** OpenGL **/
+    CircleFrameTextureQueue* circleFrameTextureQueue;
+    AudioFrame* currentAudioFrame;
+
     /** FFMPEG **/
     AVFormatContext *pFormatCtx;
-
-    /** 视频流解码变量 **/
+    /** 视频流变量 **/
     AVCodecContext *videoCodecCtx;
     AVCodec *videoCodec;
     AVFrame *videoFrame;
-    std::list<int>* videoStreams;
     int videoStreamIndex;
     int width;
     int height;
-    /** 音频流解码变量 **/
+    /** 音频流变量 **/
     AVCodecContext *audioCodecCtx;
     AVCodec *audioCodec;
+    int audioStreamIndex;
     AVFrame *audioFrame;
-    //for decoder
-    //for HW decoder
+    /** 重采样变量 **/
+    SwrContext *swrContext;
+    void *swrBuffer;
+    int swrBufferSize;
+
+    /** HW decoder **/
     bool isMediaCodecInit;
     GLuint decodeTexId;
     jbyteArray inputBuffer;
-    //for SW decoder
-    //for uploader
+    /** SW decoder **/
+    /** EGL **/
+    EGLDisplay mEGLDisplay;
+    EGLConfig mEGLConfig;
+    EGLContext mEGLContext;
+    EGLSurface copyTexSurface;
+    /** OpenGL **/
     GLfloat* vertexCoords;
     GLfloat* textureCoords;
+    GLuint mFBO;
+    GLuint outputTexId;
+    //for uploader
     pthread_t upThreadId;
 };
 
