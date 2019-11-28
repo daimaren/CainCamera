@@ -68,8 +68,16 @@ private:
 
     void initVideoOutput(ANativeWindow* window);
     bool initAudioOutput();
+
     void initDecoderThread();
+    bool canDecode();
     void decode();
+    void decodeFrames();
+    void processDecodingFrame(bool& good);
+    std::list<MovieFrame*>* decodeFrames(int* decodeVideoErrorState);
+    bool addFrames(float thresholdDuration, std::list<MovieFrame*>* frames);
+    bool decodeVideoFrame(AVPacket packet, int* decodeVideoErrorState);
+    bool decodeAudioFrames(AVPacket* packet, std::list<MovieFrame*> * result, float& decodedDuration, int* decodeVideoErrorState);
     void destroyDecoderThread();
 
     static void* startDecoderThread(void* ptr);
@@ -94,6 +102,7 @@ private:
     pthread_t videoDecoderThread;
     bool isDecodingFrames;
     bool pauseDecodeThreadFlag;
+    bool is_eof;
     pthread_mutex_t videoDecoderLock;
     pthread_cond_t videoDecoderCondition;
 

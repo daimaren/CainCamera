@@ -78,7 +78,9 @@ bool VideoEditor::prepare_l() {
     pthread_create(&upThreadId, 0, upThreadCB, this);
     initAudioOutput();
     initDecoderThread();
-
+    if (NULL != audioOutput) {
+        audioOutput->start();
+    }
     return true;
 }
 
@@ -194,9 +196,116 @@ void VideoEditor::decode() {
     pthread_mutex_lock(&videoDecoderLock);
     pthread_cond_wait(&videoDecoderCondition,&videoDecoderLock);
     pthread_mutex_unlock(&videoDecoderLock);
+    isDecodingFrames = true;
+    decodeFrames();
+    isDecodingFrames = false;
+}
+
+void VideoEditor::decodeFrames() {
+    bool good = true;
+    while (good) {
+        good = false;
+        if (canDecode()) {
+            processDecodingFrame(good);
+        } else {
+            break;
+        }
+    }
+}
+
+void VideoEditor::processDecodingFrame(bool &good) {
+    int decodeVideoErrorState;
+    std::list<MovieFrame*>* frames = decodeFrames(&decodeVideoErrorState);
+    if (NULL != frames) {
+        if (!frames->empty()) {
+            good = addFrames(0.8, frames);
+        } else {
+            ALOGI("frames is empty %d", (int )good);
+        }
+        delete frames;
+    } else {
+        ALOGI("why frames is NULL tell me why?");
+    }
+}
+
+std::list<MovieFrame*>* VideoEditor::decodeFrames(int *decodeVideoErrorState) {
+    bool finished = false;
+    if (-1 == videoStreamIndex && -1 == audioStreamIndex) {
+        ALOGE("decodeFrames error");
+        return NULL;
+    }
+    std::list<MovieFrame*> *result = new std::list<MovieFrame*>();
+
+    int ret = 0;
+    char errString[128];
+    AVPacket packet;
+    while (!finished) {
+        ret = av_read_frame(pFormatCtx, &packet);
+        if (ret < 0) {
+            ALOGE("av_read_frame return an error");
+            if (ret != AVERROR_EOF) {
+                av_strerror(ret, errString, 128);
+                ALOGE("av_read_frame return an not AVERROR_EOF error : %s", errString);
+            } else {
+                ALOGI("input EOF");
+                is_eof = true;
+            }
+            av_free_packet(&packet);
+            break;
+        }
+        if (packet.stream_index == videoStreamIndex) {
+            decodeVideoFrame(packet, decodeVideoErrorState);
+        } else if (packet.stream_index == audioStreamIndex) {
+
+        }
+        av_free_packet(&packet);
+    }
+    if (is_eof) {
+
+    }
+    return
+}
+
+bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) {
+    bool ret = false;
+
+    JNIEnv *env = NULL;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        ALOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return false;
+    }
+    if (env == NULL) {
+        ALOGE("%s getJNIEnv failed", __FUNCTION__);
+        return false;
+    }
+    if (mObj == NULL) {
+        ALOGE("%s mObj failed", __FUNCTION__);
+        return false;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    //todo
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        ALOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+        return false;
+    }
+
+}
+
+bool VideoEditor::decodeAudioFrames(AVPacket *packet, std::list<MovieFrame *> *result,
+                                    float &decodedDuration, int *decodeVideoErrorState) {
+
+}
+
+bool VideoEditor::addFrames(float thresholdDuration, std::list<MovieFrame *> *frames) {
+
+}
+
+bool VideoEditor::canDecode() {
+    return !pauseDecodeThreadFlag && !isDestroyed && (videoStreamIndex != -1 || audioStreamIndex != -1);
 }
 
 void VideoEditor::initDecoderThread() {
+    circleFrameTextureQueue->setIsFirstFrame(true);
     isDecodingFrames = false;
     pthread_mutex_init(&videoDecoderLock, NULL);
     pthread_cond_init(&videoDecoderCondition, NULL);
@@ -284,7 +393,6 @@ void* VideoEditor::prepareThreadCB(void *self) {
 
 void* VideoEditor::startDecoderThread(void *ptr) {
     VideoEditor* videoEditor = (VideoEditor*)ptr;
-
     while (videoEditor->isOnDecoding) {
         videoEditor->decode();
     }
