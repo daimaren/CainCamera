@@ -1,6 +1,5 @@
 #include <list>
 #include "VideoEditor.h"
-
 VideoEditor::VideoEditor()
     : isMediaCodecInit(false), inputBuffer(NULL), audioFrameQueue(NULL), circleFrameTextureQueue(NULL), currentAudioFrame(NULL){
     mScreenWidth = 0;
@@ -27,7 +26,6 @@ void VideoEditor::onSurfaceCreated(ANativeWindow *window, int widht, int height)
     if (NULL != window) {
         mWindow = window;
     }
-
     if (mIsUserCancelled) {
         return;
     }
@@ -36,7 +34,11 @@ void VideoEditor::onSurfaceCreated(ANativeWindow *window, int widht, int height)
         mScreenWidth = widht;
         mScreenHeight = height;
     }
-    //todo
+    if (!videoOutput) {
+        initVideoOutput(window);
+    } else {
+        videoOutput->onSurfaceCreated(window);
+    }
 }
 
 void VideoEditor::onSurfaceDestroyed() {
@@ -56,7 +58,7 @@ bool VideoEditor::prepare_l() {
     if (mIsHWDecode) {
 
     } else {
-
+        //先实现软解
     }
 
     memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
@@ -164,7 +166,12 @@ bool VideoEditor::openFile() {
 }
 
 void VideoEditor::initVideoOutput(ANativeWindow *window) {
-
+    videoOutput = new VideoOutput();
+    if (mEGLContext != EGL_NO_CONTEXT && window != NULL) {
+        videoOutput->initOutput(window, mScreenWidth, mScreenHeight, videoCallbackGetTex, this, mEGLContext);
+    } else {
+        ALOGE("initVideoOutput failed");
+    }
 }
 
 bool VideoEditor::initAudioOutput() {
@@ -267,28 +274,27 @@ std::list<MovieFrame*>* VideoEditor::decodeFrames(int *decodeVideoErrorState) {
 }
 
 bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) {
-    bool ret = false;
-
-    JNIEnv *env = NULL;
-    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
-        ALOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
-        return false;
+    int pktSize = packet.size;
+    int gotFrame = 0;
+    while (pktSize > 0) {
+        int len = avcodec_decode_video2(videoCodecCtx, videoFrame, &gotFrame, &packet);
+        if (len < 0) {
+            ALOGI("decode video error, skip packet");
+            *decodeVideoErrorState = 1;
+            break;
+        }
+        if (gotFrame) {
+            if (videoFrame->interlaced_frame) {
+                //todo
+            }
+            //todo
+        }
+        if (0 == len) {
+            break;
+        }
+        pktSize -= len;
     }
-    if (env == NULL) {
-        ALOGE("%s getJNIEnv failed", __FUNCTION__);
-        return false;
-    }
-    if (mObj == NULL) {
-        ALOGE("%s mObj failed", __FUNCTION__);
-        return false;
-    }
-    jclass jcls = env->GetObjectClass(mObj);
-    //todo
-    if (mJvm->DetachCurrentThread() != JNI_OK) {
-        ALOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
-        return false;
-    }
-
+    return (bool) gotFrame;
 }
 
 bool VideoEditor::decodeAudioFrames(AVPacket *packet, std::list<MovieFrame *> *result,
@@ -400,6 +406,10 @@ void* VideoEditor::startDecoderThread(void *ptr) {
 }
 
 void* VideoEditor::upThreadCB(void *myself) {
+
+}
+
+int VideoEditor::videoCallbackGetTex(FrameTexture **frameTex, void *ctx, bool forceGetFrame) {
 
 }
 

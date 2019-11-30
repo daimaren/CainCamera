@@ -8,6 +8,9 @@ add_library( video_editor2
              SHARED
 
              # 通用类
+             MsgQueue.cpp
+             handler.cpp
+             VideoOutput.cpp
 			 opensl_es_context.cpp
 			 audio_output.cpp
              movie_frame.cpp

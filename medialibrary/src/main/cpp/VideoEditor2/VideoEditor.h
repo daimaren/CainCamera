@@ -13,12 +13,14 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libswresample/swresample.h>
+#include <libavfilter/avfilter.h>
 };
 
 #include "utils.h"
 #include "movie_frame.h"
 #include "circle_texture_queue.h"
 #include "audio_output.h"
+#include "VideoOutput.h"
 //解码文件时的缓冲区的最小和最大值
 #define LOCAL_MIN_BUFFERED_DURATION   			0.5
 #define LOCAL_MAX_BUFFERED_DURATION   			0.8
@@ -51,6 +53,7 @@ public:
     virtual void destroy();
     float getDuration();
 
+    static int videoCallbackGetTex(FrameTexture** frameTex, void* ctx, bool forceGetFrame);
     static int audioCallbackFillData(byte* buf, size_t bufSize, void* ctx);
     int consumeAudioFrames(byte* outData, size_t bufSize);
 
@@ -77,6 +80,7 @@ private:
     std::list<MovieFrame*>* decodeFrames(int* decodeVideoErrorState);
     bool addFrames(float thresholdDuration, std::list<MovieFrame*>* frames);
     bool decodeVideoFrame(AVPacket packet, int* decodeVideoErrorState);
+    void uploadTexture();
     bool decodeAudioFrames(AVPacket* packet, std::list<MovieFrame*> * result, float& decodedDuration, int* decodeVideoErrorState);
     void destroyDecoderThread();
 
@@ -106,6 +110,7 @@ private:
     pthread_mutex_t videoDecoderLock;
     pthread_cond_t videoDecoderCondition;
 
+    VideoOutput* videoOutput;
     AudioOutput* audioOutput;
     //video Queue & audio Queue manager
     pthread_mutex_t audioFrameQueueMutex;
