@@ -80,9 +80,11 @@ private:
     std::list<MovieFrame*>* decodeFrames(int* decodeVideoErrorState);
     bool addFrames(float thresholdDuration, std::list<MovieFrame*>* frames);
     bool decodeVideoFrame(AVPacket packet, int* decodeVideoErrorState);
-    void uploadTexture();
     bool decodeAudioFrames(AVPacket* packet, std::list<MovieFrame*> * result, float& decodedDuration, int* decodeVideoErrorState);
     void destroyDecoderThread();
+
+    void startUploader();
+    void uploadTexture();
 
     static void* startDecoderThread(void* ptr);
     static void* prepareThreadCB(void *self);
@@ -152,8 +154,6 @@ private:
     GLfloat* textureCoords;
     GLuint mFBO;
     GLuint outputTexId;
-    //for uploader
-    pthread_t upThreadId;
 };
 
 #endif

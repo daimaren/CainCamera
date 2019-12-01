@@ -7,7 +7,6 @@ VideoEditor::VideoEditor()
 }
 
 VideoEditor::~VideoEditor() {
-
 }
 
 bool VideoEditor::prepare(char *srcFilePath, JavaVM *jvm, jobject obj, bool isHWDecode) {
@@ -61,23 +60,7 @@ bool VideoEditor::prepare_l() {
         //先实现软解
     }
 
-    memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
-    memcpy(textureCoords, DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
-    initEGL();
-    copyTexSurface = createOffscreenSurface(width, height);
-    eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
-
-    glGenFramebuffers(1, &mFBO);
-    glGenTextures(1, &outputTexId);
-    glBindTexture(GL_TEXTURE_2D, outputTexId);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    pthread_create(&upThreadId, 0, upThreadCB, this);
+    startUploader();
     initAudioOutput();
     initDecoderThread();
     if (NULL != audioOutput) {
@@ -285,9 +268,9 @@ bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) 
         }
         if (gotFrame) {
             if (videoFrame->interlaced_frame) {
-                //todo
+                //todo avpicture_deinterlace
             }
-            //todo
+            uploadTexture();
         }
         if (0 == len) {
             break;
@@ -316,6 +299,30 @@ void VideoEditor::initDecoderThread() {
     pthread_mutex_init(&videoDecoderLock, NULL);
     pthread_cond_init(&videoDecoderCondition, NULL);
     pthread_create(&videoDecoderThread, NULL, startDecoderThread, this);
+}
+
+void VideoEditor::startUploader() {
+    memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
+    memcpy(textureCoords, DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
+    initEGL();
+    copyTexSurface = createOffscreenSurface(width, height);
+    eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
+
+    glGenFramebuffers(1, &mFBO);
+    glGenTextures(1, &outputTexId);
+    glBindTexture(GL_TEXTURE_2D, outputTexId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void VideoEditor::uploadTexture() {
+    //直接上传纹理，不做多线程同步
+    eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
+    drawFrame();
 }
 
 bool VideoEditor::initEGL() {
@@ -403,10 +410,6 @@ void* VideoEditor::startDecoderThread(void *ptr) {
         videoEditor->decode();
     }
     return 0;
-}
-
-void* VideoEditor::upThreadCB(void *myself) {
-
 }
 
 int VideoEditor::videoCallbackGetTex(FrameTexture **frameTex, void *ctx, bool forceGetFrame) {
