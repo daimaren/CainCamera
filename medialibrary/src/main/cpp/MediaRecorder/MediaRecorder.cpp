@@ -254,14 +254,14 @@ void MediaRecorder::renderFrame() {
     processFrame();
     if (mPreviewSurface != EGL_NO_SURFACE) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
-        renderToViewWithAutofit(inputTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
+        renderToViewWithAutofit(mRotateTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (mIsEncoding) {
         if (mIsHWEncode) {
             //hw encode
             eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
-            renderToView(inputTexId, mTextureWidth, mTextureHeight);
+            renderToView(mRotateTexId, mTextureWidth, mTextureHeight);
             //postMessage
             if (mHandler) {
                 mHandler->postMessage(new Msg(MSG_FRAME_AVAILIBLE));
@@ -274,7 +274,7 @@ void MediaRecorder::renderFrame() {
                 LOGE("Could not allocate memory");
                 return;
             }
-            downloadImageFromTexture(inputTexId, rgbaData, mTextureWidth, mTextureHeight);
+            downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
             auto mediaData = new AVMediaData();
             mediaData->setVideo(rgbaData, mTextureWidth * mTextureHeight * 4, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
             mediaData->setPts(getCurrentTimeMs());
@@ -1209,6 +1209,7 @@ void MediaRecorder::processFrame() {
         glViewport(0, 0, mTextureWidth, mTextureHeight);
 
     GLfloat* vertexCoords = CAMERA_TRIANGLE_VERTICES;
+    //旋转纹理
     renderWithCoords(mRotateTexId, vertexCoords, mTextureCoords);
     int rotateTexWidth = mTextureWidth;
     int rotateTexHeight = mTextureHeight;
@@ -1216,8 +1217,7 @@ void MediaRecorder::processFrame() {
         rotateTexWidth = mTextureHeight;
         rotateTexHeight = mTextureWidth;
     }
-    //旋转纹理
-    renderToAutoFitTexture(mRotateTexId, rotateTexWidth, rotateTexHeight, inputTexId);
+    //renderToAutoFitTexture(mRotateTexId, rotateTexWidth, rotateTexHeight, inputTexId);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
