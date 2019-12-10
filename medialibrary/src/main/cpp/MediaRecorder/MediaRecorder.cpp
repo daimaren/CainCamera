@@ -69,6 +69,14 @@ MediaRecorder::~MediaRecorder() {
         LOGI("delete mDecodeTexId");
         glDeleteTextures(1, &mDecodeTexId);
     }
+    if (inputTexId) {
+        LOGI("delete inputTexId ..");
+        glDeleteTextures(1, &inputTexId);
+    }
+    if(outputTexId){
+        LOGI("delete outputTexId ..");
+        glDeleteTextures(1, &outputTexId);
+    }
     if(mTextureCoords){
         delete[] mTextureCoords;
         mTextureCoords = NULL;
@@ -82,9 +90,9 @@ bool MediaRecorder::initialize() {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
     //get camera info from app layer
-    mDegress = 270;
-    mTextureWidth = 360; //720
-    mTextureHeight = 640; //1280
+    mDegress = 180;
+    mTextureWidth = 720; //720
+    mTextureHeight = 1280; //1280
     mBitRateKbs = 900;
     mFrameRate = 20;
     aw_log("screen : {%d, %d}", mScreenWidth, mScreenHeight);
@@ -101,6 +109,29 @@ bool MediaRecorder::initialize() {
             glDeleteTextures(1, &mDecodeTexId);
         }
     }
+    //inputTexId
+    glGenTextures(1, &inputTexId);
+    checkGlError("glGenTextures inputTexId");
+    glBindTexture(GL_TEXTURE_2D, inputTexId);
+    checkGlError("glBindTexture inputTexId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    GLint internalFormat = GL_RGBA;
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei) mTextureWidth, (GLsizei) mTextureHeight, 0, internalFormat, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    //outputTexId
+    glGenTextures(1, &outputTexId);
+    checkGlError("glGenTextures outputTexId");
+    glBindTexture(GL_TEXTURE_2D, outputTexId);
+    checkGlError("glBindTexture outputTexId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei) mTextureWidth, (GLsizei) mTextureHeight, 0, internalFormat, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     // init FBO
     glGenFramebuffers(1, &mFBO);
     checkGlError("glGenFramebuffers mFBO");
@@ -116,7 +147,10 @@ bool MediaRecorder::initialize() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mScreenWidth, mScreenHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    if (mDegress == 90 || mDegress == 270)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureHeight, mTextureWidth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureWidth, mTextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     startCameraPreview();
@@ -184,14 +218,14 @@ void MediaRecorder::renderFrame() {
     processFrame();
     if (mPreviewSurface != EGL_NO_SURFACE) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
-        renderToViewWithAutofit(mRotateTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
+        renderToViewWithAutofit(inputTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (mIsEncoding) {
         if (mIsHWEncode) {
             //hw encode
             eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
-            renderToView(mRotateTexId, mTextureWidth, mTextureHeight);
+            renderToView(inputTexId, mTextureWidth, mTextureHeight);
             //postMessage
             if (mHandler) {
                 mHandler->postMessage(new Msg(MSG_FRAME_AVAILIBLE));
@@ -204,7 +238,7 @@ void MediaRecorder::renderFrame() {
                 LOGE("Could not allocate memory");
                 return;
             }
-            downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
+            downloadImageFromTexture(inputTexId, rgbaData, mTextureWidth, mTextureHeight);
             auto mediaData = new AVMediaData();
             mediaData->setVideo(rgbaData, mTextureWidth * mTextureHeight * 4, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
             mediaData->setPts(getCurrentTimeMs());
@@ -1133,11 +1167,74 @@ void MediaRecorder::processFrame() {
     glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
     checkGlError("glBindFramebuffer mFBO");
 
-    glViewport(0, 0, mScreenWidth, mScreenHeight);
+    if (mDegress == 90 || mDegress == 270)
+        glViewport(0, 0, mTextureHeight, mTextureWidth);
+    else
+        glViewport(0, 0, mTextureWidth, mTextureHeight);
 
     GLfloat* vertexCoords = CAMERA_TRIANGLE_VERTICES;
     renderWithCoords(mRotateTexId, vertexCoords, mTextureCoords);
+    int rotateTexWidth = mTextureWidth;
+    int rotateTexHeight = mTextureHeight;
+    if (mDegress == 90 || mDegress == 270){
+        rotateTexWidth = mTextureHeight;
+        rotateTexHeight = mTextureWidth;
+    }
+    //旋转纹理
+    renderToAutoFitTexture(mRotateTexId, rotateTexWidth, rotateTexHeight, inputTexId);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void MediaRecorder::renderToAutoFitTexture(GLuint inputTexId, int width, int height, GLuint outputTexId) {
+    float textureAspectRatio = (float)height / (float)width;
+    float viewAspectRatio = (float)mTextureHeight / (float)mTextureWidth;
+    float xOffset = 0.0f;
+    float yOffset = 0.0f;
+    if(textureAspectRatio > viewAspectRatio){
+        //Update Y Offset
+        int expectedHeight = (int)((float)height*mTextureWidth/(float)width+0.5f);
+        yOffset = (float)(expectedHeight-mTextureHeight)/(2*expectedHeight);
+//		ALOGI("yOffset is %.3f", yOffset);
+    } else if(textureAspectRatio < viewAspectRatio){
+        //Update X Offset
+        int expectedWidth = (int)((float)(height * mTextureWidth) / (float)mTextureHeight + 0.5);
+        xOffset = (float)(width - expectedWidth)/(2*width);
+//		ALOGI("xOffset is %.3f", xOffset);
+    }
+
+    glViewport(0, 0, mTextureWidth, mTextureHeight);
+
+    if (!mIsGLInitialized) {
+        LOGE("ViewRenderEffect::renderEffect effect not initialized!");
+        return;
+    }
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, outputTexId, 0);
+    checkGlError("PassThroughRender::renderEffect glFramebufferTexture2D");
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        LOGI("failed to make complete framebuffer object %x", status);
+    }
+
+    glUseProgram(mGLProgramId);
+    const GLfloat _vertices[] = { -1.0f, -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f };
+    glVertexAttribPointer(mGLVertexCoords, 2, GL_FLOAT, 0, 0, _vertices);
+    glEnableVertexAttribArray(mGLVertexCoords);
+    GLfloat texCoords[] = { xOffset, yOffset, (GLfloat)1.0 - xOffset, yOffset, xOffset, (GLfloat)1.0 - yOffset,
+                            (GLfloat)1.0 - xOffset, (GLfloat)1.0 - yOffset };
+    glVertexAttribPointer(mGLTextureCoords, 2, GL_FLOAT, 0, 0, texCoords);
+    glEnableVertexAttribArray(mGLTextureCoords);
+
+    /* Binding the input texture */
+    glActiveTexture (GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, inputTexId);
+    glUniform1i(mGLUniformTexture, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(mGLVertexCoords);
+    glDisableVertexAttribArray(mGLTextureCoords);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
 }
 
 void MediaRecorder::renderWithCoords(GLuint texId, GLfloat *vertexCoords, GLfloat *textureCoords) {

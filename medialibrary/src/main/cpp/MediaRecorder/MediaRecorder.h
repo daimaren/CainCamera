@@ -183,6 +183,7 @@ private:
     bool   checkGlError(const char* op);
     int initDecodeTexture();
     void renderToView(GLuint texID, int screenWidth, int screenHeight);
+    void renderToAutoFitTexture(GLuint inputTexId, int width, int height, GLuint outputTexId);
     void renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight);
     void initFilter();
     void processFrame();
@@ -250,6 +251,8 @@ private:
     GLuint mDecodeTexId = 0;
     GLuint mFBO;
     GLuint mRotateTexId = 0;
+    GLuint inputTexId;
+    GLuint outputTexId;
     //EGL
     EGLDisplay mEGLDisplay;
     EGLConfig mEGLConfig;

@@ -111,8 +111,8 @@ public final class MediaRecorder {
     public void startPreviewFromNative(int textureId) {
         mCamera = android.hardware.Camera.open(defaultCameraFacingId);
         Camera.Parameters parameters = mCamera.getParameters();
-        parameters.setPreviewSize(360, 640);
-        parameters.setPictureSize(360, 640);
+        parameters.setPreviewSize(720, 1280);
+        parameters.setPictureSize(720, 1280);
         mCameraSurfaceTexture = new SurfaceTexture(textureId);
         try {
             mCamera.setPreviewTexture(mCameraSurfaceTexture);
