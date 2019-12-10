@@ -165,6 +165,16 @@ private:
     GLfloat* textureCoords;
     GLuint mFBO;
     GLuint outputTexId;
+    /** **/
+    char* mCopierVertexShader;
+    char* mCopierFragmentShader;
+
+    bool mIsCopierInitialized;
+    GLuint mGLProgId;
+    GLuint mGLVertexCoords;
+    GLuint mGLTextureCoords;
+    GLint mUniformTexMatrix;
+    GLint mUniformTransforms;
 };
 
 #endif

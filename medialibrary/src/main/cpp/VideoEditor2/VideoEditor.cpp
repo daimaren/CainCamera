@@ -365,6 +365,13 @@ void VideoEditor::uploadTexture() {
 }
 
 void VideoEditor::drawFrame() {
+    updateTexImage();
+    glBindFramebuffer(GL_FRAMEBUFFER,mFBO);
+    //todo
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void VideoEditor::updateTexImage() {
     VideoFrame* yuvFrame = handleVideoFrame();
     if (yuvFrame) {
 
