@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
  */
 public final class MediaRecorder {
     private static final String TAG = "MediaRecorder";
-    private int defaultCameraFacingId = android.hardware.Camera.CameraInfo.CAMERA_FACING_FRONT;
+    private int defaultCameraFacingId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     public static final String MIME_TYPE = "video/avc"; // H.264 Advanced Video
     private static final int IFRAME_INTERVAL = 1; // sync frame every second
     private static final int TIMEOUT_USEC = 5000;

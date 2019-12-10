@@ -90,13 +90,14 @@ bool MediaRecorder::initialize() {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
     }
     //get camera info from app layer
-    mDegress = 180;
+    mDegress = 270; //90 ok
     mTextureWidth = 720; //720
     mTextureHeight = 1280; //1280
     mBitRateKbs = 900;
     mFrameRate = 20;
     aw_log("screen : {%d, %d}", mScreenWidth, mScreenHeight);
     aw_log("Texture : {%d, %d}", mTextureWidth, mTextureHeight);
+    fillTextureCoords();
     if (!initCopier()) {
         LOGE("initCopier failed");
         return false;
@@ -155,6 +156,41 @@ bool MediaRecorder::initialize() {
 
     startCameraPreview();
     return true;
+}
+
+void MediaRecorder::fillTextureCoords() {
+    GLfloat* tempTextureCoords;
+    switch (mDegress) {
+        case 90:
+            tempTextureCoords = CAMERA_TEXTURE_ROTATED_90;
+            break;
+        case 180:
+            tempTextureCoords = CAMERA_TEXTURE_ROTATED_180;
+            break;
+        case 270:
+            tempTextureCoords = CAMERA_TEXTURE_ROTATED_270;
+            break;
+        case 0:
+        default:
+            tempTextureCoords = CAMERA_TEXTURE_NO_ROTATION;
+            break;
+    }
+    memcpy(mTextureCoords, tempTextureCoords, mTextureCoordsSize * sizeof(GLfloat));
+
+    if(1){
+        mTextureCoords[1] = flip(mTextureCoords[1]);
+        mTextureCoords[3] = flip(mTextureCoords[3]);
+        mTextureCoords[5] = flip(mTextureCoords[5]);
+        mTextureCoords[7] = flip(mTextureCoords[7]);
+    }
+
+}
+
+float MediaRecorder::flip(float i) {
+    if (i == 0.0f) {
+        return 1.0f;
+    }
+    return 0.0f;
 }
 
 /**

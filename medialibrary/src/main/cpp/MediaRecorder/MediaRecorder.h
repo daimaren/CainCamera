@@ -102,7 +102,26 @@ static GLfloat CAMERA_TEXTURE_NO_ROTATION[8] = {
         0.0f, 0.0f,
         1.0f, 0.0f
 };
+static GLfloat CAMERA_TEXTURE_ROTATED_90[8] = {
+        1.0f, 1.0f,
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f
+};
 
+static GLfloat CAMERA_TEXTURE_ROTATED_180[8] = {
+        1.0f, 0.0f,
+        0.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f
+};
+
+static GLfloat CAMERA_TEXTURE_ROTATED_270[8] = {
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f
+};
 /**
  * 录制监听器
  */
@@ -176,6 +195,8 @@ private:
     bool initEGL();
     EGLSurface createWindowSurface(ANativeWindow* pWindow);
     // OpenGL functions
+    void fillTextureCoords();
+    float flip(float i);
     bool initRenderer();
     bool initCopier();
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
