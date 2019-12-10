@@ -4,9 +4,7 @@
 
 #include "MsgQueue.h"
 #include "handler.h"
-extern "C" {
-#include "aw_all.h"
-}
+#import "utils.h"
 
 #define LOG_TAG "MsgQueue"
 
@@ -30,7 +28,7 @@ void MsgQueue::init() {
 }
 
 MsgQueue::~MsgQueue() {
-    LOGI("%s ~PacketQueue ....", queueName);
+    ALOGI("%s ~PacketQueue ....", queueName);
     flush();
     pthread_mutex_destroy(&mLock);
     pthread_cond_destroy(&mCondition);
@@ -44,7 +42,7 @@ int MsgQueue::size() {
 }
 
 void MsgQueue::flush() {
-    LOGI("\n %s flush .... and this time the queue size is %d \n", queueName, size());
+    ALOGI("\n %s flush .... and this time the queue size is %d \n", queueName, size());
     MsgNode *curNode, *nextNode;
     Msg *msg;
     pthread_mutex_lock(&mLock);

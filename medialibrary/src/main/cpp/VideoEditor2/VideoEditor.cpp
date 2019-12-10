@@ -104,6 +104,11 @@ bool VideoEditor::openFile() {
         avcodec_close(videoCodecCtx);
         return false;
     }
+    avStreamFPSTimeBase(videoStream, 0.04, &fps, &videoTimeBase);
+    if(fps > 30.0f || fps < 5.0f){
+        fps = 24.0f;
+    }
+    ALOGI("video codec size: fps: %.3f tb: %f", fps, videoTimeBase);
     width = videoCodecCtx->width;
     height = videoCodecCtx->height;
     ALOGI("width=%d height=%d", width, height);
@@ -154,6 +159,40 @@ void VideoEditor::initVideoOutput(ANativeWindow *window) {
         videoOutput->initOutput(window, mScreenWidth, mScreenHeight, videoCallbackGetTex, this, mEGLContext);
     } else {
         ALOGE("initVideoOutput failed");
+    }
+}
+
+void VideoEditor::avStreamFPSTimeBase(AVStream *st, float defaultTimeBase, float *pFPS, float *pTimeBase) {
+    float fps, timebase;
+
+    if (st->time_base.den && st->time_base.num)
+        timebase = av_q2d(st->time_base);
+    else if (st->codec->time_base.den && st->codec->time_base.num)
+        timebase = av_q2d(st->codec->time_base);
+    else
+        timebase = defaultTimeBase;
+
+    if (st->codec->ticks_per_frame != 1) {
+        ALOGI("WARNING: st.codec.ticks_per_frame=%d", st->codec->ticks_per_frame);
+    }
+
+    if (st->avg_frame_rate.den && st->avg_frame_rate.num){
+        fps = av_q2d(st->avg_frame_rate);
+        ALOGI("Calculate By St avg_frame_rate : fps is %.3f", fps);
+    } else if (st->r_frame_rate.den && st->r_frame_rate.num){
+        fps = av_q2d(st->r_frame_rate);
+        ALOGI("Calculate By St r_frame_rate : fps is %.3f", fps);
+    } else {
+        fps = 1.0 / timebase;
+        ALOGI("Calculate By 1.0 / timebase : fps is %.3f", fps);
+    }
+    if (pFPS) {
+        ALOGI("assign fps value fps is %.3f", fps);
+        *pFPS = fps;
+    }
+    if (pTimeBase) {
+        ALOGI("assign pTimeBase value");
+        *pTimeBase = timebase;
     }
 }
 
@@ -253,7 +292,7 @@ std::list<MovieFrame*>* VideoEditor::decodeFrames(int *decodeVideoErrorState) {
     if (is_eof) {
 
     }
-    return
+    return NULL;
 }
 
 bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) {
@@ -323,6 +362,64 @@ void VideoEditor::uploadTexture() {
     //直接上传纹理，不做多线程同步
     eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
     drawFrame();
+}
+
+void VideoEditor::drawFrame() {
+    VideoFrame* yuvFrame = handleVideoFrame();
+    if (yuvFrame) {
+
+    }
+}
+
+VideoFrame* VideoEditor::handleVideoFrame() {
+    if(!videoFrame->data[0]) {
+        ALOGE("videoFrame->data[0] is null");
+        return NULL;
+    }
+    VideoFrame *yuvFrame = new VideoFrame();
+    int width = MIN(videoFrame->linesize[0], videoCodecCtx->width);
+    int height = videoCodecCtx->height;
+    int lumaLength = width * height;
+    uint8_t * luma = new uint8_t[lumaLength];
+    copyFrameData(luma, videoFrame->data[0], width, height, videoFrame->linesize[0]);
+    yuvFrame->luma = luma;
+
+    width = MIN(videoFrame->linesize[1], videoCodecCtx->width / 2);
+    height = videoCodecCtx->height / 2;
+    int chromaBLength = width * height;
+    uint8_t * chromaB = new uint8_t[chromaBLength];
+    copyFrameData(chromaB, videoFrame->data[1], width, height, videoFrame->linesize[1]);
+    yuvFrame->chromaB = chromaB;
+
+    width = MIN(videoFrame->linesize[2], videoCodecCtx->width / 2);
+    height = videoCodecCtx->height / 2;
+    int chromaRLength = width * height;
+    uint8_t * chromaR = new uint8_t[chromaRLength];
+    copyFrameData(chromaR, videoFrame->data[2], width, height, videoFrame->linesize[2]);
+    yuvFrame->chromaR = chromaR;
+
+    yuvFrame->width = videoCodecCtx->width;
+    yuvFrame->height = videoCodecCtx->height;
+    yuvFrame->position = av_frame_get_best_effort_timestamp(videoFrame) * videoTimeBase;
+
+    const int64_t frameDuration = av_frame_get_pkt_duration(videoFrame);
+    if (frameDuration) {
+        yuvFrame->duration = frameDuration * videoTimeBase;
+        yuvFrame->duration += videoFrame->repeat_pict * videoTimeBase * 0.5;
+    } else {
+        yuvFrame->duration = 1.0 / fps;
+    }
+//	ALOGI("VFD: %.4f %.4f | %lld ", yuvFrame->position, yuvFrame->duration, av_frame_get_pkt_pos(videoFrame));
+//	ALOGI("leave VideoDecoder::handleVideoFrame()...");
+    return yuvFrame;
+}
+
+void VideoEditor::copyFrameData(uint8_t * dst, uint8_t * src, int width, int height, int linesize) {
+    for (int i = 0; i < height; ++i) {
+        memcpy(dst, src, width);
+        dst += width;
+        src += linesize;
+    }
 }
 
 bool VideoEditor::initEGL() {

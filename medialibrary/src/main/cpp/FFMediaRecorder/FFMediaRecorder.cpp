@@ -316,13 +316,11 @@ void FFMediaRecorder::run() {
         // 停止文件写入器
         ret = mMediaWriter->stop();
     }
-
-    // 通知退出成功
-    mExit = true;
-    mCondition.signal();
-
     // 录制完成回调
     if (mRecordListener != nullptr) {
         mRecordListener->onRecordFinish(ret == 0, (float)(current - start));
     }
+    // 通知退出成功
+    mExit = true;
+    mCondition.signal();
 }

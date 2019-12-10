@@ -7,7 +7,7 @@
 #include <GLES2/gl2.h>
 #include <string>
 #include <EGL/egl.h>
-
+#include <list>
 extern "C" {
 #include <libavutil/frame.h>
 #include <libavcodec/avcodec.h>
@@ -26,6 +26,7 @@ extern "C" {
 #define LOCAL_MAX_BUFFERED_DURATION   			0.8
 #define LOCAL_AV_SYNC_MAX_TIME_DIFF         	    0.05
 #define OPENGL_VERTEX_COORDNATE_CNT			    8
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 static GLfloat DECODER_COPIER_GL_VERTEX_COORDS[8] = {
         -1.0f, -1.0f,	// 0 top left
         1.0f, -1.0f,	// 1 bottom left
@@ -72,6 +73,8 @@ private:
     void initVideoOutput(ANativeWindow* window);
     bool initAudioOutput();
 
+    void avStreamFPSTimeBase(AVStream *st, float defaultTimeBase, float *pFPS, float *pTimeBase);
+
     void initDecoderThread();
     bool canDecode();
     void decode();
@@ -85,6 +88,10 @@ private:
 
     void startUploader();
     void uploadTexture();
+    void drawFrame();
+    void updateTexImage();
+    VideoFrame* handleVideoFrame();
+    void copyFrameData(uint8_t * dst, uint8_t * src, int width, int height, int linesize);
 
     static void* startDecoderThread(void* ptr);
     static void* prepareThreadCB(void *self);
@@ -126,6 +133,8 @@ private:
     AVCodecContext *videoCodecCtx;
     AVCodec *videoCodec;
     AVFrame *videoFrame;
+    float fps;
+    float videoTimeBase;
     int videoStreamIndex;
     int width;
     int height;
@@ -144,6 +153,8 @@ private:
     GLuint decodeTexId;
     jbyteArray inputBuffer;
     /** SW decoder **/
+
+    //TextureFrame* textureFrame;
     /** EGL **/
     EGLDisplay mEGLDisplay;
     EGLConfig mEGLConfig;

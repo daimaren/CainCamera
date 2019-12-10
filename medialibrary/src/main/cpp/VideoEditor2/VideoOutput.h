@@ -41,7 +41,7 @@ class VideoOuputHandler;
 class VideoOutput {
 public:
     VideoOutput();
-    virtual ~VideoOutput();
+    virtual ~VideoOutput(){};
     bool initOutput(ANativeWindow* window, int screenWidth, int screenHeight, getTextureCallback produceDataCallback,
                     void* ctx, EGLContext context);
     void signalFrameAvailable();

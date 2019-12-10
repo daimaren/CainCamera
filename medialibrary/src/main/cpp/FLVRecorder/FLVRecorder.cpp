@@ -292,6 +292,9 @@ void MediaRecorder::run() {
         LOGD("start record");
         // 正在运行，并等待frameQueue消耗完
         while (!mAbortRequest || !mFrameQueue->empty()) {
+            if (mAbortRequest) {
+                break;
+            }
             if (!mFrameQueue->empty()) {
 
                 // 从帧对列里面取出媒体数据
@@ -345,16 +348,14 @@ void MediaRecorder::run() {
             }
         }
     }
-
-    // 通知退出成功
-    mExit = true;
-    mCondition.signal();
-
     // 录制完成回调
     if (mRecordListener != nullptr) {
         mRecordListener->onRecordFinish(ret == 0, (float)(current - start));
     }
     duration = current - start;
+    // 通知退出成功
+    mExit = true;
+    mCondition.signal();
 }
 
 /**
