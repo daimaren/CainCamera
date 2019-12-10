@@ -343,7 +343,7 @@ int MediaRecorder::prepare() {
 
     mFrameQueue = new SafetyQueue<AVMediaData *>();
 
-    LOGI("Record to file: %s, width: %d, height: %d", params->dstFile, params->width,
+    aw_log("Record to file: %s, width: %d, height: %d", params->dstFile, params->width,
          params->height);
     int outputWidth = params->width;
     int outputHeight = params->height;
@@ -354,7 +354,7 @@ int MediaRecorder::prepare() {
         createSurfaceRender();
         mIsSPSUnWriteFlag = true;
 #if DUMP_HW_ENCODER_H264_BUFFER
-        mDumpH264File = fopen("/storage/emulated/0/dump.mp4", "wb");
+        mDumpH264File = fopen("/storage/emulated/0/dump.h264", "wb");
         if (!mDumpH264File) {
             aw_log("DumpH264File open error");
         }
@@ -399,7 +399,8 @@ int MediaRecorder::prepare() {
         aw_sw_encoder_open_x264_encoder(pX264_config);
     }
     //substr(params->dstFile, "mp4");
-    mMp4Handle = initMp4Muxer(params->dstFile, outputWidth, outputHeight);
+    //mMp4Handle = initMp4Muxer(params->dstFile, outputWidth, outputHeight);
+    mMp4Handle = initMp4Muxer("/storage/emulated/0/dump.mp4", outputWidth, outputHeight);
     // write FLV Header
     aw_data *awData = alloc_aw_data(13);
     aw_write_flv_header(&awData);
@@ -507,14 +508,14 @@ void MediaRecorder::drainEncodedData() {
         jmethodID drainEncoderFunc = env->GetMethodID(jcls, "pullH264StreamFromDrainEncoderFromNative",
                                                          "([B)J");
         if (NULL != drainEncoderFunc) {
-            long bufferSize = (long) env->CallLongMethod(mObj, drainEncoderFunc, mEncoderOutputBuf); //bug here
+            long bufferSize = (long) env->CallLongMethod(mObj, drainEncoderFunc, mEncoderOutputBuf);
             byte* outputData = (uint8_t*)env->GetByteArrayElements(mEncoderOutputBuf, 0);
             int size = (int) bufferSize;
 #ifdef DUMP_HW_ENCODER_H264_BUFFER
             //dump H.264 data to file
             int count = fwrite(outputData, size, 1, mDumpH264File);
             //aw_log("write h264 size %d len %d", count, size);
-            writeVideoData(mMp4Handle, outputData, size);
+            writeVideoData(mMp4Handle, outputData, size);//从log来看，只有sps，没有pps
 #endif
             //todo push to queue
             //auto mediaData = new AVMediaData();

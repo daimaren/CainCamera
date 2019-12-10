@@ -122,7 +122,7 @@ int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
                 if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, data, len, MP4_INVALID_DURATION, 0, 1)){
                     return -1;
                 }
-                aw_log("Iframe 我排第三\n");
+                //aw_log("Iframe 我排第三\n");
             }
             break;
         }
@@ -140,7 +140,7 @@ int writeVideoData(MP4V2_CONTEXT *recordCtx, uint8_t *data, int len){
             if(!MP4WriteSample(recordCtx->m_mp4FHandle, recordCtx->m_vTrackId, data, len, MP4_INVALID_DURATION, 0, 0)){
                 return -1;
             }
-            aw_log("Pframe 我排第四\n");
+            //aw_log("Pframe 我排第四\n");
             break;
         }
     }
