@@ -81,6 +81,7 @@ private:
     void save_video_data(aw_flv_video_tag *video_tag);
     void save_script_data(aw_flv_script_tag *script_tag);
     void save_flv_tag_to_file(aw_flv_common_tag *commonTag);
+    void updata_script_data();
 private:
     FILE* mflvFile;
     Mutex mMutex;

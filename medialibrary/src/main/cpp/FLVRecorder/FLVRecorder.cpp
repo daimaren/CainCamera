@@ -50,6 +50,9 @@ void MediaRecorder::release() {
         delete mRecordThread;
         mRecordThread = nullptr;
     }
+}
+
+void MediaRecorder::updata_script_data() {
     //update duration and file size
     if (mflvFile == nullptr) {
         aw_log("mflvFile nullptr");
@@ -62,17 +65,18 @@ void MediaRecorder::release() {
     //写入duration 0表示double，1表示uint8
     data_writer.write_string(&flv_data, "duration", 2);
     data_writer.write_uint8(&flv_data, 0);
-    data_writer.write_double(&flv_data, duration);
+    data_writer.write_double(&flv_data, (double)duration / 1000);
     //写入file_size
     data_writer.write_string(&flv_data, "filesize", 2);
     data_writer.write_uint8(&flv_data, 0);
     data_writer.write_double(&flv_data, file_size);
-
+    aw_log("duration %f file_size %f", duration, file_size);
     if (mflvFile) {
         fseek(mflvFile, 42, SEEK_SET);
 
         size_t write_item_count = fwrite(flv_data->data, 1, flv_data->size, mflvFile);
         fclose(mflvFile);
+        aw_log("write duration filesize success");
     }
     aw_sw_encoder_close_faac_encoder();
     aw_sw_encoder_close_x264_encoder();
@@ -348,11 +352,12 @@ void MediaRecorder::run() {
             }
         }
     }
+    duration = current - start;
+    updata_script_data();
     // 录制完成回调
     if (mRecordListener != nullptr) {
         mRecordListener->onRecordFinish(ret == 0, (float)(current - start));
     }
-    duration = current - start;
     // 通知退出成功
     mExit = true;
     mCondition.signal();
