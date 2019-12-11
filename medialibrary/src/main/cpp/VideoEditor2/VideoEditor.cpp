@@ -51,7 +51,9 @@ bool VideoEditor::prepare_l() {
     if (mIsUserCancelled) {
         return true;
     }
-
+    initCopier();
+    initPassRender();
+    initCircleQueue(width, height);
     openFile();
 
     if (mIsHWDecode) {
@@ -67,6 +69,61 @@ bool VideoEditor::prepare_l() {
         audioOutput->start();
     }
     return true;
+}
+
+void VideoEditor::initCopier() {
+    mCopierVertexShader = NO_FILTER_VERTEX_SHADER;
+    mCopierFragmentShader = YUV_FRAME_FRAGMENT_SHADER;
+
+    mCopierProgId = loadProgram(mCopierVertexShader, mCopierFragmentShader);
+    if (!mCopierProgId) {
+        ALOGE("Could not create program.");
+        return;
+    }
+    mCopierVertexCoords = glGetAttribLocation(mCopierProgId, "vPosition");
+    checkGlError("glGetAttribLocation vPosition");
+    mCopierTextureCoords = glGetAttribLocation(mCopierProgId, "vTexCords");
+    checkGlError("glGetAttribLocation vTexCords");
+    glUseProgram(mCopierProgId);
+    _uniformSamplers[0] = glGetUniformLocation(mCopierProgId, "s_texture_y");
+    _uniformSamplers[1] = glGetUniformLocation(mCopierProgId, "s_texture_u");
+    _uniformSamplers[2] = glGetUniformLocation(mCopierProgId, "s_texture_v");
+
+    mCopierUniformTransforms = glGetUniformLocation(mCopierProgId, "trans");
+    checkGlError("glGetUniformLocation mUniformTransforms");
+
+    mCopierUniformTexMatrix = glGetUniformLocation(mCopierProgId, "texMatrix");
+    checkGlError("glGetUniformLocation mUniformTexMatrix");
+
+    mIsCopierInitialized = true;
+}
+
+void VideoEditor::initPassRender() {
+    mPassRenderVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
+    mPassRenderFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
+
+    mPassRenderProgId = loadProgram(mPassRenderVertexShader, mPassRenderFragmentShader);
+    if (!mPassRenderProgId) {
+        ALOGE("Could not create program.");
+        return;
+    }
+    mPassRenderVertexCoords = glGetAttribLocation(mPassRenderProgId, "position");
+    checkGlError("glGetAttribLocation vPosition");
+    mPassRenderTextureCoords = glGetAttribLocation(mPassRenderProgId, "texcoord");
+    checkGlError("glGetAttribLocation vTexCords");
+    mPassRenderUniformTexture = glGetUniformLocation(mPassRenderProgId, "yuvTexSampler");
+    checkGlError("glGetAttribLocation yuvTexSampler");
+
+    mIsPassRenderInitialized = true;
+}
+
+void VideoEditor::initCircleQueue(int videoWidth, int videoHeight) {
+    int queueSize = (LOCAL_MAX_BUFFERED_DURATION + 1.0) * fps;
+    circleFrameTextureQueue = new CircleFrameTextureQueue(
+            "decode frame texture queue");
+    circleFrameTextureQueue->init(videoWidth, videoHeight, queueSize);
+    audioFrameQueue = new std::queue<AudioFrame*>();
+    pthread_mutex_init(&audioFrameQueueMutex, NULL);
 }
 
 bool VideoEditor::openFile() {
@@ -218,7 +275,46 @@ void VideoEditor::pause() {
 }
 
 void VideoEditor::destroy() {
+    mIsCopierInitialized = false;
+    if (mCopierProgId) {
+        glDeleteProgram(mCopierProgId);
+        mCopierProgId = 0;
+    }
+    mIsPassRenderInitialized = false;
+    if (mPassRenderProgId) {
+        glDeleteProgram(mPassRenderProgId);
+        mPassRenderProgId = 0;
+    }
+    if (circleFrameTextureQueue) {
+        delete circleFrameTextureQueue;
+        circleFrameTextureQueue = NULL;
+    }
+    if (audioFrameQueue) {
+        delete audioFrameQueue;
+        audioFrameQueue = NULL;
+    }
+    pthread_mutex_destroy(&audioFrameQueueMutex);
 
+    if (textures[0]) {
+        glDeleteTextures(3, textures);
+    }
+    if(-1 != outputTexId){
+        glDeleteTextures(1, &outputTexId);
+    }
+    if (mFBO) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &mFBO);
+    }
+    eglDestroySurface(mEGLDisplay, copyTexSurface);
+    copyTexSurface = EGL_NO_SURFACE;
+    if(EGL_NO_DISPLAY != mEGLDisplay && EGL_NO_CONTEXT != mEGLContext){
+        eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        ALOGI("after eglMakeCurrent...");
+        eglDestroyContext(mEGLDisplay, mEGLContext);
+        ALOGI("after eglDestroyContext...");
+    }
+    mEGLDisplay = EGL_NO_DISPLAY;
+    mEGLContext = EGL_NO_CONTEXT;
 }
 
 void VideoEditor::decode() {
@@ -341,6 +437,7 @@ void VideoEditor::initDecoderThread() {
 }
 
 void VideoEditor::startUploader() {
+    initTexture();
     memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
     memcpy(textureCoords, DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
     initEGL();
@@ -358,6 +455,34 @@ void VideoEditor::startUploader() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void VideoEditor::initTexture() {
+    textures[0] = 0;
+    textures[1] = 0;
+    textures[2] = 0;
+    glGenTextures(3, textures);
+    for (int i = 0; i < 3; i++) {
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
+        if (checkGlError("glBindTexture")) {
+            return;
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        if (checkGlError("glTexParameteri")) {
+            return;
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        if (checkGlError("glTexParameteri")) {
+            return;
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        if (checkGlError("glTexParameteri")) {
+            return;
+        }
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (checkGlError("glTexParameteri")) {
+            return;
+        }
+    }
+}
 void VideoEditor::uploadTexture() {
     //直接上传纹理，不做多线程同步
     eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
@@ -367,14 +492,39 @@ void VideoEditor::uploadTexture() {
 void VideoEditor::drawFrame() {
     updateTexImage();
     glBindFramebuffer(GL_FRAMEBUFFER,mFBO);
-    //todo
+    renderWithCoords(outputTexId, vertexCoords, textureCoords);
+    pushToVideoQueue(outputTexId, width, height, position);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void VideoEditor::updateTexImage() {
-    VideoFrame* yuvFrame = handleVideoFrame();
+    yuvFrame = handleVideoFrame();
     if (yuvFrame) {
+        updateYUVTexImage();
+        position = yuvFrame->position;
+        delete yuvFrame;
+    }
+}
 
+void VideoEditor::updateYUVTexImage() {
+    if (yuvFrame) {
+        int frameWidth = yuvFrame->width;
+        int frameHeight = yuvFrame->height;
+        if (frameWidth % 16 != 0) {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        }
+        uint8_t *pixels[3] = {yuvFrame->luma, yuvFrame->chromaB, yuvFrame->chromaR};
+        int widths[3] = {frameWidth, frameWidth >> 1, frameWidth >> 1};
+        int heights[3] = {frameHeight, frameHeight >> 1, frameHeight >> 1};
+        for (int i = 0; i < 3; ++i) {
+            glActiveTexture(GL_TEXTURE0 + i);
+            glBindTexture(GL_TEXTURE_2D, textures[i]);
+            if (checkGlError("glBindTexture")) {
+                return;
+            }
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, widths[i], heights[i], 0, GL_LUMINANCE,
+                         GL_UNSIGNED_BYTE, pixels[i]);
+        }
     }
 }
 
@@ -419,6 +569,70 @@ VideoFrame* VideoEditor::handleVideoFrame() {
 //	ALOGI("VFD: %.4f %.4f | %lld ", yuvFrame->position, yuvFrame->duration, av_frame_get_pkt_pos(videoFrame));
 //	ALOGI("leave VideoDecoder::handleVideoFrame()...");
     return yuvFrame;
+}
+
+void VideoEditor::pushToVideoQueue(GLuint inputTexId, int width, int height, float position) {
+    if (!mIsPassRenderInitialized){
+        ALOGE("renderToVideoQueue::passThorughRender is NULL");
+        return;
+    }
+
+    if (!circleFrameTextureQueue) {
+        ALOGE("renderToVideoQueue::circleFrameTextureQueue is NULL");
+        return;
+    }
+
+    bool isFirstFrame = circleFrameTextureQueue->getIsFirstFrame();
+    FrameTexture* frameTexture = circleFrameTextureQueue->lockPushCursorFrameTexture();
+    if (NULL != frameTexture) {
+        frameTexture->position = position;
+//		ALOGI("Render To TextureQueue texture Position is %.3f ", position);
+       renderToTexture(inputTexId, frameTexture->texId);
+        circleFrameTextureQueue->unLockPushCursorFrameTexture();
+        // backup the first frame
+        if (isFirstFrame) {
+            FrameTexture* firstFrameTexture = circleFrameTextureQueue->getFirstFrameFrameTexture();
+            if (firstFrameTexture) {
+                //cpy input texId to target texId
+                renderToTexture(inputTexId, firstFrameTexture->texId);
+            }
+        }
+    }
+}
+
+void VideoEditor::renderToTexture(GLuint inputTexId, GLuint outputTexId) {
+    glViewport(0, 0, GLsizei(width), GLsizei(height));
+
+    if (!mIsPassRenderInitialized) {
+        ALOGE("ViewRenderEffect::renderEffect effect not initialized!");
+        return;
+    }
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, outputTexId, 0);
+    checkGlError("PassThroughRender::renderEffect glFramebufferTexture2D");
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        ALOGI("failed to make complete framebuffer object %x", status);
+    }
+
+    glUseProgram (mPassRenderProgId);
+    static const GLfloat _vertices[] = { -1.0f, 1.0f, -1.0f, -1.0f, 1.0f, 1.0f, 1.0f, -1.0f };
+    glVertexAttribPointer(mPassRenderVertexCoords, 2, GL_FLOAT, 0, 0, _vertices);
+    glEnableVertexAttribArray(mPassRenderVertexCoords);
+    static const GLfloat texCoords[] = {0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f };
+    glVertexAttribPointer(mPassRenderTextureCoords, 2, GL_FLOAT, 0, 0, texCoords);
+    glEnableVertexAttribArray(mPassRenderTextureCoords);
+
+    /* Binding the input texture */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, inputTexId);
+    glUniform1i(mPassRenderUniformTexture, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(mPassRenderVertexCoords);
+    glDisableVertexAttribArray(mPassRenderTextureCoords);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
 }
 
 void VideoEditor::copyFrameData(uint8_t * dst, uint8_t * src, int width, int height, int linesize) {
@@ -501,6 +715,138 @@ EGLSurface VideoEditor::createOffscreenSurface(int width, int height) {
     }
     return surface;
 }
+
+GLuint VideoEditor::loadProgram(char *pVertexSource, char *pFragmentSource) {
+    GLuint programId;
+    GLuint vertexShader = loadShader(GL_VERTEX_SHADER, pVertexSource);
+    if (!vertexShader) {
+        ALOGE("vertexShader null");
+        return 0;
+    }
+    GLuint fragmentShader = loadShader(GL_FRAGMENT_SHADER, pFragmentSource);
+    if (!fragmentShader) {
+        ALOGE("vertexShader null");
+        return 0;
+    }
+    programId = glCreateProgram();
+    if (programId) {
+        glAttachShader(programId, vertexShader);
+        checkGlError("glAttachShader");
+        glAttachShader(programId, fragmentShader);
+        checkGlError("glAttachShader");
+        glLinkProgram(programId);
+
+        GLint linkStatus = GL_FALSE;
+        glGetProgramiv(programId, GL_LINK_STATUS, &linkStatus);
+        if (linkStatus != GL_TRUE) {
+            GLint bufLength = 0;
+            glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &bufLength);
+            if (bufLength) {
+                char* buf = (char*) malloc(bufLength);
+                if (buf) {
+                    glGetProgramInfoLog(programId, bufLength, NULL, buf);
+                    ALOGI("Could not link program:\n%s\n", buf);
+                    free(buf);
+                }
+            }
+            glDeleteProgram(programId);
+            programId = 0;
+        }
+    }
+    return programId;
+}
+
+GLuint VideoEditor::loadShader(GLenum shaderType, const char *pSource) {
+    GLuint shader = glCreateShader(shaderType);
+    if (shader) {
+        glShaderSource(shader, 1, &pSource, NULL);
+        glCompileShader(shader);
+        GLint compiled = 0;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
+        if (!compiled) {
+            GLint infoLen = 0;
+            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
+            if (infoLen) {
+                char* buf = (char*)malloc(infoLen);
+                if (buf) {
+                    glGetShaderInfoLog(shader, infoLen, NULL, buf);
+                    ALOGE("%s %S glCompileShader error %d\n %s\n", __FUNCTION__, __LINE__, shaderType, buf);
+                    free(buf);
+                }
+            } else {
+                ALOGE("Guessing at GL_INFO_LOG_LENGTH size\n");
+                char* buf = (char*) malloc(0x1000);
+                if (buf) {
+                    glGetShaderInfoLog(shader, 0x1000, NULL, buf);
+                    ALOGI("%s %S Could not compile shader %d:\n%s\n",__FUNCTION__, __LINE__, shaderType, buf);
+                    free(buf);
+                }
+            }
+            glDeleteShader(shader);
+            shader = 0;
+        }
+    }
+    return shader;
+}
+
+bool VideoEditor::checkGlError(const char *op) {
+    for (GLint error = glGetError(); error; error = glGetError()) {
+        ALOGE("after %s() glError (0x%x)\n", op, error);
+        return true;
+    }
+    return false;
+}
+
+void VideoEditor::matrixSetIdentityM(float *m)
+{
+    memset((void*)m, 0, 16*sizeof(float));
+    m[0] = m[5] = m[10] = m[15] = 1.0f;
+}
+
+void VideoEditor::renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat* textureCoords) {
+    glBindTexture(GL_TEXTURE_2D, texId);
+    checkGlError("glBindTexture");
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           texId, 0);
+    checkGlError("glFramebufferTexture2D");
+
+    glUseProgram(mCopierProgId);
+    if (!mIsCopierInitialized) {
+        return;
+    }
+    glVertexAttribPointer(mCopierVertexCoords, 2, GL_FLOAT, GL_FALSE, 0, vertexCoords);
+    glEnableVertexAttribArray (mCopierVertexCoords);
+    glVertexAttribPointer(mCopierTextureCoords, 2, GL_FLOAT, GL_FALSE, 0, textureCoords);
+    glEnableVertexAttribArray (mCopierTextureCoords);
+
+    /* Binding the input texture */
+    for (int i = 0; i < 3; ++i) {
+        glActiveTexture(GL_TEXTURE0 + i);
+        glBindTexture(GL_TEXTURE_2D, textures[i]);
+        if (checkGlError("glBindTexture")) {
+            return;
+        }
+        glUniform1i(_uniformSamplers[i], i);
+    }
+
+    float texTransMatrix[4 * 4];
+    matrixSetIdentityM(texTransMatrix);
+    glUniformMatrix4fv(mCopierUniformTexMatrix, 1, GL_FALSE, (GLfloat *) texTransMatrix);
+
+    float rotateMatrix[4 * 4];
+    matrixSetIdentityM(rotateMatrix);
+    glUniformMatrix4fv(mCopierUniformTransforms, 1, GL_FALSE, (GLfloat *) rotateMatrix);
+
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    glDisableVertexAttribArray(mCopierVertexCoords);
+    glDisableVertexAttribArray(mCopierTextureCoords);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+//  ALOGI("draw waste time is %ld", (getCurrentTime() - startDrawTimeMills));
+}
+
 
 void* VideoEditor::prepareThreadCB(void *self) {
     VideoEditor* videoEditor = (VideoEditor*)self;

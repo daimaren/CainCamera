@@ -27,6 +27,33 @@ extern "C" {
 #define LOCAL_AV_SYNC_MAX_TIME_DIFF         	    0.05
 #define OPENGL_VERTEX_COORDNATE_CNT			    8
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+static char* NO_FILTER_VERTEX_SHADER =
+        "attribute vec4 vPosition;\n"
+        "attribute vec4 vTexCords;\n"
+        "varying vec2 yuvTexCoords;\n"
+        "uniform highp mat4 texMatrix;\n"
+        "uniform highp mat4 trans; \n"
+        "void main() {\n"
+        "  yuvTexCoords = (texMatrix*vTexCords).xy;\n"
+        "  gl_Position = trans * vPosition;\n"
+        "}\n";
+static char* YUV_FRAME_FRAGMENT_SHADER =
+        "varying highp vec2 yuvTexCoords;\n"
+        "uniform sampler2D s_texture_y;\n"
+        "uniform sampler2D s_texture_u;\n"
+        "uniform sampler2D s_texture_v;\n"
+        "void main(void)\n"
+        "{\n"
+        "highp float y = texture2D(s_texture_y, yuvTexCoords).r;\n"
+        "highp float u = texture2D(s_texture_u, yuvTexCoords).r - 0.5;\n"
+        "highp float v = texture2D(s_texture_v, yuvTexCoords).r - 0.5;\n"
+        "\n"
+        "highp float r = y + 1.402 * v;\n"
+        "highp float g = y - 0.344 * u - 0.714 * v;\n"
+        "highp float b = y + 1.772 * u;\n"
+        "gl_FragColor = vec4(r,g,b,1.0);\n"
+        "}\n";
+
 static GLfloat DECODER_COPIER_GL_VERTEX_COORDS[8] = {
         -1.0f, -1.0f,	// 0 top left
         1.0f, -1.0f,	// 1 bottom left
@@ -90,9 +117,21 @@ private:
     void uploadTexture();
     void drawFrame();
     void updateTexImage();
+    void updateYUVTexImage();
     VideoFrame* handleVideoFrame();
     void copyFrameData(uint8_t * dst, uint8_t * src, int width, int height, int linesize);
-
+    void pushToVideoQueue(GLuint inputTexId, int width, int height, float position);
+    void initCircleQueue(int videoWidth, int videoHeight);
+    /** OpenGL **/
+    GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
+    GLuint loadShader(GLenum shaderType, const char* pSource);
+    bool   checkGlError(const char* op);
+    void matrixSetIdentityM(float *m);
+    void initTexture();
+    void initCopier();
+    void initPassRender();
+    void renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat* textureCoords);
+    void renderToTexture(GLuint inputTexId, GLuint outputTexId);
     static void* startDecoderThread(void* ptr);
     static void* prepareThreadCB(void *self);
     static void* upThreadCB(void *myself);
@@ -148,6 +187,8 @@ private:
     void *swrBuffer;
     int swrBufferSize;
 
+    VideoFrame* yuvFrame;
+    float position;
     /** HW decoder **/
     bool isMediaCodecInit;
     GLuint decodeTexId;
@@ -165,16 +206,27 @@ private:
     GLfloat* textureCoords;
     GLuint mFBO;
     GLuint outputTexId;
-    /** **/
+    /** Copier **/
     char* mCopierVertexShader;
     char* mCopierFragmentShader;
 
     bool mIsCopierInitialized;
-    GLuint mGLProgId;
-    GLuint mGLVertexCoords;
-    GLuint mGLTextureCoords;
-    GLint mUniformTexMatrix;
-    GLint mUniformTransforms;
+    GLuint mCopierProgId;
+    GLuint mCopierVertexCoords;
+    GLuint mCopierTextureCoords;
+    GLint mCopierUniformTexMatrix;
+    GLint mCopierUniformTransforms;
+    GLuint textures[3];
+    GLint _uniformSamplers[3];
+    /** **/
+    char* mPassRenderVertexShader;
+    char* mPassRenderFragmentShader;
+
+    bool mIsPassRenderInitialized;
+    GLuint mPassRenderProgId;
+    GLuint mPassRenderVertexCoords;
+    GLuint mPassRenderTextureCoords;
+    GLint mPassRenderUniformTexture;
 };
 
 #endif
