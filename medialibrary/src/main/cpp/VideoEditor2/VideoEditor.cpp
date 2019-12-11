@@ -4,13 +4,27 @@ VideoEditor::VideoEditor()
     : isMediaCodecInit(false), inputBuffer(NULL), audioFrameQueue(NULL), circleFrameTextureQueue(NULL), currentAudioFrame(NULL){
     mScreenWidth = 0;
     mScreenHeight = 0;
+    minBufferedDuration = LOCAL_MIN_BUFFERED_DURATION;
+    maxBufferedDuration = LOCAL_MAX_BUFFERED_DURATION;
+    syncMaxTimeDiff = LOCAL_AV_SYNC_MAX_TIME_DIFF;
+    currentAudioFramePos = 0;
+    moviePosition = 0;
+    bufferedDuration = 0;
+    seek_req = false;
+    position = 0.0f;
+
+    isPlaying = false;
+    isOnDecoding = false;
+    isDestroyed = false;
+    isCompleted = false;
+    isInitializeDecodeThread = false;
 }
 
 VideoEditor::~VideoEditor() {
 }
 
 bool VideoEditor::prepare(char *srcFilePath, JavaVM *jvm, jobject obj, bool isHWDecode) {
-    mIsPlaying = false;
+    isPlaying = false;
     mIsHWDecode = isHWDecode;
     uri = srcFilePath;
     mJvm = jvm;
@@ -68,7 +82,17 @@ bool VideoEditor::prepare_l() {
     if (NULL != audioOutput) {
         audioOutput->start();
     }
+    isPlaying = true;
     return true;
+}
+
+void VideoEditor::play() {
+    if (this->isPlaying)
+        return;
+    this->isPlaying = true;
+    if (NULL != audioOutput) {
+        audioOutput->play();
+    }
 }
 
 void VideoEditor::initCopier() {
@@ -208,6 +232,7 @@ bool VideoEditor::openFile() {
         avcodec_close(audioCodecCtx);
         return -1;
     }
+    avStreamFPSTimeBase(audioStream, 0.025, 0, &audioTimeBase);
 }
 
 void VideoEditor::initVideoOutput(ANativeWindow *window) {
@@ -275,6 +300,8 @@ void VideoEditor::pause() {
 }
 
 void VideoEditor::destroy() {
+    isDestroyed = true;
+    destroyDecoderThread();
     mIsCopierInitialized = false;
     if (mCopierProgId) {
         glDeleteProgram(mCopierProgId);
@@ -289,11 +316,14 @@ void VideoEditor::destroy() {
         delete circleFrameTextureQueue;
         circleFrameTextureQueue = NULL;
     }
-    if (audioFrameQueue) {
+    if (NULL != audioFrameQueue) {
+        clearAudioFrameQueue();
+        pthread_mutex_lock(&audioFrameQueueMutex);
         delete audioFrameQueue;
         audioFrameQueue = NULL;
+        pthread_mutex_unlock(&audioFrameQueueMutex);
+        pthread_mutex_destroy(&audioFrameQueueMutex);
     }
-    pthread_mutex_destroy(&audioFrameQueueMutex);
 
     if (textures[0]) {
         glDeleteTextures(3, textures);
@@ -315,6 +345,8 @@ void VideoEditor::destroy() {
     }
     mEGLDisplay = EGL_NO_DISPLAY;
     mEGLContext = EGL_NO_CONTEXT;
+
+    closeFile();
 }
 
 void VideoEditor::decode() {
@@ -328,19 +360,20 @@ void VideoEditor::decode() {
 
 void VideoEditor::decodeFrames() {
     bool good = true;
+    float duration = 0.1f;
     while (good) {
         good = false;
         if (canDecode()) {
-            processDecodingFrame(good);
+            processDecodingFrame(good, duration);
         } else {
             break;
         }
     }
 }
 
-void VideoEditor::processDecodingFrame(bool &good) {
+void VideoEditor::processDecodingFrame(bool &good, float duration) {
     int decodeVideoErrorState;
-    std::list<MovieFrame*>* frames = decodeFrames(&decodeVideoErrorState);
+    std::list<MovieFrame*>* frames = decodeFrames(duration, &decodeVideoErrorState);
     if (NULL != frames) {
         if (!frames->empty()) {
             good = addFrames(0.8, frames);
@@ -353,7 +386,7 @@ void VideoEditor::processDecodingFrame(bool &good) {
     }
 }
 
-std::list<MovieFrame*>* VideoEditor::decodeFrames(int *decodeVideoErrorState) {
+std::list<MovieFrame*>* VideoEditor::decodeFrames(float minDuration, int *decodeVideoErrorState) {
     bool finished = false;
     if (-1 == videoStreamIndex && -1 == audioStreamIndex) {
         ALOGE("decodeFrames error");
@@ -364,6 +397,7 @@ std::list<MovieFrame*>* VideoEditor::decodeFrames(int *decodeVideoErrorState) {
     int ret = 0;
     char errString[128];
     AVPacket packet;
+    float decodedDuration = 0.0f;
     while (!finished) {
         ret = av_read_frame(pFormatCtx, &packet);
         if (ret < 0) {
@@ -381,12 +415,12 @@ std::list<MovieFrame*>* VideoEditor::decodeFrames(int *decodeVideoErrorState) {
         if (packet.stream_index == videoStreamIndex) {
             decodeVideoFrame(packet, decodeVideoErrorState);
         } else if (packet.stream_index == audioStreamIndex) {
-
+            finished = decodeAudioFrames(&packet, result, decodedDuration, minDuration, decodeVideoErrorState);
         }
         av_free_packet(&packet);
     }
     if (is_eof) {
-
+        //todo
     }
     return NULL;
 }
@@ -416,12 +450,130 @@ bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) 
 }
 
 bool VideoEditor::decodeAudioFrames(AVPacket *packet, std::list<MovieFrame *> *result,
-                                    float &decodedDuration, int *decodeVideoErrorState) {
+                                    float &decodedDuration, float minDuration, int *decodeVideoErrorState) {
+    bool finished = false;
+    int pktSize = packet->size;
 
+    while (pktSize > 0) {
+        int gotframe = 0;
+        int len = avcodec_decode_audio4(audioCodecCtx, audioFrame, &gotframe, packet);
+        if (len < 0) {
+            ALOGE("decode audio error, skip packet");
+            *decodeVideoErrorState = 1;
+            break;
+        }
+        if (gotframe) {
+            AudioFrame* frame = handleAudioFrame();
+            if(frame) {
+                result->push_back(frame);
+                position = frame->position;
+                decodedDuration += frame->duration;
+                if (decodedDuration > minDuration) {
+                    finished = true;
+                }
+            } else {
+                ALOGI("skip audio");
+            }
+        }
+        if (0 == len) {
+            break;
+        }
+        pktSize -= len;
+    }
+    return finished;
+}
+
+AudioFrame * VideoEditor::handleAudioFrame() {
+    if (!audioFrame->data[0]) {
+        ALOGI("audioFrame->data[0] is 0... why...");
+        return NULL;
+    }
+    int numChannels = audioCodecCtx->channels;
+    int numFrames = 0;
+    void * audioData;
+    if (swrContext) {
+        const int ratio = 2;
+        const int bufSize = av_samples_get_buffer_size(NULL, numChannels, audioFrame->nb_samples * ratio, AV_SAMPLE_FMT_S16, 1);
+        if (!swrBuffer || swrBufferSize < bufSize) {
+//			LOGI("start realloc buffer and bufSize is %d...", bufSize);
+            swrBufferSize = bufSize;
+            swrBuffer = realloc(swrBuffer, swrBufferSize);
+//			LOGI("realloc buffer success");
+        }
+//		LOGI("define and assign outbuf");
+        byte *outbuf[2] = { (byte*) swrBuffer, NULL };
+//		LOGI("start swr_convert");
+        numFrames = swr_convert(swrContext, outbuf, audioFrame->nb_samples * ratio, (const uint8_t **) audioFrame->data, audioFrame->nb_samples);
+//		LOGI("swr_convert success and numFrames is %d", numFrames);
+        if (numFrames < 0) {
+            ALOGI("fail resample audio");
+            return NULL;
+        }
+        audioData = swrBuffer;
+    } else {
+        if (audioCodecCtx->sample_fmt != AV_SAMPLE_FMT_S16) {
+            ALOGI("bucheck, audio format is invalid");
+            return NULL;
+        }
+        audioData = audioFrame->data[0];
+        numFrames = audioFrame->nb_samples;
+    }
+//	LOGI("start process audioData and numFrames is %d numChannels is %d", numFrames, numChannels);
+    const int numElements = numFrames * numChannels;
+    float position = av_frame_get_best_effort_timestamp(audioFrame) * audioTimeBase;
+//	LOGI("begin processAudioData...");
+//	LOGI("decode audio bufferSize expected 1024  actual is %d audio position is %.4f", numElements, position);
+    byte* buffer = NULL;
+
+    int actualSize = -1;
+    actualSize = processAudioData((short*)audioData, numElements, position, &buffer);
+    if (actualSize  < 0) {
+        return NULL;
+    }
+
+    AudioFrame *frame = new AudioFrame();
+    /** av_frame_get_best_effort_timestamp 瀹為檯涓婅幏鍙朅VFrame鐨?int64_t best_effort_timestamp; 杩欎釜Filed **/
+    frame->position = position;
+    frame->samples = buffer;
+    frame->size = actualSize;
+    frame->duration = av_frame_get_pkt_duration(audioFrame) * audioTimeBase;
+    if (frame->duration == 0) {
+        // sometimes ffmpeg can't determine the duration of audio frame
+        // especially of wma/wmv format
+        // so in this case must compute duration
+        frame->duration = frame->size / (sizeof(float) * numChannels * 2 * audioCodecCtx->sample_rate);
+    }
+//	LOGI("AFD: %.4f %.4f | %.4f ", frame->position, frame->duration, frame->size / (8.0 * 44100.0));
+//	LOGI("leave VideoDecoder::handleAudioFrame()...");
+    return frame;
+}
+
+int VideoEditor::processAudioData(short *sample, int size, float position, byte** buffer) {
+    int bufferSize = size * 2;
+    (*buffer) = new byte[bufferSize];
+    convertByteArrayFromShortArray(sample, size, *buffer);
+    return bufferSize;
 }
 
 bool VideoEditor::addFrames(float thresholdDuration, std::list<MovieFrame *> *frames) {
-
+    if (audioStreamIndex != -1) {
+        pthread_mutex_lock(&audioFrameQueueMutex);
+        std::list<MovieFrame*>::iterator i;
+        for (i = frames->begin(); i != frames->end(); ++i) {
+            MovieFrame* frame = *i;
+            if (frame->getType() == MovieFrameTypeAudio) {
+                AudioFrame* audioFrame = (AudioFrame*) frame;
+                audioFrameQueue->push(audioFrame);
+//				LOGI("audioFrameQueue->push(audioFrame) position is %.4f", audioFrame->position);
+                bufferedDuration += audioFrame->duration;
+            }
+        }
+        pthread_mutex_unlock(&audioFrameQueueMutex);
+    }
+//	LOGI("bufferDuration is %.3f thresholdDuration is %.3f buffered is %d", bufferedDuration, thresholdDuration, buffered);
+    bool isBufferedDurationIncreasedToThreshold = (bufferedDuration >= thresholdDuration) &&
+                                                  (circleFrameTextureQueue->getValidSize()  >= thresholdDuration * fps);
+    return  !isBufferedDurationIncreasedToThreshold;
 }
 
 bool VideoEditor::canDecode() {
@@ -429,17 +581,51 @@ bool VideoEditor::canDecode() {
 }
 
 void VideoEditor::initDecoderThread() {
+    isInitializeDecodeThread = true;
     circleFrameTextureQueue->setIsFirstFrame(true);
     isDecodingFrames = false;
+    isOnDecoding = true;
     pthread_mutex_init(&videoDecoderLock, NULL);
     pthread_cond_init(&videoDecoderCondition, NULL);
     pthread_create(&videoDecoderThread, NULL, startDecoderThread, this);
 }
 
+void VideoEditor::signalDecodeThread() {
+    if (isDestroyed) {
+        ALOGI("NULL == decoder || isDestroyed == true");
+        return;
+    }
+
+    bool isBufferedDurationDecreasedToMin = bufferedDuration <= minBufferedDuration ||
+                                            (circleFrameTextureQueue->getValidSize() <= minBufferedDuration * fps);
+
+    if (!isDestroyed && (seek_req) || ((!isDecodingFrames) && isBufferedDurationDecreasedToMin)) {
+        int getLockCode = pthread_mutex_lock(&videoDecoderLock);
+        pthread_cond_signal(&videoDecoderCondition);
+        pthread_mutex_unlock(&videoDecoderLock);
+    }
+}
+
+void VideoEditor::destroyDecoderThread() {
+//	LOGI("AVSynchronizer::destroyDecoderThread ...");
+    isOnDecoding = false;
+    if (!isInitializeDecodeThread) {
+        return;
+    }
+    void* status;
+    int getLockCode = pthread_mutex_lock(&videoDecoderLock);
+    pthread_cond_signal(&videoDecoderCondition);
+    pthread_mutex_unlock(&videoDecoderLock);
+    pthread_join(videoDecoderThread, &status);
+    pthread_mutex_destroy(&videoDecoderLock);
+    pthread_cond_destroy(&videoDecoderCondition);
+}
 void VideoEditor::startUploader() {
     initTexture();
-    memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
-    memcpy(textureCoords, DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION, sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
+    memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS,
+           sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
+    memcpy(textureCoords, DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION,
+           sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
     initEGL();
     copyTexSurface = createOffscreenSurface(width, height);
     eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
@@ -453,6 +639,57 @@ void VideoEditor::startUploader() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void VideoEditor::closeFile() {
+    ALOGI("closeAudioStream...");
+    closeAudioStream();
+    ALOGI("closeVideoStream...");
+    closeVideoStream();
+    ALOGI("closeSubtitleStream...");
+
+    if (NULL != pFormatCtx) {
+        pFormatCtx->interrupt_callback.opaque = NULL;
+        pFormatCtx->interrupt_callback.callback = NULL;
+        ALOGI("avformat_close_input(&pFormatCtx)");
+        avformat_close_input(&pFormatCtx);
+        avformat_free_context(pFormatCtx);
+        pFormatCtx = NULL;
+    }
+}
+
+void VideoEditor::closeVideoStream() {
+    videoStreamIndex = -1;
+
+    if (NULL != videoFrame) {
+        av_free(videoFrame);
+        videoFrame = NULL;
+    }
+    if (NULL != videoCodecCtx) {
+        avcodec_close(videoCodecCtx);
+        videoCodecCtx = NULL;
+    }
+}
+
+void VideoEditor::closeAudioStream() {
+    audioStreamIndex = -1;
+    if (NULL != swrBuffer) {
+        free(swrBuffer);
+        swrBuffer = NULL;
+        swrBufferSize = 0;
+    }
+    if (NULL != swrContext) {
+        swr_free(&swrContext);
+        swrContext = NULL;
+    }
+    if (NULL != audioFrame) {
+        av_free(audioFrame);
+        audioFrame = NULL;
+    }
+    if (NULL != audioCodecCtx) {
+        avcodec_close(audioCodecCtx);
+        audioCodecCtx = NULL;
+    }
 }
 
 void VideoEditor::initTexture() {
@@ -597,6 +834,126 @@ void VideoEditor::pushToVideoQueue(GLuint inputTexId, int width, int height, flo
                 renderToTexture(inputTexId, firstFrameTexture->texId);
             }
         }
+    }
+}
+
+FrameTexture* VideoEditor::getCorrectRenderTexture(bool forceGetFrame) {
+    FrameTexture *texture = NULL;
+    if (!circleFrameTextureQueue) {
+        ALOGE("getCorrectRenderTexture::circleFrameTextureQueue is NULL");
+        return texture;
+    }
+    int leftVideoFrames = circleFrameTextureQueue->getValidSize();
+    if (leftVideoFrames == 1) {
+        return texture;
+    }
+    while (true) {
+        int ret = circleFrameTextureQueue->front(&texture);
+        if(ret > 0){
+            if (forceGetFrame) {
+                return texture;
+            }
+            const float delta = (moviePosition - DEFAULT_AUDIO_BUFFER_DURATION_IN_SECS) - texture->position;
+            if (delta < (0 - syncMaxTimeDiff)) {
+                texture = NULL;
+                break;
+            }
+            circleFrameTextureQueue->pop();
+            //闊抽姣旇棰戝揩锛岃秴杩囬槇鍊硷紝灏辨嬁鍙栦笅涓€甯э紝鍗冲彂鐢熻烦甯у鐞?
+            if (delta > syncMaxTimeDiff) {
+                continue;
+            } else {
+                break;
+            }
+        } else{
+            texture = NULL;
+            break;
+        }
+    }
+    return texture;
+}
+
+int VideoEditor::consumeAudioFrames(byte* outData, size_t bufferSize) {
+    int ret = bufferSize;
+    if(isPlaying && !isDestroyed && !isCompleted) {
+        ret = fillAudioData(outData, bufferSize);
+        signalOutputFrameAvailable();
+    } else {
+        memset(outData, 0, bufferSize);
+    }
+    return ret;
+}
+
+int VideoEditor::fillAudioData(byte* outData, int bufferSize) {
+    signalDecodeThread();
+
+    //checkPlayState();
+
+    int needBufferSize = bufferSize;
+    while (bufferSize > 0) {
+        if (NULL == currentAudioFrame) {
+            pthread_mutex_lock(&audioFrameQueueMutex);
+            int count = audioFrameQueue->size();
+//			LOGI("audioFrameQueue->size() is %d", count);
+            if (count > 0) {
+                AudioFrame *frame = audioFrameQueue->front();
+                bufferedDuration -= frame->duration;
+                audioFrameQueue->pop();
+                if (!seek_req) {
+                    //resolve when drag seek bar position changed Frequent
+                    moviePosition = frame->position;
+                }
+                currentAudioFrame = new AudioFrame();
+                currentAudioFramePos = 0;
+                int frameSize = frame->size;
+                currentAudioFrame->samples = new byte[frameSize];
+                memcpy(currentAudioFrame->samples, frame->samples, frameSize);
+                currentAudioFrame->size = frameSize;
+                delete frame;
+            }
+            pthread_mutex_unlock(&audioFrameQueueMutex);
+        }
+
+        if (NULL != currentAudioFrame) {
+            //浠巉rame鐨剆amples鏁版嵁鏀惧叆鍒癰uffer涓?
+            byte* bytes = currentAudioFrame->samples + currentAudioFramePos;
+            int bytesLeft = currentAudioFrame->size - currentAudioFramePos;
+            int bytesCopy = std::min(bufferSize, bytesLeft);
+            memcpy(outData, bytes, bytesCopy);
+            bufferSize -= bytesCopy;
+            outData += bytesCopy;
+
+            if (bytesCopy < bytesLeft)
+                currentAudioFramePos += bytesCopy;
+            else {
+                delete currentAudioFrame;
+                currentAudioFrame = NULL;
+            }
+        } else {
+            ALOGI("fillAudioData NULL == currentAudioFrame");
+            memset(outData, 0, bufferSize);
+            bufferSize = 0;
+            break;
+        }
+    }
+    return needBufferSize - bufferSize;
+}
+
+void VideoEditor::clearAudioFrameQueue() {
+    pthread_mutex_lock(&audioFrameQueueMutex);
+    while (!audioFrameQueue->empty()) {
+        AudioFrame* frame = audioFrameQueue->front();
+        audioFrameQueue->pop();
+        delete frame;
+    }
+
+    bufferedDuration = 0;
+    pthread_mutex_unlock(&audioFrameQueueMutex);
+}
+
+void VideoEditor::signalOutputFrameAvailable() {
+    if (NULL != videoOutput){
+        videoOutput->signalFrameAvailable();
     }
 }
 
@@ -863,11 +1220,22 @@ void* VideoEditor::startDecoderThread(void *ptr) {
 }
 
 int VideoEditor::videoCallbackGetTex(FrameTexture **frameTex, void *ctx, bool forceGetFrame) {
-
+    int ret = -1;
+    VideoEditor* videoEditor = (VideoEditor*) ctx;
+    if (!videoEditor->isDestroyed) {
+        if (videoEditor->isCompleted) {
+            //do nothing
+        } else {
+            (*frameTex) = videoEditor->getCorrectRenderTexture(forceGetFrame);
+        }
+        ret = 0;
+    }
+    return ret;
 }
 
 int VideoEditor::audioCallbackFillData(byte *buf, size_t bufSize, void *ctx) {
-
+    VideoEditor* videoEditor = (VideoEditor*) ctx;
+    return videoEditor->consumeAudioFrames(buf, bufSize);
 }
 
 

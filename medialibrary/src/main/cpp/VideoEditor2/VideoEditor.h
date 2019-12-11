@@ -83,7 +83,6 @@ public:
 
     static int videoCallbackGetTex(FrameTexture** frameTex, void* ctx, bool forceGetFrame);
     static int audioCallbackFillData(byte* buf, size_t bufSize, void* ctx);
-    int consumeAudioFrames(byte* outData, size_t bufSize);
 
     void onSurfaceCreated(ANativeWindow* window, int widht, int height);
     void onSurfaceDestroyed();
@@ -106,11 +105,21 @@ private:
     bool canDecode();
     void decode();
     void decodeFrames();
-    void processDecodingFrame(bool& good);
-    std::list<MovieFrame*>* decodeFrames(int* decodeVideoErrorState);
+    void processDecodingFrame(bool& good, float duration);
+    std::list<MovieFrame*>* decodeFrames(float minDuration, int* decodeVideoErrorState);
     bool addFrames(float thresholdDuration, std::list<MovieFrame*>* frames);
     bool decodeVideoFrame(AVPacket packet, int* decodeVideoErrorState);
-    bool decodeAudioFrames(AVPacket* packet, std::list<MovieFrame*> * result, float& decodedDuration, int* decodeVideoErrorState);
+    bool decodeAudioFrames(AVPacket* packet, std::list<MovieFrame*> * result, float& decodedDuration, float minDuration, int* decodeVideoErrorState);
+    AudioFrame * handleAudioFrame();
+    int processAudioData(short *sample, int size, float position, byte** buffer);
+    int consumeAudioFrames(byte* outData, size_t bufferSize);
+    int fillAudioData(byte* outData, int bufferSize);
+    void clearAudioFrameQueue();
+    void closeFile();
+    void closeAudioStream();
+    void closeVideoStream();
+
+    void signalDecodeThread();
     void destroyDecoderThread();
 
     void startUploader();
@@ -121,6 +130,7 @@ private:
     VideoFrame* handleVideoFrame();
     void copyFrameData(uint8_t * dst, uint8_t * src, int width, int height, int linesize);
     void pushToVideoQueue(GLuint inputTexId, int width, int height, float position);
+    FrameTexture* getCorrectRenderTexture(bool forceGetFrame);
     void initCircleQueue(int videoWidth, int videoHeight);
     /** OpenGL **/
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
@@ -143,10 +153,12 @@ private:
     ANativeWindow* mWindow;
     int mScreenWidth;
     int mScreenHeight;
-    bool mIsPlaying;
     bool mIsHWDecode;
+    /** Play Status **/
+    bool isPlaying;
     bool isDestroyed;
     bool isOnDecoding;;
+    bool isCompleted;
 
     bool mIsUserCancelled;
     pthread_t mThreadId;
@@ -155,6 +167,7 @@ private:
     bool isDecodingFrames;
     bool pauseDecodeThreadFlag;
     bool is_eof;
+    bool isInitializeDecodeThread;
     pthread_mutex_t videoDecoderLock;
     pthread_cond_t videoDecoderCondition;
 
@@ -163,6 +176,9 @@ private:
     //video Queue & audio Queue manager
     pthread_mutex_t audioFrameQueueMutex;
     std::queue<AudioFrame*> *audioFrameQueue;
+    float syncMaxTimeDiff;
+    float minBufferedDuration;
+    float maxBufferedDuration;
     CircleFrameTextureQueue* circleFrameTextureQueue;
     AudioFrame* currentAudioFrame;
 
@@ -177,10 +193,12 @@ private:
     int videoStreamIndex;
     int width;
     int height;
+    bool seek_req;
     /** 音频流变量 **/
     AVCodecContext *audioCodecCtx;
     AVCodec *audioCodec;
     int audioStreamIndex;
+    float audioTimeBase;
     AVFrame *audioFrame;
     /** 重采样变量 **/
     SwrContext *swrContext;
@@ -189,6 +207,9 @@ private:
 
     VideoFrame* yuvFrame;
     float position;
+    double moviePosition;
+    float bufferedDuration;
+    int currentAudioFramePos;
     /** HW decoder **/
     bool isMediaCodecInit;
     GLuint decodeTexId;
@@ -218,7 +239,7 @@ private:
     GLint mCopierUniformTransforms;
     GLuint textures[3];
     GLint _uniformSamplers[3];
-    /** **/
+    /** PassRender **/
     char* mPassRenderVertexShader;
     char* mPassRenderFragmentShader;
 
