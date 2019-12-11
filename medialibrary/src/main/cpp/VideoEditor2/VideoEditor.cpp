@@ -291,10 +291,6 @@ bool VideoEditor::initAudioOutput() {
     return true;
 }
 
-void VideoEditor::play() {
-
-}
-
 void VideoEditor::pause() {
 
 }
