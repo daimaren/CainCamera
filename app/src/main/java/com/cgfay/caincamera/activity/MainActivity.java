@@ -26,6 +26,7 @@ import com.cgfay.scan.model.MimeType;
 import com.cgfay.uitls.utils.PermissionUtils;
 import com.cgfay.video.activity.VideoCutActivity;
 import com.cgfay.video.activity.VideoEditActivity;
+import com.cgfay.video.activity.VideoEditorActivity;
 
 import java.util.List;
 
@@ -61,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.btn_ff_media_record).setOnClickListener(this);
         findViewById(R.id.btn_flv_record).setOnClickListener(this);
         findViewById(R.id.btn_media_record).setOnClickListener(this);
+        findViewById(R.id.btn_media_edit).setOnClickListener(this);
     }
 
     @Override
@@ -112,6 +114,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             case R.id.btn_media_record: {
                 mediaRecord();
+                break;
+            }
+            case R.id.btn_media_edit: {
+                mediaEdit();
                 break;
             }
         }
@@ -252,9 +258,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * 录制视频
+     * 自研录制器
      */
     private void mediaRecord() {
         startActivity(new Intent(MainActivity.this, MediaRecordActivity.class));
+    }
+
+    /**
+     * 自研编辑器
+     */
+    private void mediaEdit() {
+        startActivity(new Intent(MainActivity.this, VideoEditorActivity.class));
     }
 }
