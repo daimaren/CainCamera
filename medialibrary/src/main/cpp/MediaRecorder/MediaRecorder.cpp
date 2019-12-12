@@ -1016,6 +1016,8 @@ bool MediaRecorder::initCopier() {
     if (!mCopyProgramId) {
         LOGE("Could not create program.");
         return false;
+    } else {
+        LOGI("loadProgram success");
     }
 
     mCopyVertexCoords = glGetAttribLocation(mCopyProgramId, "vPosition");

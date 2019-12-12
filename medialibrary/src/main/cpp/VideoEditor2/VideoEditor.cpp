@@ -2,6 +2,8 @@
 #include "VideoEditor.h"
 VideoEditor::VideoEditor()
     : isMediaCodecInit(false), inputBuffer(NULL), audioFrameQueue(NULL), circleFrameTextureQueue(NULL), currentAudioFrame(NULL){
+    videoOutput = NULL;
+    audioOutput = NULL;
     mScreenWidth = 0;
     mScreenHeight = 0;
     minBufferedDuration = LOCAL_MIN_BUFFERED_DURATION;
@@ -18,18 +20,39 @@ VideoEditor::VideoEditor()
     isDestroyed = false;
     isCompleted = false;
     isInitializeDecodeThread = false;
+    vertexCoords = new GLfloat[OPENGL_VERTEX_COORDNATE_CNT];
+    textureCoords = new GLfloat[OPENGL_VERTEX_COORDNATE_CNT];
+
+    mMsgQueue = new MsgQueue("MediaRecorder MsgQueue");
+    mHandler = new VideoEditorHandler(this, mMsgQueue);
 }
 
 VideoEditor::~VideoEditor() {
+    delete[] vertexCoords;
+    delete[] textureCoords;
+
+    if (mHandler) {
+        mHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
+    }
+    pthread_join(mThreadId, 0);
+    if (mMsgQueue) {
+        mMsgQueue->abort();
+        delete mMsgQueue;
+        mMsgQueue = NULL;
+    }
+    delete mHandler;
+    mHandler = NULL;
+    ALOGI("MediaRecorder thread stopped");
 }
 
 bool VideoEditor::prepare(char *srcFilePath, JavaVM *jvm, jobject obj, bool isHWDecode) {
     isPlaying = false;
     mIsHWDecode = isHWDecode;
-    uri = srcFilePath;
+    uri = strdup(srcFilePath);
     mJvm = jvm;
     mObj = obj;
-    pthread_create(&mThreadId, 0, prepareThreadCB, this);
+    mHandler->postMessage(new Msg(MSG_PREPARE));
+    pthread_create(&mThreadId, 0, threadStartCallback, this);
     mIsUserCancelled = false;
     return true;
 }
@@ -55,7 +78,9 @@ void VideoEditor::onSurfaceCreated(ANativeWindow *window, int widht, int height)
 }
 
 void VideoEditor::onSurfaceDestroyed() {
-
+    if (videoOutput) {
+        videoOutput->onSurfaceDestroyed();
+    }
 }
 
 bool VideoEditor::prepare_l() {
@@ -65,6 +90,9 @@ bool VideoEditor::prepare_l() {
     if (mIsUserCancelled) {
         return true;
     }
+    if (!initEGL())
+        return false;
+    initConverter();
     initCopier();
     initPassRender();
     initCircleQueue(width, height);
@@ -76,7 +104,6 @@ bool VideoEditor::prepare_l() {
         //先实现软解
     }
 
-    startUploader();
     initAudioOutput();
     initDecoderThread();
     if (NULL != audioOutput) {
@@ -297,6 +324,18 @@ void VideoEditor::pause() {
 
 void VideoEditor::destroy() {
     isDestroyed = true;
+
+    if (NULL != videoOutput) {
+        videoOutput->stopOutput();
+        delete videoOutput;
+        videoOutput = NULL;
+    }
+    if (NULL != audioOutput) {
+        audioOutput->stop();
+        delete audioOutput;
+        audioOutput = NULL;
+    }
+
     destroyDecoderThread();
     mIsCopierInitialized = false;
     if (mCopierProgId) {
@@ -616,13 +655,12 @@ void VideoEditor::destroyDecoderThread() {
     pthread_mutex_destroy(&videoDecoderLock);
     pthread_cond_destroy(&videoDecoderCondition);
 }
-void VideoEditor::startUploader() {
+void VideoEditor::initConverter() {
     initTexture();
     memcpy(vertexCoords, DECODER_COPIER_GL_VERTEX_COORDS,
            sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
     memcpy(textureCoords, DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION,
            sizeof(GLfloat) * OPENGL_VERTEX_COORDNATE_CNT);
-    initEGL();
     copyTexSurface = createOffscreenSurface(width, height);
     eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
 
@@ -1110,6 +1148,7 @@ GLuint VideoEditor::loadProgram(char *pVertexSource, char *pFragmentSource) {
 }
 
 GLuint VideoEditor::loadShader(GLenum shaderType, const char *pSource) {
+    ALOGE("%s", pSource);
     GLuint shader = glCreateShader(shaderType);
     if (shader) {
         glShaderSource(shader, 1, &pSource, NULL);
@@ -1131,13 +1170,15 @@ GLuint VideoEditor::loadShader(GLenum shaderType, const char *pSource) {
                 char* buf = (char*) malloc(0x1000);
                 if (buf) {
                     glGetShaderInfoLog(shader, 0x1000, NULL, buf);
-                    ALOGI("%s %S Could not compile shader %d:\n%s\n",__FUNCTION__, __LINE__, shaderType, buf);
+                    ALOGE("%s %S Could not compile shader %d:\n%s\n",__FUNCTION__, __LINE__, shaderType, buf);
                     free(buf);
                 }
             }
             glDeleteShader(shader);
             shader = 0;
         }
+    } else {
+        ALOGE("glCreateShader error");
     }
     return shader;
 }
@@ -1200,11 +1241,25 @@ void VideoEditor::renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat*
 //  ALOGI("draw waste time is %ld", (getCurrentTime() - startDrawTimeMills));
 }
 
+void VideoEditor::processMessage() {
+    bool renderingEnabled = true;
+    while (renderingEnabled) {
+        Msg *msg = NULL;
+        if (mMsgQueue->dequeueMessage(&msg, true) > 0) {
+            if (MESSAGE_QUEUE_LOOP_QUIT_FLAG == msg->execute()) {
+                renderingEnabled = false;
+            }
+            delete msg;
+        }
+    }
+}
 
-void* VideoEditor::prepareThreadCB(void *self) {
+void* VideoEditor::threadStartCallback(void *self) {
+    ALOGI("threadStartCallback");
     VideoEditor* videoEditor = (VideoEditor*)self;
-    videoEditor->prepare_l();
+    videoEditor->processMessage();
     pthread_exit(0);
+    return 0;
 }
 
 void* VideoEditor::startDecoderThread(void *ptr) {

@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.cgfay.video">
-
+    <!-- opengles版本控制 -->
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
     <application>
         <activity android:name=".activity.VideoCutActivity"
             android:theme="@style/VideoTheme"/>
         <activity android:name=".activity.VideoEditActivity"
+            android:theme="@style/VideoTheme"/>
+        <activity android:name=".activity.VideoEditorActivity"
             android:theme="@style/VideoTheme"/>
     </application>
 

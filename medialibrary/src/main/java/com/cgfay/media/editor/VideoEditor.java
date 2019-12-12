@@ -3,7 +3,10 @@ package com.cgfay.media.editor;
 import android.view.Surface;
 
 public class VideoEditor {
-
+    static {
+        System.loadLibrary("ffmpeg");
+        System.loadLibrary("video_editor2");
+    }
     public void resume() {
         //todo
     }
@@ -41,7 +44,7 @@ public class VideoEditor {
     public void setVolume(float leftVolume, float rightVolume) {
         //todo
     }
-    public native void onSurfaceCreated(final Surface surface);
+    public native void onSurfaceCreated(final Surface surface, int width, int height);
     public native void onSurfaceDestroyed(final Surface surface);
     public native boolean prepare(String srcFilePath, int width, int height, Surface surface, Boolean isHWDecode);
     public native void pause(); //todo

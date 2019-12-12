@@ -37,11 +37,26 @@ Java_com_cgfay_media_editor_VideoEditor_prepare(JNIEnv * env, jobject obj, jstri
         videoEditor->onSurfaceCreated(window, width, height);
     }
     env->ReleaseStringUTFChars(srcFilePath, filePath);
+    return 0;
 }
 
-JNIEXPORT void JNICALL Java_com_cgfay_media_editor_VideoEditor_play(JNIEnv * env, jobject obj) {
+extern "C" JNIEXPORT void JNICALL Java_com_cgfay_media_editor_VideoEditor_play(JNIEnv * env, jobject obj) {
     if(NULL != videoEditor) {
         videoEditor->play();
+    }
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_cgfay_media_editor_VideoEditor_stop(JNIEnv * env, jobject obj) {
+    if(NULL != videoEditor) {
+        videoEditor->destroy();
+        delete videoEditor;
+        videoEditor = NULL;
+    }
+}
+
+extern "C" JNIEXPORT void JNICALL Java_com_cgfay_media_editor_VideoEditor_onSurfaceDestroyed(JNIEnv * env, jobject obj, jobject surface) {
+    if(NULL != videoEditor) {
+        videoEditor->onSurfaceDestroyed();
     }
 }
 

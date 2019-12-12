@@ -5,6 +5,7 @@
 #include <queue>
 #include <unistd.h>
 #include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <string>
 #include <EGL/egl.h>
 #include <list>
@@ -21,12 +22,17 @@ extern "C" {
 #include "circle_texture_queue.h"
 #include "audio_output.h"
 #include "VideoOutput.h"
+#include "handler.h"
 //解码文件时的缓冲区的最小和最大值
 #define LOCAL_MIN_BUFFERED_DURATION   			0.5
 #define LOCAL_MAX_BUFFERED_DURATION   			0.8
 #define LOCAL_AV_SYNC_MAX_TIME_DIFF         	    0.05
 #define OPENGL_VERTEX_COORDNATE_CNT			    8
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+
+enum ThreadMessage {
+    MSG_PREPARE,
+};
 static char* NO_FILTER_VERTEX_SHADER =
         "attribute vec4 vPosition;\n"
         "attribute vec4 vTexCords;\n"
@@ -68,6 +74,7 @@ static GLfloat DECODER_COPIER_GL_TEXTURE_COORDS_NO_ROTATION[8] = {
         1.0f, 1.0f
 };
 
+class VideoEditorHandler;
 //模块化设计
 class VideoEditor {
 public:
@@ -75,6 +82,7 @@ public:
     virtual ~VideoEditor();
 
     bool prepare(char *srcFilePath, JavaVM *jvm, jobject obj, bool isHWDecode);
+    bool prepare_l();
     void play();
     void seek(float position);
     void pause();
@@ -90,7 +98,6 @@ public:
     void signalOutputFrameAvailable();
 
 private:
-    bool prepare_l();
     bool openFile();
     bool initEGL();
     EGLSurface createWindowSurface(ANativeWindow *pWindow);
@@ -122,7 +129,7 @@ private:
     void signalDecodeThread();
     void destroyDecoderThread();
 
-    void startUploader();
+    void initConverter();
     void uploadTexture();
     void drawFrame();
     void updateTexImage();
@@ -142,8 +149,10 @@ private:
     void initPassRender();
     void renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat* textureCoords);
     void renderToTexture(GLuint inputTexId, GLuint outputTexId);
+
+    void processMessage();
     static void* startDecoderThread(void* ptr);
-    static void* prepareThreadCB(void *self);
+    static void* threadStartCallback(void *self);
     static void* upThreadCB(void *myself);
 private:
     JavaVM *mJvm;
@@ -161,7 +170,6 @@ private:
     bool isCompleted;
 
     bool mIsUserCancelled;
-    pthread_t mThreadId;
     /** decoder **/
     pthread_t videoDecoderThread;
     bool isDecodingFrames;
@@ -248,6 +256,32 @@ private:
     GLuint mPassRenderVertexCoords;
     GLuint mPassRenderTextureCoords;
     GLint mPassRenderUniformTexture;
+
+    //msg
+    VideoEditorHandler *mHandler;
+    MsgQueue *mMsgQueue;
+    pthread_t mThreadId;
+};
+
+class VideoEditorHandler : public Handler{
+private:
+    VideoEditor *mVideoEditor;
+
+public:
+    VideoEditorHandler(VideoEditor *videoEditor, MsgQueue *queue)
+            : Handler(queue) {
+        mVideoEditor = videoEditor;
+    }
+
+    void handleMessage(Msg *msg) {
+        int what = msg->getWhat();
+        //LOGD("handle msg is %d", what);
+        switch(what) {
+            case MSG_PREPARE:
+                mVideoEditor->prepare_l();;
+                break;
+        }
+    }
 };
 
 #endif

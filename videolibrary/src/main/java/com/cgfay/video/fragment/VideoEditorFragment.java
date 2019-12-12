@@ -109,9 +109,8 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
 
     // 播放器
     private MediaPlayer mAudioPlayer;
-    //todo
+
     private VideoEditor mVideoEditor;
-    private CainMediaPlayer mCainMediaPlayer;
     private AudioManager mAudioManager;
     private int mPlayViewWidth;
     private int mPlayViewHeight;
@@ -213,9 +212,6 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
     @Override
     public void onStart() {
         super.onStart();
-        if (mVideoEditor == null) {
-            mVideoEditor = new VideoEditor();
-        }
     }
 
     @Override
@@ -263,7 +259,7 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
             mAudioManager = null;
         }
         if (mVideoEditor != null) {
-            mVideoEditor.reset();
+            mVideoEditor.stop();
             mVideoEditor = null;
         }
         if (mSurface != null) {
@@ -652,7 +648,7 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
         public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
             if (mSurfaceTexture == null) {
                 mSurfaceTexture = surface;
-                openMediaPlayer();
+                openMediaPlayer(width, height);
             } else {
                 mVideoPlayerView.setSurfaceTexture(mSurfaceTexture);
             }
@@ -665,6 +661,9 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
 
         @Override
         public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            if (mVideoEditor != null) {
+                mVideoEditor.onSurfaceDestroyed(mSurface);
+            }
             return mSurfaceTexture == null;
         }
 
@@ -677,8 +676,16 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
     /**
      * 打开视频播放器
      */
-    private void openMediaPlayer() {
+    private void openMediaPlayer(int width, int height) {
         mContentView.setKeepScreenOn(true);
+        if (mVideoEditor == null) {
+            mVideoEditor = new VideoEditor();
+        }
+        if (mSurface == null) {
+            mSurface = new Surface(mSurfaceTexture);
+        }
+        mVideoEditor.prepare("/storage/emulated/0/test.mp4", width, height, mSurface, false);
+        /*
         mCainMediaPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(final IMediaPlayer mp) {
@@ -700,30 +707,6 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
                 });
             }
         });
-        mCainMediaPlayer.setOnVideoSizeChangedListener(new IMediaPlayer.OnVideoSizeChangedListener() {
-            @Override
-            public void onVideoSizeChanged(IMediaPlayer mediaPlayer, int width, int height) {
-                if (mediaPlayer.getRotate() % 180 != 0) {
-                    mVideoPlayerView.setVideoSize(height, width);
-                } else {
-                    mVideoPlayerView.setVideoSize(width, height);
-                }
-            }
-        });
-        mCainMediaPlayer.setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(IMediaPlayer mp) {
-
-            }
-        });
-
-        mCainMediaPlayer.setOnErrorListener(new IMediaPlayer.OnErrorListener() {
-            @Override
-            public boolean onError(IMediaPlayer mp, int what, int extra) {
-                Log.d(TAG, "onError: what = " + what + ", extra = " + extra);
-                return false;
-            }
-        });
 
         mCainMediaPlayer.setOnCurrentPositionListener(new CainMediaPlayer.OnCurrentPositionListener() {
             @Override
@@ -736,6 +719,7 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
                 }
             }
         });
+
         try {
             mCainMediaPlayer.setDataSource(mVideoPath);
             if (mSurface == null) {
@@ -748,6 +732,7 @@ public class VideoEditorFragment extends Fragment implements View.OnClickListene
         } catch (IOException e) {
             e.printStackTrace();
         }
+        */
     }
 
     /**

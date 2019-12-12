@@ -22,13 +22,12 @@ add_library( video_editor2
 # 链接静态库
 target_link_libraries( video_editor2
 
+					   ffmpeg
+					   OpenSLES
                        android
                        jnigraphics
                        log
-					   z
                        -lEGL
                        GLESv2
-					   OpenSLES
-					   ffmpeg
 					   )
 

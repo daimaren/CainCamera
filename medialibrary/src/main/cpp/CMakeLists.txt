@@ -56,6 +56,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
 # MediaRecorder
 add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEditor2)
+
 # FLV录制器
 add_subdirectory(${CMAKE_SOURCE_DIR}/FLVRecorder)
 
@@ -77,4 +79,3 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
 # Video编辑器，用最简洁到代码实现功能，麻雀虽小五脏俱全
 #add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEditor)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEditor2)
