@@ -125,6 +125,8 @@ protected:
     int positionHandle;     // 顶点坐标句柄
     int texCoordinateHandle;// 纹理坐标句柄
     int inputTextureHandle[MAX_TEXTURES]; // 纹理句柄列表
+    int horizontalHandle;
+    int verticalHandle;
     int nb_textures;        // 纹理数量
     int vertexCount = 4;    // 绘制的顶点个数，默认为4
     double timeStamp;       // 时间戳

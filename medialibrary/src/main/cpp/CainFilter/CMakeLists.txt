@@ -71,6 +71,7 @@ add_library( cainfilter
         filter/effect/GLFrameFourFilter.cpp
         filter/effect/GLFrameSixFilter.cpp
         filter/effect/GLFrameNineFilter.cpp
+        filter/effect/GLCommonFrameFilter.cpp
 
         # 输入滤镜
         filter/input/GLInputFilter.cpp

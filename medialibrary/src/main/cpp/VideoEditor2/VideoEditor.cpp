@@ -1056,7 +1056,12 @@ bool VideoEditor::initEGL() {
         return false;
     }
     EGLint  eglContextAttributes[] = {EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE};
-    if (!(mEGLContext = eglCreateContext(mEGLDisplay, mEGLConfig, EGL_NO_CONTEXT, eglContextAttributes ))) {
+    mEGLContext = eglCreateContext(mEGLDisplay, mEGLConfig, EGL_NO_CONTEXT, eglContextAttributes);
+    checkGlError("eglCreateContext");
+    if (eglGetError() == EGL_SUCCESS) {
+        ALOGI("eglCreateContext success");
+    }
+    if (!mEGLContext) {
         ALOGE("eglCreateContext error %d", eglGetError());
         // release res
         if(EGL_NO_DISPLAY != mEGLDisplay && EGL_NO_CONTEXT != mEGLContext){
