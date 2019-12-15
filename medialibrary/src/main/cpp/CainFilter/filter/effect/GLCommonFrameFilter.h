@@ -10,7 +10,14 @@
 
 class GLCommonFrameFilter : public GLFilter{
 public:
+    GLCommonFrameFilter(float horizontal, float vertical);
+    void initProgram() override;
     void initProgram(const char *vertexShader, const char *fragmentShader) override;
+protected:
+    void onDrawBegin() override;
+private:
+    float horizontal;
+    float vertical;
 };
 
 

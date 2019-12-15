@@ -3,6 +3,7 @@
 //
 
 #include <cstring>
+#include <filter/effect/GLCommonFrameFilter.h>
 #include "FilterManager.h"
 #include "Filter.h"
 
@@ -73,19 +74,19 @@ GLFilter *FilterManager::getFilter(const char *name) {
         return new GLFrameBlackWhiteThreeFilter();
     }
     if (!strcmp("两屏", name)) {
-        return new GLFrameTwoFilter();
+        return new GLCommonFrameFilter(1.0, 2.0);//new GLFrameTwoFilter()
     }
     if (!strcmp("三屏", name)) {
-        return new GLFrameThreeFilter();
+        return new GLCommonFrameFilter(1.0, 3.0);//new GLFrameThreeFilter()
     }
     if (!strcmp("四屏", name)) {
-        return new GLFrameFourFilter();
+        return new GLCommonFrameFilter(2.0, 2.0);//new GLFrameFourFilter()
     }
     if (!strcmp("六屏", name)) {
-        return new GLFrameSixFilter();
+        return new GLCommonFrameFilter(2.0, 3.0);//new GLFrameSixFilter()
     }
     if (!strcmp("九屏", name)){
-        return new GLFrameNineFilter();
+        return new GLCommonFrameFilter(3.0, 3.0);//new GLFrameNineFilter()
     }
 
     //转场特效
