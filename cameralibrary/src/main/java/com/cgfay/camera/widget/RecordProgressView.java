@@ -127,7 +127,11 @@ public class RecordProgressView extends View {
      * @param progress
      */
     public void setProgress(float progress) {
-        mProgress = progress;
+        float total = 0;
+        for (float i : mProgressList) {
+            total += i;
+        }
+        mProgress = progress - total;
         invalidate();
     }
 
