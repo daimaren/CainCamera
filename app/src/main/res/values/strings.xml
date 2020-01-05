@@ -10,6 +10,7 @@
     <string name="btn_ff_media_record">使用 FFmpeg 录制视频</string>
     <string name="btn_flv_record">录制FLV视频</string>
     <string name="btn_media_record">自研录制器</string>
+    <string name="btn_mini_record">mini recorder</string>
     <string name="btn_media_edit">自研编辑器</string>
 
     <!-- 添加背景音乐部分 -->

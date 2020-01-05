@@ -58,8 +58,13 @@
             android:theme="@style/NoActionBarTheme" />
 
         <activity
-            android:name=".activity.MediaRecordActivity"
+        android:name=".activity.MediaRecordActivity"
+        android:theme="@style/NoActionBarTheme" />
+
+        <activity
+            android:name=".activity.MiniRecordActivity"
             android:theme="@style/NoActionBarTheme" />
+
         <activity
             android:name=".activity.FLVRecordActivity"
             android:theme="@style/NoActionBarTheme" />

@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.btn_ff_media_record).setOnClickListener(this);
         findViewById(R.id.btn_flv_record).setOnClickListener(this);
         findViewById(R.id.btn_media_record).setOnClickListener(this);
+        findViewById(R.id.btn_mini_record).setOnClickListener(this);
         findViewById(R.id.btn_media_edit).setOnClickListener(this);
     }
 
@@ -114,6 +115,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             case R.id.btn_media_record: {
                 mediaRecord();
+                break;
+            }
+            case R.id.btn_mini_record: {
+                miniRecord();
                 break;
             }
             case R.id.btn_media_edit: {
@@ -262,6 +267,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void mediaRecord() {
         startActivity(new Intent(MainActivity.this, MediaRecordActivity.class));
+    }
+
+    /**
+     * 自研录制器
+     */
+    private void miniRecord() {
+        startActivity(new Intent(MainActivity.this, MiniRecordActivity.class));
     }
 
     /**
