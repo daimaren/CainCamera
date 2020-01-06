@@ -26,12 +26,7 @@ add_library( mini_recorder
              common/aw_file.c
              common/aw_thread_poll.c
              # encoder & muxer
-             aw_x264.c
-             aw_sw_x264_encoder.c
-             aw_faac.c
-             aw_sw_faac_encoder.c
-             aw_encode_flv.c
-             mp4record.c
+             MediaWriter.cpp
              Handler.cpp
              MsgQueue.cpp
              # 录制器
@@ -41,10 +36,7 @@ add_library( mini_recorder
 
 # 链接静态库
 target_link_libraries( mini_recorder
-
-                       x264
-                       faac
-                       mp4v2
+                       ffmpeg
                        yuv
 
                        android

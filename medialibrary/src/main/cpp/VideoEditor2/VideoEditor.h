@@ -166,7 +166,7 @@ private:
     /** Play Status **/
     bool isPlaying;
     bool isDestroyed;
-    bool isOnDecoding;;
+    bool isOnDecoding;
     bool isCompleted;
 
     bool mIsUserCancelled;

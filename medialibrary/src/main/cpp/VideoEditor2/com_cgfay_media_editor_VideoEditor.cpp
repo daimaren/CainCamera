@@ -34,7 +34,7 @@ Java_com_cgfay_media_editor_VideoEditor_prepare(JNIEnv * env, jobject obj, jstri
     window = ANativeWindow_fromSurface(env, surface);
     if (NULL != videoEditor) {
         jboolean initCode = videoEditor->prepare(filePath, jvm, obj, isHWDecode);
-        videoEditor->onSurfaceCreated(window, width, height);
+        //videoEditor->onSurfaceCreated(window, width, height);
     }
     env->ReleaseStringUTFChars(srcFilePath, filePath);
     return 0;
