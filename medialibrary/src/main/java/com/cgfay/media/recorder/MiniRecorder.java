@@ -129,7 +129,7 @@ public final class MiniRecorder {
 
     public void updateTexImageFromNative() {
         if (null != mCameraSurfaceTexture) {
-            mCameraSurfaceTexture.updateTexImage();
+            mCameraSurfaceTexture.updateTexImage();//OpenGL渲染线程才可以调用该函数
         }
     }
     /***************************************MediaCodec functions***********************************************/

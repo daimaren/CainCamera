@@ -1,16 +1,12 @@
 //
-// Created by CainHuang on 2019/8/17.
+// Created by Glen on 2020/1/8.
 //
 
 #ifndef MEDIA_Recorder_H
 #define MEDIA_Recorder_H
 
-#include <AVMediaHeader.h>
 #include <SafetyQueue.h>
-#include <AVMediaData.h>
 #include <Thread.h>
-#include <AVFormatter.h>
-#include <YuvConvertor.h>
 #include <jni.h>
 #include <android/native_window.h>
 #include <EGL/egl.h>
@@ -19,16 +15,13 @@
 
 #include "RecordParams.h"
 #include "handler.h"
+#include "utils.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "aw_encode_flv.h"
-#include "aw_all.h"
-#include "mp4record.h"
 #include "stdio.h"
-
+#include "unistd.h"
 #ifdef __cplusplus
 };
 #endif
@@ -156,9 +149,6 @@ public:
     // 释放资源
     void release();
 
-    // 录制媒体数据
-    int recordFrame(AVMediaData *data);
-
     // 开始录制
     void startRecord();
     void startRecord_l();
@@ -182,15 +172,6 @@ private:
     void createHWEncoder();
     void createSurfaceRender();
     void destroyHWEncoder();
-    //FLV Muxer
-    void initFlvWriter();
-    void saveFlvAudioTag(aw_flv_audio_tag *audio_tag);
-    void saveFlvVideoTag(aw_flv_video_tag *video_tag);
-    void saveSpsPpsAndAudioSpecificConfigTag();
-    void save_audio_data(aw_flv_audio_tag *audio_tag);
-    void save_video_data(aw_flv_video_tag *video_tag);
-    void save_script_data(aw_flv_script_tag *script_tag);
-    void save_flv_tag_to_file(aw_flv_common_tag *commonTag);
     // EGL functions
     bool initEGL();
     EGLSurface createWindowSurface(ANativeWindow* pWindow);
@@ -228,16 +209,11 @@ private:
     Thread *mRecordThread;
     OnRecordListener *mRecordListener;
     SafetyQueue<AVMediaData *> *mFrameQueue;
-    aw_data *s_output_buf = NULL;
     int64_t duration;
     //for status
     bool mAbortRequest; // 停止请求
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
-    //mp4 muxer
-    MP4V2_CONTEXT *mMp4Handle;
-    //Encoder
-    bool isSpsPpsAndAudioSpecificConfigSent = false;
     bool mIsEncoding = false;
 
     //for HW Encode
@@ -263,7 +239,6 @@ private:
     int mFrameRate;
 
     RecordParams *mRecordParams;    // 录制参数
-    YuvConvertor *mYuvConvertor;    // Yuv转换器
 
     //OpenGL params
     GLfloat* mTextureCoords;
