@@ -9,6 +9,7 @@
 #include <Thread.h>
 #include <jni.h>
 #include <android/native_window.h>
+#include <android/native_window_jni.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
@@ -132,7 +133,7 @@ public:
 
 class MiniRecorderHandler;
 
-class MiniRecorder : public Runnable {
+class MiniRecorder {
 public:
     MiniRecorder();
 
@@ -160,8 +161,6 @@ public:
     // 是否正在录制
     bool isRecording();
 
-    void run() override;
-
     RecordParams *getRecordParams();
 
     virtual bool initialize();
@@ -178,6 +177,7 @@ private:
     // OpenGL functions
     void fillTextureCoords();
     float flip(float i);
+    bool initTextureFBO();
     bool initRenderer();
     bool initCopier();
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
@@ -206,9 +206,9 @@ private:
     FILE* mDumpH264File;
     Mutex mMutex;
     Condition mCondition;
-    Thread *mRecordThread;
+
     OnRecordListener *mRecordListener;
-    SafetyQueue<AVMediaData *> *mFrameQueue;
+
     int64_t duration;
     //for status
     bool mAbortRequest; // 停止请求
@@ -314,10 +314,10 @@ void handleMessage(Msg *msg) {
             break;
         case MSG_START_RECORDING:
         {
-            // 准备好yuv转换器 video_encoder audio_encoder flv_muxer
+            //video_encoder audio_encoder
             int ret = mMiniRecorder->prepare();
             if (ret < 0) {
-                LOGE("Failed to prepare recorder");
+                ALOGE("Failed to prepare recorder");
             } else {
                 mMiniRecorder->startRecord_l();
             }

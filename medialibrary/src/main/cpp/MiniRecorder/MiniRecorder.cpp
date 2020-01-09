@@ -8,8 +8,7 @@
  * 第一阶段，先把相机画面显示出来
  */
 MiniRecorder::MiniRecorder() : mRecordListener(nullptr), mAbortRequest(true),
-                                     mStartRequest(false), mExit(true), mRecordThread(nullptr),
-                                     mYuvConvertor(nullptr), mFrameQueue(nullptr), mCopyIsInitialized(false),
+                                     mStartRequest(false), mExit(true),mCopyIsInitialized(false),
                                     mIsGLInitialized(false), mIsSurfaceRenderInit(false){
     mRecordParams = new RecordParams();
     mGLVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
@@ -108,50 +107,7 @@ bool MiniRecorder::initialize() {
             glDeleteTextures(1, &mDecodeTexId);
         }
     }
-    //inputTexId
-    glGenTextures(1, &inputTexId);
-    checkGlError("glGenTextures inputTexId");
-    glBindTexture(GL_TEXTURE_2D, inputTexId);
-    checkGlError("glBindTexture inputTexId");
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    GLint internalFormat = GL_RGBA;
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei) mTextureWidth, (GLsizei) mTextureHeight, 0, internalFormat, GL_UNSIGNED_BYTE, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    //outputTexId
-    glGenTextures(1, &outputTexId);
-    checkGlError("glGenTextures outputTexId");
-    glBindTexture(GL_TEXTURE_2D, outputTexId);
-    checkGlError("glBindTexture outputTexId");
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei) mTextureWidth, (GLsizei) mTextureHeight, 0, internalFormat, GL_UNSIGNED_BYTE, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    // init FBO
-    glGenFramebuffers(1, &mFBO);
-    checkGlError("glGenFramebuffers mFBO");
-    glGenFramebuffers(1, &mDownloadFBO);
-    checkGlError("glGenFramebuffers mDownloadFBO");
-    // init texture
-    glGenTextures(1,&mRotateTexId);
-    checkGlError("glGenTextures mRotateTexId");
-    glBindTexture(GL_TEXTURE_2D, mRotateTexId);
-    checkGlError("glBindTexture mRotateTexId");
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    if (mDegress == 90 || mDegress == 270)
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureHeight, mTextureWidth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureWidth, mTextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
+    initTextureFBO();
     startCameraPreview();
     return true;
 }
@@ -193,7 +149,6 @@ float MiniRecorder::flip(float i) {
 /**
  * prepareEGLContext
  */
-
 void MiniRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM *g_jvm, jobject obj,
                                       int screenWidth, int screenHeight, int cameraFacingId) {
     ALOGI("prepareEGLContext");
@@ -307,14 +262,6 @@ void MiniRecorder::release() {
         delete mRecordListener;
         mRecordListener = nullptr;
     }
-    if (mFrameQueue != nullptr) {
-        delete mFrameQueue;
-        mFrameQueue = nullptr;
-    }
-    if (mRecordThread != nullptr) {
-        delete mRecordThread;
-        mRecordThread = nullptr;
-    }
 }
 
 RecordParams* MiniRecorder::getRecordParams() {
@@ -328,7 +275,7 @@ RecordParams* MiniRecorder::getRecordParams() {
  */
 int MiniRecorder::prepare() {
     RecordParams *params = mRecordParams;
-    mRecordParams->pixelFormat = PIXEL_FORMAT_RGBA;
+    mRecordParams->pixelFormat = 0;
     mRecordParams->width = mTextureWidth;
     mRecordParams->height = mTextureHeight;
     if (params->rotateDegree % 90 != 0) {
@@ -338,15 +285,12 @@ int MiniRecorder::prepare() {
 
     int ret;
 
-    mFrameQueue = new SafetyQueue<AVMediaData *>();
-
     ALOGI("Record to file: %s, width: %d, height: %d", params->dstFile, params->width,
          params->height);
     int outputWidth = params->width;
     int outputHeight = params->height;
 
     if (mIsHWEncode) {
-        //todo audio hw encoder
         createHWEncoder();
         createSurfaceRender();
         mIsSPSUnWriteFlag = true;
@@ -476,39 +420,6 @@ void MiniRecorder::destroyHWEncoder() {
     }
 }
 
-/**
- * 录制一帧数据
- * @param data
- * @return
- */
-int MiniRecorder::recordFrame(AVMediaData *data) {
-    if (mAbortRequest || mExit) {
-        ALOGE("Recoder is not recording.");
-        delete data;
-        return -1;
-    }
-
-    // 录制的是音频数据并且不允许音频录制，则直接删除
-    if (!mRecordParams->enableAudio && data->getType() == MediaAudio) {
-        delete data;
-        return -1;
-    }
-
-    // 录制的是视频数据并且不允许视频录制，直接删除
-    if (!mRecordParams->enableVideo && data->getType() == MediaVideo) {
-        delete data;
-        return -1;
-    }
-
-    // 将媒体数据入队
-    if (mFrameQueue != nullptr) {
-        mFrameQueue->push(data);
-    } else {
-        delete data;
-    }
-    return 0;
-}
-
 void MiniRecorder::startRecord() {
     if (mHandler) {
         mHandler->postMessage(new Msg(MSG_START_RECORDING));
@@ -523,13 +434,7 @@ void MiniRecorder::startRecord_l() {
     mStartRequest = true;
     mCondition.signal();
     mMutex.unlock();
-
-    if (mRecordThread == nullptr) {
-        mRecordThread = new Thread(this);
-        mRecordThread->start();
-        mRecordThread->detach();
-        mIsEncoding = true;
-    }
+    //start thread
 }
 
 /**
@@ -548,11 +453,7 @@ void MiniRecorder::stopRecord_l() {
     mAbortRequest = true;
     mCondition.signal();
     mMutex.unlock();
-    if (mRecordThread != nullptr) {
-        mRecordThread->join();
-        delete mRecordThread;
-        mRecordThread = nullptr;
-    }
+
     if (mIsHWEncode) {
         destroyHWEncoder();
 #if DUMP_HW_ENCODER_H264_BUFFER
@@ -587,90 +488,7 @@ bool MiniRecorder::isRecording() {
     return recording;
 }
 
-void MiniRecorder::run() {
-    int ret = 0;
-    int64_t start = 0;
-    int64_t current = 0;
-    mExit = false;
-
-    // 录制回调监听器
-    if (mRecordListener != nullptr) {
-        mRecordListener->onRecordStart();
-    }
-
-    ALOGD("waiting to start record");
-    while (!mStartRequest) {
-        if (mAbortRequest) { // 停止请求则直接退出
-            break;
-        } else { // 睡眠10毫秒继续
-            usleep(10 * 1000);
-        }
-    }
-
-    // 开始录制编码流程
-    if (!mAbortRequest && mStartRequest) {
-        ALOGD("start record");
-        // 正在运行，并等待frameQueue消耗完
-        while (!mAbortRequest || !mFrameQueue->empty()) {
-            if (!mFrameQueue->empty()) {
-
-                // 从帧对列里面取出媒体数据
-                auto data = mFrameQueue->pop();
-                if (!data) {
-                    continue;
-                }
-                if (start == 0) {
-                    start = data->getPts();
-                }
-                if (data->getPts() >= current) {
-                    current = data->getPts();
-                }
-
-                if(mIsHWEncode) {
-                    //input is h.264 and aac data
-                    //todo
-                } else {
-                    // yuv转码
-                    if (data->getType() == MediaVideo && mYuvConvertor != nullptr) {
-                        // 将数据转换成Yuv数据，处理失败则开始处理下一帧
-                        if (mYuvConvertor->convert(data) < 0) {
-                            ALOGE("Failed to convert video data to yuv420");
-                            delete data;
-                            continue;
-                        }
-                    }
-                    if (data->getType() == MediaVideo) {
-                        // H264编码
-                    } else if (data->getType() == MediaAudio) {
-                        // aac编码
-                    }
-                }
-
-                if (ret < 0) {
-                    ALOGE("Failed to encoder media data： %s", data->getName());
-                } else {
-                    //LOGD("recording time: %f", (float)(current - start));
-                    if (mRecordListener != nullptr) {
-                        mRecordListener->onRecording((float)(current - start));
-                    }
-                }
-                // 释放资源
-                delete data;
-            }
-        }
-    }
-
-    // 通知退出成功
-    mExit = true;
-    mCondition.signal();
-
-    // 录制完成回调
-    if (mRecordListener != nullptr) {
-        mRecordListener->onRecordFinish(ret == 0, (float)(current - start));
-    }
-    duration = current - start;
-}
-
+//===============EGL Method Start=============================/
 bool MiniRecorder::initEGL() {
     mEGLDisplay = EGL_NO_DISPLAY;
     mEGLContext = EGL_NO_CONTEXT;
@@ -734,6 +552,31 @@ EGLSurface MiniRecorder::createWindowSurface(ANativeWindow *pWindow) {
     }
     return surface;
 }
+//===============EGL Method End============================/
+
+//===============Native Call Java Method Start=============================/
+void MiniRecorder::updateTexImage() {
+    JNIEnv *env;
+    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
+        ALOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
+        return;
+    }
+    if (env == NULL) {
+        ALOGI("getJNIEnv failed");
+        return;
+    }
+    jclass jcls = env->GetObjectClass(mObj);
+    if (NULL != jcls) {
+        jmethodID updateTexImageCallback = env->GetMethodID(jcls, "updateTexImageFromNative",
+                                                            "()V");
+        if (NULL != updateTexImageCallback) {
+            env->CallVoidMethod(mObj, updateTexImageCallback);
+        }
+    }
+    if (mJvm->DetachCurrentThread() != JNI_OK) {
+        ALOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
+    }
+}
 
 void MiniRecorder::startCameraPreview() {
     ALOGI("startCameraPreview");
@@ -761,6 +604,55 @@ void MiniRecorder::startCameraPreview() {
         ALOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
         return;
     }
+}
+//===============Native Call Java Method End=============================/
+
+//===============OpenGL Functions Start=============================/
+
+bool MiniRecorder::initTextureFBO() {
+    //inputTexId
+    glGenTextures(1, &inputTexId);
+    checkGlError("glGenTextures inputTexId");
+    glBindTexture(GL_TEXTURE_2D, inputTexId);
+    checkGlError("glBindTexture inputTexId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    GLint internalFormat = GL_RGBA;
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei) mTextureWidth, (GLsizei) mTextureHeight, 0, internalFormat, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    //outputTexId
+    glGenTextures(1, &outputTexId);
+    checkGlError("glGenTextures outputTexId");
+    glBindTexture(GL_TEXTURE_2D, outputTexId);
+    checkGlError("glBindTexture outputTexId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, (GLsizei) mTextureWidth, (GLsizei) mTextureHeight, 0, internalFormat, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    // init FBO
+    glGenFramebuffers(1, &mFBO);
+    checkGlError("glGenFramebuffers mFBO");
+    glGenFramebuffers(1, &mDownloadFBO);
+    checkGlError("glGenFramebuffers mDownloadFBO");
+    // init texture
+    glGenTextures(1,&mRotateTexId);
+    checkGlError("glGenTextures mRotateTexId");
+    glBindTexture(GL_TEXTURE_2D, mRotateTexId);
+    checkGlError("glBindTexture mRotateTexId");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    if (mDegress == 90 || mDegress == 270)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureHeight, mTextureWidth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureWidth, mTextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 bool MiniRecorder::initRenderer() {
@@ -1117,30 +1009,7 @@ void MiniRecorder::downloadImageFromTexture(GLuint texId, void *imageBuf, unsign
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
-void MiniRecorder::updateTexImage() {
-    JNIEnv *env;
-    if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
-        ALOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
-        return;
-    }
-    if (env == NULL) {
-        ALOGI("getJNIEnv failed");
-        return;
-    }
-    jclass jcls = env->GetObjectClass(mObj);
-    if (NULL != jcls) {
-        jmethodID updateTexImageCallback = env->GetMethodID(jcls, "updateTexImageFromNative",
-                                                            "()V");
-        if (NULL != updateTexImageCallback) {
-            env->CallVoidMethod(mObj, updateTexImageCallback);
-        }
-    }
-    if (mJvm->DetachCurrentThread() != JNI_OK) {
-        ALOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
-    }
-}
-
+//===============OpenGL Functions End=============================/
 
 
 

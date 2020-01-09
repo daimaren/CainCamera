@@ -339,19 +339,6 @@ Java_com_cgfay_media_recorder_MiniRecorder_recordVideoFrame(JNIEnv *env, jobject
         jbyteArray data_, jint length, jint width, jint height, jint pixelFormat) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
-        uint8_t *yuvData = (uint8_t *) malloc((size_t) length);
-        if (yuvData == nullptr) {
-            LOGE("Could not allocate memory");
-            return -1;
-        }
-        jbyte *data = env->GetByteArrayElements(data_, nullptr);
-        memcpy(yuvData, data, (size_t) length);
-        env->ReleaseByteArrayElements(data_, data, 0);
-
-        auto mediaData = new AVMediaData();
-        mediaData->setVideo(yuvData, length, width, height, pixelFormat);
-        mediaData->setPts(getCurrentTimeMs());
-        return recorder->recordFrame(mediaData);
     }
     return -1;
 }
@@ -373,10 +360,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_recordAudioFrame(JNIEnv *env, jobject
         memcpy(pcmData, data, (size_t) length);
         env->ReleaseByteArrayElements(data_, data, 0);
 
-        auto mediaData = new AVMediaData();
-        mediaData->setAudio(pcmData, length);
-        mediaData->setPts(getCurrentTimeMs());
-        return recorder->recordFrame(mediaData);
+        free(pcmData);
     }
     return -1;
 }

@@ -6,9 +6,6 @@
 #define CAINCAMERA_HANDLER_H
 
 #include "MsgQueue.h"
-extern "C" {
-#include "aw_all.h"
-}
 
 class Handler {
 private:
