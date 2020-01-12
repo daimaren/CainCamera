@@ -262,12 +262,13 @@ void MiniRecorder::startRecord() {
 }
 
 void MiniRecorder::startRecording() {
-    int ret = prepare();
-    if (ret < 0) {
-        ALOGE("Failed to prepare recorder");
-    } else {
+    startConsumer();
+    startProducer();
+}
 
-    }
+int MiniRecorder::startConsumer() {
+    createMediaWriter((char*)mRecordParams->dstFile, mRecordParams->width, mRecordParams->height, mRecordParams->frameRate, mRecordParams->maxBitRate,
+                        mRecordParams->sampleRate, mRecordParams->channels);
 }
 
 /**
@@ -356,12 +357,14 @@ RecordParams* MiniRecorder::getRecordParams() {
     return mRecordParams;
 }
 
-/**
- * 初始化录制器，主要是创建编码器
- * @param params
- * @return
- */
 int MiniRecorder::prepare() {
+
+}
+
+/**
+ * createProducer
+ */
+int MiniRecorder::startProducer() {
     RecordParams *params = mRecordParams;
     mRecordParams->pixelFormat = 0;
     mRecordParams->width = mTextureWidth;
@@ -511,13 +514,11 @@ void MiniRecorder::destroyHWEncoder() {
 //===============HW Encoder End=============================/
 //===============Media Writer Start=============================/
 
-int MiniRecorder::createMediaWriter(char *videoOutputURI, int videoWidth, int videoHeight,
-                                    float videoFrameRate, int videoBitRate, int audioSampleRate,
-                                    int audioChannels, int audioBitRate) {
+int MiniRecorder::createMediaWriter() {
     //1.register all codecs and formats
     av_register_all();
     //2.alloc output context
-    avformat_alloc_output_context2(&oc, NULL, "flv", videoOutputURI);
+    avformat_alloc_output_context2(&oc, NULL, "flv", mRecordParams->dstFile);
     if (!oc) {
         ALOGI("avformat_alloc_output_context2 failed");
         return -1;
@@ -525,7 +526,7 @@ int MiniRecorder::createMediaWriter(char *videoOutputURI, int videoWidth, int vi
     fmt = oc->oformat;
     //3.add video stream and audio stream to AVFormatContext
     fmt->video_codec = AV_CODEC_ID_H264;
-
+    //video_st = add_stream();
 }
 
 int MiniRecorder::writeFrame() {
@@ -534,6 +535,74 @@ int MiniRecorder::writeFrame() {
 
 int MiniRecorder::closeMediaWriter() {
 
+}
+
+AVStream *MiniRecorder::add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id, char *codec_name) {
+    AVCodecContext *c;
+    AVStream *st;
+    if (AV_CODEC_ID_NONE == codec_id) {
+        *codec = avcodec_find_encoder_by_name(codec_name);
+    } else {
+        *codec = avcodec_find_encoder(codec_id);
+    }
+    if (!(*codec)) {
+        ALOGI("Could not find encoder for '%s'\n", avcodec_get_name(codec_id));
+        return NULL;
+    }
+    ALOGI("\n find encoder name is '%s' ", (*codec)->name);
+
+    st = avformat_new_stream(oc, *codec);
+    if (!st) {
+        ALOGI("Could not allocate stream\n");
+        return NULL;
+    }
+    st->id = oc->nb_streams - 1;
+    c = st->codec;
+
+    switch ((*codec)->type) {
+        case AVMEDIA_TYPE_AUDIO:
+            ALOGI("audioBitRate is %d audioChannels is %d audioSampleRate is %d", audioBitRate,
+                 audioChannels, audioSampleRate);
+            c->sample_fmt = AV_SAMPLE_FMT_S16;
+            c->bit_rate = audioBitRate;
+            c->codec_type = AVMEDIA_TYPE_AUDIO;
+            c->sample_rate = audioSampleRate;
+            c->channel_layout = audioChannels == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
+            c->channels = av_get_channel_layout_nb_channels(c->channel_layout);
+            c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+            break;
+        case AVMEDIA_TYPE_VIDEO:
+            c->codec_id = AV_CODEC_ID_H264;
+            c->bit_rate = videoBitRate;
+            c->width = videoWidth;
+            c->height = videoHeight;
+
+            st->avg_frame_rate.num = 30000;
+            st->avg_frame_rate.den = (int) (30000 / videoFrameRate);
+
+            c->time_base.den = 30000;
+            c->time_base.num = (int) (30000 / videoFrameRate);
+            c->gop_size = videoFrameRate;
+            c->qmin = 10;
+            c->qmax = 30;
+            c->pix_fmt = AV_PIX_FMT_YUV420P;
+            av_opt_set(c->priv_data, "preset", "ultrafast", 0);
+            av_opt_set(c->priv_data, "tune", "zerolatency", 0);
+
+            /* Some formats want stream headers to be separate. */
+            if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+                c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
+            ALOGI("sample_aspect_ratio = %d   %d", c->sample_aspect_ratio.den,
+                     c->sample_aspect_ratio.num);
+            break;
+        default:
+            break;
+    }
+    /* Some formats want stream headers to be separate. */
+    if (oc->oformat->flags & AVFMT_GLOBALHEADER)
+        c->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    return st;
 }
 
 //===============Media Writer End=============================/

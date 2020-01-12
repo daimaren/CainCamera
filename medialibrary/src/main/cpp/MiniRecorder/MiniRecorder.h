@@ -192,15 +192,17 @@ public:
     virtual void renderFrame();
     virtual void destroyEGLContext();
 private:
+    int startProducer();
+    int startConsumer();
     //HW Encoder
     void createHWEncoder();
     void createSurfaceRender();
     void destroyHWEncoder();
     //MediaWriter
-    int createMediaWriter(char *videoOutputURI, int videoWidth, int videoHeight, float videoFrameRate,
-                          int videoBitRate, int audioSampleRate, int audioChannels, int audioBitRate);
+    int createMediaWriter();
     int writeFrame();
     int closeMediaWriter();
+    AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id, char *codec_name);
     // EGL functions
     bool initEGL();
     EGLSurface createWindowSurface(ANativeWindow* pWindow);
@@ -258,6 +260,7 @@ private:
     AVFormatContext *oc;
     AVStream *video_st;
     AVStream *audio_st;
+    AVBitStreamFilterContext *bsfc;
     //预览视窗
     ANativeWindow *mNativeWindow;
     //反射调用变量
