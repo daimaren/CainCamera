@@ -21,13 +21,38 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <libavcodec/avcodec.h>
+#include <libavformat/avformat.h>
+#include <libavformat/avio.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/avfiltergraph.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavutil/audio_fifo.h>
+#include <libavutil/avutil.h>
+#include <libavutil/error.h>
+#include <libavutil/frame.h>
+#include <libavutil/imgutils.h>
+#include <libavutil/mathematics.h>
+#include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
+#include <libavutil/pixfmt.h>
+#include <libavutil/samplefmt.h>
+#include <libavutil/timestamp.h>
+#include <libavutil/time.h>
+#include <libswscale/swscale.h>
+#include <libswresample/swresample.h>
+#include <libavutil/avstring.h>
+#include <libavutil/eval.h>
+#include <libavutil/display.h>
+#include <libavutil/pixfmt.h>
 #include "stdio.h"
 #include "unistd.h"
 #ifdef __cplusplus
 };
 #endif
 
-#define DUMP_YUV_BUFFER    1
+#define DUMP_YUV_BUFFER    0
 #define DUMP_SW_ENCODER_H264_BUFFER    1
 #define DUMP_HW_ENCODER_H264_BUFFER    1
 
@@ -132,6 +157,7 @@ public:
 };
 
 class MiniRecorderHandler;
+class HWEncoderHandler;
 
 class MiniRecorder {
 public:
@@ -152,10 +178,9 @@ public:
 
     // 开始录制
     void startRecord();
-    void startRecord_l();
+    void startRecording();
     // 停止录制
     void stopRecord();
-    void stopRecord_l();
     // drainEncodedData
     void drainEncodedData();
     // 是否正在录制
@@ -171,6 +196,11 @@ private:
     void createHWEncoder();
     void createSurfaceRender();
     void destroyHWEncoder();
+    //MediaWriter
+    int createMediaWriter(char *videoOutputURI, int videoWidth, int videoHeight, float videoFrameRate,
+                          int videoBitRate, int audioSampleRate, int audioChannels, int audioBitRate);
+    int writeFrame();
+    int closeMediaWriter();
     // EGL functions
     bool initEGL();
     EGLSurface createWindowSurface(ANativeWindow* pWindow);
@@ -199,7 +229,8 @@ private:
 
     static void *threadStartCallback(void *myself);
     void processMessage();
-
+    static void *encoderThreadCallback(void *myself);
+    void encodeLoop();
 private:
     FILE* mflvFile;
     FILE* mDumpYuvFile;
@@ -216,15 +247,20 @@ private:
     bool mExit;         // 完成退出标志
     bool mIsEncoding = false;
 
-    //for HW Encode
+    //HW Encode变量
     jbyteArray mEncoderOutputBuf = NULL;
     EGLSurface mEncoderSurface;
     ANativeWindow *mEncoderWindow;
     bool mIsHWEncode = true;
     bool mIsSPSUnWriteFlag = false;
-    //for preview
+    //Media Writer变量
+    AVOutputFormat *fmt;
+    AVFormatContext *oc;
+    AVStream *video_st;
+    AVStream *audio_st;
+    //预览视窗
     ANativeWindow *mNativeWindow;
-    //for callback
+    //反射调用变量
     JavaVM *mJvm;
     jobject mObj;
 
@@ -240,7 +276,7 @@ private:
 
     RecordParams *mRecordParams;    // 录制参数
 
-    //OpenGL params
+    //OpenGL变量
     GLfloat* mTextureCoords;
     int mTextureCoordsSize;
 
@@ -249,7 +285,7 @@ private:
     GLuint mRotateTexId = 0;
     GLuint inputTexId;
     GLuint outputTexId;
-    //EGL
+    //EGL变量
     EGLDisplay mEGLDisplay;
     EGLConfig mEGLConfig;
     EGLContext mEGLContext;
@@ -288,14 +324,18 @@ private:
 
     //msg
     MiniRecorderHandler *mHandler;
-    MsgQueue *mMsgQueue;
-    pthread_t mThreadId;
+    MsgQueue            *mMsgQueue;
+    HWEncoderHandler    *mEncodeHandler;
+    MsgQueue            *mMsgEncodeQueue;
+    pthread_t           mThreadId;
+    pthread_t           mEncoderThreadId;
 };
-
+/**
+ * MiniRecorderHandler
+ */
 class MiniRecorderHandler : public Handler{
 private:
     MiniRecorder *mMiniRecorder;
-
 public:
     MiniRecorderHandler(MiniRecorder *recorder, MsgQueue *queue)
         : Handler(queue) {
@@ -313,24 +353,31 @@ void handleMessage(Msg *msg) {
             mMiniRecorder->renderFrame();
             break;
         case MSG_START_RECORDING:
-        {
-            //video_encoder audio_encoder
-            int ret = mMiniRecorder->prepare();
-            if (ret < 0) {
-                ALOGE("Failed to prepare recorder");
-            } else {
-                mMiniRecorder->startRecord_l();
-            }
-            break;
-        }
-        case MSG_STOP_RECORDING:
-            mMiniRecorder->stopRecord_l();
-            break;
-        case MSG_FRAME_AVAILIBLE:
-            mMiniRecorder->drainEncodedData();
+            mMiniRecorder->startRecording();
             break;
     }
 }
 };
+/**
+ * HWEncoderHandler
+ */
+class HWEncoderHandler : public Handler {
+private:
+    MiniRecorder *mMiniRecorder;
+public:
+    HWEncoderHandler(MiniRecorder *recorder, MsgQueue *queue) :
+            Handler(queue) {
+        this->mMiniRecorder = recorder;
+    }
 
-#endif //FLVRecorder_H
+    void handleMessage(Msg *msg) {
+        int what = msg->getWhat();
+        //LOGD("Encode handle msg is %d", what);
+        switch (what) {
+            case MSG_FRAME_AVAILIBLE:
+                mMiniRecorder->drainEncodedData();
+                break;
+        }
+    }
+};
+#endif

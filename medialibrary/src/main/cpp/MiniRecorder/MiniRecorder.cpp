@@ -183,6 +183,25 @@ void MiniRecorder::processMessage() {
     }
 }
 
+void *MiniRecorder::encoderThreadCallback(void *myself) {
+    MiniRecorder *recorder = (MiniRecorder *) myself;
+    recorder->encodeLoop();
+    pthread_exit(0);
+    return 0;
+}
+
+void MiniRecorder::encodeLoop() {
+    while (mIsEncoding) {
+        Msg *msg = NULL;
+        if (mMsgEncodeQueue->dequeueMessage(&msg, true) > 0) {
+            if (MESSAGE_QUEUE_LOOP_QUIT_FLAG == msg->execute()) {
+                mIsEncoding = false;
+            }
+            delete msg;
+        }
+    }
+    ALOGI("HWEncoderAdapter encode Thread ending...");
+}
 void MiniRecorder::destroyEGLContext() {
     ALOGI("destroyEGLContext");
     if (mHandler) {
@@ -203,7 +222,7 @@ void MiniRecorder::destroyEGLContext() {
 void MiniRecorder::renderFrame() {
     //相机视频帧更新到纹理
     updateTexImage();
-    // processFrame
+    //处理纹理
     processFrame();
     if (mPreviewSurface != EGL_NO_SURFACE) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
@@ -216,8 +235,8 @@ void MiniRecorder::renderFrame() {
             eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
             renderToView(mRotateTexId, mTextureWidth, mTextureHeight);
             //postMessage
-            if (mHandler) {
-                mHandler->postMessage(new Msg(MSG_FRAME_AVAILIBLE));
+            if (mEncodeHandler) {
+                mEncodeHandler->postMessage(new Msg(MSG_FRAME_AVAILIBLE));
             }
             eglSwapBuffers(mEGLDisplay, mEncoderSurface);
         } else {
@@ -228,15 +247,84 @@ void MiniRecorder::renderFrame() {
                 return;
             }
             downloadImageFromTexture(mRotateTexId, rgbaData, mTextureWidth, mTextureHeight);
+            //todo
             free(rgbaData);
         }
     }
 }
 
+/**
+ * 启动录制
+ */
+void MiniRecorder::startRecord() {
+    if (mHandler)
+        mHandler->postMessage(new Msg(MSG_START_RECORDING));
+}
+
+void MiniRecorder::startRecording() {
+    int ret = prepare();
+    if (ret < 0) {
+        ALOGE("Failed to prepare recorder");
+    } else {
+
+    }
+}
+
+/**
+ * 通知有新的一帧
+ */
 void MiniRecorder::notifyFrameAvailable() {
     if (mHandler) {
         mHandler->postMessage(new Msg(MSG_RENDER_FRAME));
     }
+}
+
+/**
+ * 停止录制
+ */
+void MiniRecorder::stopRecord() {
+    ALOGI("stopRecord_l");
+    mIsEncoding = false;
+
+    mEncodeHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
+    pthread_join(mEncoderThreadId, 0);
+    if (mMsgEncodeQueue) {
+        mMsgEncodeQueue->abort();
+        delete mMsgEncodeQueue;
+        mMsgEncodeQueue = NULL;
+    }
+    delete mEncodeHandler;
+    mEncodeHandler = NULL;
+
+    if (mIsHWEncode) {
+        destroyHWEncoder();
+#if DUMP_HW_ENCODER_H264_BUFFER
+        if (mDumpH264File) {
+            fclose(mDumpH264File);
+        }
+#endif
+        if (EGL_NO_SURFACE != mEncoderSurface) {
+            eglDestroySurface(mEGLDisplay, mEncoderSurface);
+            mEncoderSurface = EGL_NO_SURFACE;
+        }
+        if (NULL != mEncoderWindow) {
+            ANativeWindow_release(mEncoderWindow);
+            mEncoderWindow = NULL;
+        }
+        mIsSurfaceRenderInit = false;
+        glDeleteProgram(mSurfaceRenderProgId);
+    } else {
+        //SW Encode
+    }
+}
+
+/**
+ * 判断是否正在录制
+ * @return
+ */
+bool MiniRecorder::isRecording() {
+    bool recording = false;
+    return recording;
 }
 
 /**
@@ -269,7 +357,7 @@ RecordParams* MiniRecorder::getRecordParams() {
 }
 
 /**
- * 初始化录制器
+ * 初始化录制器，主要是创建编码器
  * @param params
  * @return
  */
@@ -287,24 +375,29 @@ int MiniRecorder::prepare() {
 
     ALOGI("Record to file: %s, width: %d, height: %d", params->dstFile, params->width,
          params->height);
-    int outputWidth = params->width;
-    int outputHeight = params->height;
 
     if (mIsHWEncode) {
+        mMsgEncodeQueue = new MsgQueue("HWEncoder message queue");
+        mEncodeHandler = new HWEncoderHandler(this, mMsgEncodeQueue);
         createHWEncoder();
         createSurfaceRender();
+        pthread_create(&mEncoderThreadId, 0, encoderThreadCallback, this);
         mIsSPSUnWriteFlag = true;
+        mIsEncoding = true;
 #if DUMP_HW_ENCODER_H264_BUFFER
         mDumpH264File = fopen("/storage/emulated/0/dump.h264", "wb");
         if (!mDumpH264File) {
             ALOGI("DumpH264File open error");
         }
 #endif
+    } else {
+        //SoftEncoder
     }
     ALOGI("prepare done");
     return 0;
 }
 
+//===============HW Encoder Start=============================/
 void MiniRecorder::createHWEncoder() {
     JNIEnv *env;
     if (mJvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
@@ -382,10 +475,6 @@ void MiniRecorder::drainEncodedData() {
             //ALOGI("write h264 size %d len %d", count, size); //从log来看，只有sps，没有pps
 #endif
             //todo push to queue
-            //auto mediaData = new AVMediaData();
-            //mediaData->setVideo(outputData, size, mTextureWidth, mTextureHeight, PIXEL_FORMAT_RGBA);
-            //mediaData->setPts(getCurrentTimeMs());
-            //recordFrame(mediaData);
             env->ReleaseByteArrayElements(mEncoderOutputBuf, (jbyte *) outputData, 0);
         }
     }
@@ -419,74 +508,35 @@ void MiniRecorder::destroyHWEncoder() {
         ALOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
     }
 }
+//===============HW Encoder End=============================/
+//===============Media Writer Start=============================/
 
-void MiniRecorder::startRecord() {
-    if (mHandler) {
-        mHandler->postMessage(new Msg(MSG_START_RECORDING));
+int MiniRecorder::createMediaWriter(char *videoOutputURI, int videoWidth, int videoHeight,
+                                    float videoFrameRate, int videoBitRate, int audioSampleRate,
+                                    int audioChannels, int audioBitRate) {
+    //1.register all codecs and formats
+    av_register_all();
+    //2.alloc output context
+    avformat_alloc_output_context2(&oc, NULL, "flv", videoOutputURI);
+    if (!oc) {
+        ALOGI("avformat_alloc_output_context2 failed");
+        return -1;
     }
-}
-/**
- * 开始录制
- */
-void MiniRecorder::startRecord_l() {
-    mMutex.lock();
-    mAbortRequest = false;
-    mStartRequest = true;
-    mCondition.signal();
-    mMutex.unlock();
-    //start thread
+    fmt = oc->oformat;
+    //3.add video stream and audio stream to AVFormatContext
+    fmt->video_codec = AV_CODEC_ID_H264;
+
 }
 
-/**
- * 停止录制
- */
-void MiniRecorder::stopRecord() {
-    if (mHandler) {
-        mHandler->postMessage(new Msg(MSG_STOP_RECORDING));
-    }
+int MiniRecorder::writeFrame() {
+
 }
 
-void MiniRecorder::stopRecord_l() {
-    ALOGI("stopRecord_l");
-    mIsEncoding = false;
-    mMutex.lock();
-    mAbortRequest = true;
-    mCondition.signal();
-    mMutex.unlock();
+int MiniRecorder::closeMediaWriter() {
 
-    if (mIsHWEncode) {
-        destroyHWEncoder();
-#if DUMP_HW_ENCODER_H264_BUFFER
-        if (mDumpH264File) {
-            fclose(mDumpH264File);
-        }
-#endif
-        if (EGL_NO_SURFACE != mEncoderSurface) {
-            eglDestroySurface(mEGLDisplay, mEncoderSurface);
-            mEncoderSurface = EGL_NO_SURFACE;
-        }
-        if (NULL != mEncoderWindow) {
-            ANativeWindow_release(mEncoderWindow);
-            mEncoderWindow = NULL;
-        }
-        mIsSurfaceRenderInit = false;
-        glDeleteProgram(mSurfaceRenderProgId);
-    } else {
-
-    }
 }
 
-/**
- * 判断是否正在录制
- * @return
- */
-bool MiniRecorder::isRecording() {
-    bool recording = false;
-    mMutex.lock();
-    recording = !mAbortRequest && mStartRequest && !mExit;
-    mMutex.unlock();
-    return recording;
-}
+//===============Media Writer End=============================/
 
 //===============EGL Method Start=============================/
 bool MiniRecorder::initEGL() {
