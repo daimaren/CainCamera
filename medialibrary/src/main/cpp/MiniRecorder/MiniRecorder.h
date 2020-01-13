@@ -56,6 +56,14 @@ extern "C" {
 #define DUMP_SW_ENCODER_H264_BUFFER    1
 #define DUMP_HW_ENCODER_H264_BUFFER    1
 
+#define H264_NALU_TYPE_NON_IDR_PICTURE                                  1
+#define H264_NALU_TYPE_IDR_PICTURE                                      5
+#define H264_NALU_TYPE_SEQUENCE_PARAMETER_SET                           7
+#define H264_NALU_TYPE_PICTURE_PARAMETER_SET							8
+#define H264_NALU_TYPE_SEI                                          	6
+
+#define is_start_code(code)	(((code) & 0x0ffffff) == 0x01)
+
 enum RenderThreadMessage {
     MSG_RENDER_FRAME = 0,
     MSG_EGL_THREAD_CREATE,
@@ -202,7 +210,14 @@ private:
     int createMediaWriter();
     int writeFrame();
     int closeMediaWriter();
+    int write_audio_frame(AVFormatContext *oc, AVStream *st);
+    int write_video_frame(AVFormatContext *oc, AVStream *st);
     AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id, char *codec_name);
+    void parseH264SequenceHeader(uint8_t* in_pBuffer, uint32_t in_ui32Size,
+                                 uint8_t** inout_pBufferSPS, int& inout_ui32SizeSPS,
+                                 uint8_t** inout_pBufferPPS, int& inout_ui32SizePPS);
+    uint32_t findStartCode(uint8_t* in_pBuffer, uint32_t in_ui32BufferSize,
+                           uint32_t in_ui32Code, uint32_t& out_ui32ProcessedBytes);
     // EGL functions
     bool initEGL();
     EGLSurface createWindowSurface(ANativeWindow* pWindow);
@@ -233,6 +248,8 @@ private:
     void processMessage();
     static void *encoderThreadCallback(void *myself);
     void encodeLoop();
+    static void *writerThreadCallback(void *myself);
+    void writerLoop();
 private:
     FILE* mflvFile;
     FILE* mDumpYuvFile;
@@ -248,7 +265,6 @@ private:
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
     bool mIsEncoding = false;
-
     //HW Encode变量
     jbyteArray mEncoderOutputBuf = NULL;
     EGLSurface mEncoderSurface;
@@ -261,6 +277,10 @@ private:
     AVStream *video_st;
     AVStream *audio_st;
     AVBitStreamFilterContext *bsfc;
+    bool mIsWriting = false;
+    int lastPresentationTimeMs;
+    double lastAudioPacketPresentationTimeMills;
+    bool isWriteHeaderSuccess = false;
     //预览视窗
     ANativeWindow *mNativeWindow;
     //反射调用变量
@@ -332,6 +352,7 @@ private:
     MsgQueue            *mMsgEncodeQueue;
     pthread_t           mThreadId;
     pthread_t           mEncoderThreadId;
+    pthread_t           mWriterThreadId;
 };
 /**
  * MiniRecorderHandler
