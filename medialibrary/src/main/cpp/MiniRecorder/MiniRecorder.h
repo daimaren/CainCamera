@@ -62,6 +62,9 @@ extern "C" {
 #define H264_NALU_TYPE_PICTURE_PARAMETER_SET							8
 #define H264_NALU_TYPE_SEI                                          	6
 
+#define AUDIO_QUEUE_ABORT_ERR_CODE               -100200
+#define VIDEO_QUEUE_ABORT_ERR_CODE               -100201
+
 #define is_start_code(code)	(((code) & 0x0ffffff) == 0x01)
 
 enum RenderThreadMessage {
@@ -281,6 +284,9 @@ private:
     int lastPresentationTimeMs;
     double lastAudioPacketPresentationTimeMills;
     bool isWriteHeaderSuccess = false;
+    long sendLatestFrameTimemills;
+    uint8_t *headerData;
+    int headerSize;
     //预览视窗
     ANativeWindow *mNativeWindow;
     //反射调用变量

@@ -5,13 +5,19 @@
 #include <sys/time.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string>
 #include <jni.h>
 #include <android/log.h>
 #include <android/native_window.h>
 
+
+
 typedef signed short SInt16;
 typedef unsigned char byte;
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
+#ifndef MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#endif
 
 #define TAG "CainMedia"
 #define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
@@ -33,6 +39,13 @@ inline void convertByteArrayFromShortArray(SInt16 *shortarray, int size, byte *b
         bytearray[i * 2 + 1] = tmpbytearray[1];
     }
     delete[] tmpbytearray;
+}
+
+static inline long getCurrentTimeMills()
+{
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
 #endif //MINI_RECORDER_UTILS_H
