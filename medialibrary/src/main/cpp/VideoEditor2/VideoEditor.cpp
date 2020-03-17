@@ -1,5 +1,10 @@
 #include <list>
 #include "VideoEditor.h"
+
+/**
+ * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
+ * 串联整个音视频播放流程，完成文件的解析、音视频的解码、渲染。minMediaPlayer
+ */
 VideoEditor::VideoEditor()
     : isMediaCodecInit(false), inputBuffer(NULL), audioFrameQueue(NULL), circleFrameTextureQueue(NULL), currentAudioFrame(NULL){
     videoOutput = NULL;

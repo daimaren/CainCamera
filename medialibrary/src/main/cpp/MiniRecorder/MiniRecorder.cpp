@@ -2,10 +2,12 @@
 // Created by Glen on 2020/1/08.
 //
 #include "MiniRecorder.h"
+#include "live_audio_packet_queue.h"
+#include "live_video_packet_queue.h"
 
 /**
  * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
- * 第一阶段，先把相机画面显示出来
+ * 完成音视频的采集、编码、封包成 mp4 输出 miniRecorder，核心是调用ffmpeg的api来编码和复用
  */
 MiniRecorder::MiniRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true),mCopyIsInitialized(false),
@@ -550,7 +552,7 @@ int MiniRecorder::createMediaWriter() {
     }
     audio_st = add_stream(oc, &audio_codec, AV_CODEC_ID_AAC, NULL);
     if (audio_st && audio_codec) {
-        ALOGI("add audio stream success")
+        ALOGI("add audio stream success");
     }
     if (!(fmt->flags & AVFMT_NOFILE)) {
         int ret = avio_open2(&oc->pb, mRecordParams->dstFile, AVIO_FLAG_WRITE, &oc->interrupt_callback, NULL);
@@ -575,7 +577,7 @@ int MiniRecorder::writeFrame() {
     } else if (video_st) {
         ret = write_video_frame(oc, video_st);
     }
-    sendLatestFrameTimemills = platform_4_live::getCurrentTimeMills();
+    sendLatestFrameTimemills = getCurrentTimeMills();
     duration = MIN(audio_time, video_time);
     return ret;
 }
@@ -587,7 +589,8 @@ int MiniRecorder::closeMediaWriter() {
 int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
     int ret = AUDIO_QUEUE_ABORT_ERR_CODE;
     LiveAudioPacket *audioPacket = NULL;
-    if ((ret = fillAACPacketCallback(&audioPacket, fillAACPacketContext)) > 0) {
+    //ret = fillAACPacket(&audioPacket)
+    if (ret > 0) {
         AVPacket pkt = {0}; // data and size must be 0;
         av_init_packet(&pkt);
         lastAudioPacketPresentationTimeMills = audioPacket->position;
@@ -605,7 +608,7 @@ int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
             newpacket.dts = pkt.dts;
             newpacket.duration = pkt.duration;
             newpacket.stream_index = pkt.stream_index;
-            ret = this->interleavedWriteFrame(oc, &newpacket);
+            ret = av_interleaved_write_frame(oc, &newpacket);
             if (ret != 0) {
                 ALOGI("Error while writing audio frame: %s\n", av_err2str(ret));
             }
@@ -626,7 +629,7 @@ int MiniRecorder::write_video_frame(AVFormatContext *oc, AVStream *st) {
     AVCodecContext *c = st->codec;
 
     LiveVideoPacket *h264Packet = NULL;
-    fillH264PacketCallback(&h264Packet, fillH264PacketContext);
+    //fillH264Packet(&h264Packet);
     if (h264Packet == NULL) {
         ALOGE("fillH264PacketCallback get null packet");
         return VIDEO_QUEUE_ABORT_ERR_CODE;
