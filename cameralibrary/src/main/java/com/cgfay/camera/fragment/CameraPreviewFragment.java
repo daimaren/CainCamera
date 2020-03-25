@@ -970,6 +970,7 @@ public class CameraPreviewFragment extends Fragment implements View.OnClickListe
      * 停止录制或者预览视频
      */
     private void stopRecordOrPreviewVideo() {
+        Log.d(TAG, "stopRecordOrPreviewVideo");
         //mBtnShutter.closeButton();
         if (mPreviewPresenter.isRecording()) {
             mNeedToWaitStop = true;
