@@ -32,12 +32,6 @@ set_target_properties( faac
                        PROPERTIES IMPORTED_LOCATION
                        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libfaac.a )
 
-# 添加mp4v2库
-add_library( mp4v2 SHARED IMPORTED )
-set_target_properties( mp4v2
-        PROPERTIES IMPORTED_LOCATION
-        ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libmp4v2.so )
-
 # 添加yuv库
 add_library(yuv SHARED IMPORTED )
 set_target_properties( yuv
@@ -81,4 +75,18 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
 
 # Video编辑器，用最简洁到代码实现功能，麻雀虽小五脏俱全
 #add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEditor)
+
+# AudioEffect
+#add_subdirectory(${CMAKE_SOURCE_DIR}/AudioEffect)
+
+# VideoEffect
+#add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
+
+# codec
+#add_subdirectory(${CMAKE_SOURCE_DIR}/codec)
+
+# ttmplayer
+add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
+
+
 
