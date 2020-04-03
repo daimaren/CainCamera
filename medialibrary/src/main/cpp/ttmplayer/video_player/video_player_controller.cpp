@@ -17,6 +17,7 @@ VideoPlayerController::VideoPlayerController() {
 
     screenWidth = 0;
     screenHeight = 0;
+    messageQueue = new AVMessageQueue();
 }
 
 VideoPlayerController::~VideoPlayerController() {
@@ -24,6 +25,11 @@ VideoPlayerController::~VideoPlayerController() {
     videoOutput = NULL;
     audioOutput = NULL;
     synchronizer = NULL;
+    if(messageQueue) {
+        messageQueue->release();
+        delete messageQueue;
+        messageQueue = nullptr;
+    }
 }
 
 void VideoPlayerController::signalOutputFrameAvailable() {
@@ -456,4 +462,8 @@ void VideoPlayerController::renderTexCallback(FrameTexture *frameTexture, void *
     if(controller != NULL)
         controller->renderTexToProjector(frameTexture);
    // LOGI("renderTexCallback -- exist");
+}
+
+AVMessageQueue* VideoPlayerController::getMessageQueue() {
+    return messageQueue;
 }

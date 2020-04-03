@@ -14,7 +14,7 @@
 #include <map>
 #include <string>
 #include "./video_projector_player_controller.h"
-
+#include "../android/AVMessageQueue.h"
 /**
  * Video Player Controller
  */
@@ -89,7 +89,9 @@ public:
 	void renderTexToProjector(FrameTexture* frameTexture);
 	static void renderTexCallback(FrameTexture* frameTexture, void* ctx);
 	static VideoPlayerController* getPlayerControlWithUrl(string key);
-
+	AVMessageQueue* getMessageQueue();
+public:
+	AVMessageQueue *messageQueue;
 protected:
 	static std::map<string, VideoPlayerController*> urlMap;
 	//add start...

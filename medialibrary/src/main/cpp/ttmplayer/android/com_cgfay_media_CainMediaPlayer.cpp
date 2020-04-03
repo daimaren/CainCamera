@@ -345,8 +345,10 @@ void CainMediaPlayer_prepare(JNIEnv *env, jobject thiz) {
         jniThrowException(env, "java/lang/IllegalStateException");
         return;
     }
-
-    mp->prepare();
+	JavaVM* g_jvm = NULL;
+    env->GetJavaVM(&g_jvm);
+    jobject  obj = env->NewGlobalRef(thiz);
+    mp->prepare(g_jvm, obj);
 }
 
 void CainMediaPlayer_prepareAsync(JNIEnv *env, jobject thiz) {

@@ -9,7 +9,13 @@
 #include <Mutex.h>
 #include <Condition.h>
 #include <Thread.h>
+#include <android/native_window.h>
+#include <video_player/video_player_controller.h>
+#include "AVMessageQueue.h"
 
+extern "C" {
+#include <libavutil/time.h>
+}
 enum media_event_type {
     MEDIA_NOP               = 0, // interface test message
     MEDIA_PREPARED          = 1,
@@ -100,7 +106,7 @@ public:
 
     status_t setListener(MediaPlayerListener *listener);
 
-    status_t prepare();
+    status_t prepare(JavaVM* g_jvm, jobject obj);
 
     status_t prepareAsync();
 
@@ -171,15 +177,15 @@ private:
     Condition mCondition;
     Thread *msgThread;
     bool abortRequest;
-    GLESDevice *videoDevice;
-    MediaPlayer *mediaPlayer;
-    MediaPlayerListener *mListener;
 
+    MediaPlayerListener *mListener;
+    VideoPlayerController* mediaPlayer;
     bool mSeeking;
     long mSeekingPosition;
     bool mPrepareSync;
     status_t mPrepareStatus;
     int mAudioSessionId;
+    char* mUrl;
 };
 
 #endif //CAINMEDIAPLAYER_H
