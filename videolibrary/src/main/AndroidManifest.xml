@@ -10,6 +10,8 @@
             android:theme="@style/VideoTheme"/>
         <activity android:name=".activity.VideoEditActivity"
             android:theme="@style/VideoTheme"/>
+        <activity android:name=".activity.GlenVideoEditActivity"
+            android:theme="@style/VideoTheme"/>
         <activity android:name=".activity.VideoEditorActivity"
             android:theme="@style/VideoTheme"/>
     </application>

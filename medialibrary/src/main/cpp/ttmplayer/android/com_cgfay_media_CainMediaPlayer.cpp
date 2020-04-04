@@ -8,14 +8,13 @@
 #include <Mutex.h>
 #include <Condition.h>
 #include <Errors.h>
-#include <JNIHelp.h>
-#include <CainMediaPlayer.h>
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
 
-extern "C" {
-#include <libavcodec/jni.h>
-}
+#include "JNIHelp.h"
+#include "CainMediaPlayer.h"
 
-const char *CLASS_NAME = "com/cgfay/media/CainMediaPlayer";
+const char *CLASS_NAME = "com/cgfay/media/GlenMediaPlayer";
 
 // -------------------------------------------------------------------------------------------------
 struct fields_t {
@@ -636,7 +635,7 @@ static int register_com_cgfay_media_CainMediaPlayer(JNIEnv *env) {
 
 extern "C"
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
-    av_jni_set_java_vm(vm, NULL);
+    //av_jni_set_java_vm(vm, NULL);
     javaVM = vm;
     JNIEnv *env;
     if (vm->GetEnv((void **) &env, JNI_VERSION_1_4) != JNI_OK) {

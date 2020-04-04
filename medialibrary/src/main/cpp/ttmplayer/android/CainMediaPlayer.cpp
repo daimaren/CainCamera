@@ -493,7 +493,7 @@ void CainMediaPlayer::run() {
                 mSeeking = true;
                 mSeekingPosition = (long)msg.arg1;
                 if (mediaPlayer != nullptr) {
-                    mediaPlayer->seekToPosition(mSeekingPosition * 1000)；
+                    mediaPlayer->seekToPosition(mSeekingPosition * 1000);
                     //mediaPlayer->seekTo(mSeekingPosition);
                 }
                 break;

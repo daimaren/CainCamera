@@ -83,8 +83,8 @@ bool VideoPlayerController::startAVSynchronizer() {
     }
 
     LOGI("VideoPlayerController::startAVSynchronizer() init result:%s", (ret? "success" : "fail"));
-    this->setInitializedStatus(ret);
-
+    //tmp solution
+    //this->setInitializedStatus(ret);
     return ret;
 }
 

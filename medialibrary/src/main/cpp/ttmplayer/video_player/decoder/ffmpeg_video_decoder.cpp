@@ -45,7 +45,8 @@ bool FFMPEGVideoDecoder::decodeVideoFrame(AVPacket packet, int* decodeVideoError
 		}
 		if (gotframe) {
 			if (videoFrame->interlaced_frame) {
-				avpicture_deinterlace((AVPicture*) videoFrame, (AVPicture*) videoFrame, videoCodecCtx->pix_fmt, videoCodecCtx->width, videoCodecCtx->height);
+				//tmp solution
+				//avpicture_deinterlace((AVPicture*) videoFrame, (AVPicture*) videoFrame, videoCodecCtx->pix_fmt, videoCodecCtx->width, videoCodecCtx->height);
 			}
 			this->uploadTexture();
 		}
@@ -74,7 +75,8 @@ void FFMPEGVideoDecoder::flushVideoFrames(AVPacket packet, int* decodeVideoError
 		}
 		if (gotframe) {
 			if (videoFrame->interlaced_frame) {
-				avpicture_deinterlace((AVPicture*) videoFrame, (AVPicture*) videoFrame, videoCodecCtx->pix_fmt, videoCodecCtx->width, videoCodecCtx->height);
+				//tmp solution
+				//avpicture_deinterlace((AVPicture*) videoFrame, (AVPicture*) videoFrame, videoCodecCtx->pix_fmt, videoCodecCtx->width, videoCodecCtx->height);
 			}
 			this->uploadTexture();
 		} else {

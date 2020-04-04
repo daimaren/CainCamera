@@ -372,11 +372,14 @@ bool AVSynchronizer::isHWCodecAvaliable() {
 }
 
 void AVSynchronizer::createDecoderInstance() {
+#if 0
 	if (this->isHWCodecAvaliable()){
 		decoder = new MediaCodecVideoDecoder(g_jvm, obj);
 	} else {
 		decoder = new FFMPEGVideoDecoder(g_jvm, obj);
 	}
+#endif
+	decoder = new FFMPEGVideoDecoder(g_jvm, obj);
 }
 
 void AVSynchronizer::initMeta() {
