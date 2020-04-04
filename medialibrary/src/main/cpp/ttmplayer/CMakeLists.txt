@@ -13,7 +13,6 @@ add_definitions("
 -DEGL_EGLEXT_PROTOTYPES
 ")
 
-include_directories(thirdparty/ffmpeg/include/)
 include_directories(${PATH_TO_AV_ENGINE}/)
 include_directories(${PATH_TO_AV_ENGINE}/common/)
 include_directories(${PATH_TO_AV_ENGINE}/video_player/)
@@ -64,15 +63,8 @@ target_link_libraries(ttmplayer
                        EGL
                        z
                        OpenSLES
-                       # 引入ffmpeg相关静态库
-                       ${PATH_TO_PRE_BUILT}/libavfilter.a
-                       ${PATH_TO_PRE_BUILT}/libavformat.a
-                       ${PATH_TO_PRE_BUILT}/libavcodec.a
-                       ${PATH_TO_PRE_BUILT}/libpostproc.a
-                       ${PATH_TO_PRE_BUILT}/libswresample.a
-                       ${PATH_TO_PRE_BUILT}/libswscale.a
-                       ${PATH_TO_PRE_BUILT}/libavutil.a
-                       ${PATH_TO_PRE_BUILT}/libpostproc.a
+					   ffmpeg
+                       # 引入静态库
                        ${PATH_TO_PRE_BUILT}/libfdk-aac.a
                        ${PATH_TO_PRE_BUILT}/libvo-aacenc.a
                        ${PATH_TO_PRE_BUILT}/libx264.a

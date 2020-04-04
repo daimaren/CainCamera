@@ -2,7 +2,6 @@
 
 #define LOG_TAG "VideoPlayerController"
 
-std::map<string, VideoPlayerController*> VideoPlayerController::urlMap = {};
 
 /*
  * class VideoPlayerController
@@ -18,18 +17,19 @@ VideoPlayerController::VideoPlayerController() {
     screenWidth = 0;
     screenHeight = 0;
     messageQueue = new AVMessageQueue();
-}
-
-VideoPlayerController::~VideoPlayerController() {
-    LOGI("~VideoPlayerController");
-    videoOutput = NULL;
-    audioOutput = NULL;
-    synchronizer = NULL;
     if(messageQueue) {
         messageQueue->release();
         delete messageQueue;
         messageQueue = nullptr;
     }
+}
+
+VideoPlayerController::~VideoPlayerController() {
+    LOGI("~VideoPlayerController");
+
+    videoOutput = NULL;
+    audioOutput = NULL;
+    synchronizer = NULL;
 }
 
 void VideoPlayerController::signalOutputFrameAvailable() {
@@ -50,7 +50,6 @@ void  VideoPlayerController::initVideoOutput(ANativeWindow* window){
         return;
     }
     videoOutput = new VideoOutput();
-    videoOutput->setRenderTexCallback(renderTexCallback);
     videoOutput->initOutput(window, screenWidth, screenHeight,videoCallbackGetTex, this);
 }
 
@@ -72,7 +71,6 @@ bool VideoPlayerController::startAVSynchronizer() {
             ret = false;
         } else{
             isPlaying = true;
-            initProjectorState();
             synchronizer->start();
             LOGI("call audioOutput start...");
             if (NULL != audioOutput) {
@@ -125,7 +123,6 @@ void VideoPlayerController::onSurfaceCreated(ANativeWindow* window, int width, i
     }
     if (!videoOutput) {
         initVideoOutput(window);
-    }else{
         videoOutput->onSurfaceCreated(window);
     }
     LOGI("Leave VideoPlayerController::onSurfaceCreated...");
@@ -187,11 +184,6 @@ bool VideoPlayerController::init(char *srcFilenameParam, JavaVM *g_jvm, jobject 
     this->minBufferedDuration = minBufferedDuration;
     this->maxBufferedDuration = maxBufferedDuration;
 
-
-    /**
-     * 开启了线程去执行 AVSynchronizer 的初始化，然后线程中调用本类的 startAVSynchronizer 函数，
-     * 初始化完之后，线程就结束了
-     */
     pthread_create(&initThreadThreadId, 0, initThreadCallback, this);
 
     userCancelled = false;
@@ -262,12 +254,6 @@ void VideoPlayerController::resetRenderSize(int left, int top, int width, int he
     }
 }
 
-/**
- * 该函数由 audio_output 不断调用获取数据
- * @param outData  音频数据的 buffer 指针
- * @param bufferSize buffer的大小
- * @return 实际放在 outData 的数据大小
- */
 int VideoPlayerController::consumeAudioFrames(byte* outData, size_t bufferSize) {
     int ret = bufferSize;
     if(this->isPlaying &&
@@ -275,10 +261,8 @@ int VideoPlayerController::consumeAudioFrames(byte* outData, size_t bufferSize) 
 //      LOGI("Before synchronizer fillAudioData...");
         ret = synchronizer->fillAudioData(outData, bufferSize);
 //      LOGI("After synchronizer fillAudioData... ");
-        //通知渲染视频帧
         signalOutputFrameAvailable();
     } else {
-        //如果状态不对，设置静音播放，把数据填0 即可
         LOGI("VideoPlayerController::consumeAudioFrames set 0");
         memset(outData, 0, bufferSize);
     }
@@ -332,7 +316,6 @@ void VideoPlayerController::destroy() {
     LOGI("enter VideoPlayerController::destroy...");
 
     userCancelled = true;
-    this->destroyProjectorState();
 
     if (synchronizer){
         //中断request
@@ -384,84 +367,6 @@ EGLContext VideoPlayerController::getUploaderEGLContext() {
         return synchronizer->getUploaderEGLContext();
     }
     return NULL;
-}
-
-bool VideoPlayerController::registerProjectorCallback(ProjectorCallbackImpl *callback) {
-    //如果输入源没有在播放，或者已经退出，不允许注册回调。
-    if(!isPlaying || userCancelled) return false;
-    pthread_mutex_lock(&callbackLock);
-    projectorCallbackList.push_back(callback);
-    /*if(projectorCallbackList.size() == 1){
-        videoOutput->setRenderTexCallback(VideoPlayerController::renderTexCallback);
-    }*/
-    pthread_mutex_unlock(&callbackLock);
-    LOGI("register videoPlayerController");
-    return true;
-}
-
-void VideoPlayerController::unRegisterCallback(ProjectorCallbackImpl *callback) {
-    if(!isPlaying || userCancelled)
-        return;
-    LOGI("unregister videoPlayerController");
-    pthread_mutex_lock(&callbackLock);
-    projectorCallbackList.remove(callback);
-    /*if(projectorCallbackList.size() <= 0){
-        videoOutput->setRenderTexCallback(NULL);
-    }*/
-    pthread_mutex_unlock(&callbackLock);
-
-}
-
-VideoPlayerController *VideoPlayerController::getPlayerControlWithUrl(string key) {
-    map<string, VideoPlayerController*>::iterator iter;
-    iter = urlMap.find(key);
-    if(iter == urlMap.end()){
-        LOGI("query control with url : %s  null", key.c_str());
-        return NULL;
-    }
-    LOGI("key : %s, controller : %i", key.c_str(), iter->second == NULL?0:1);
-    return iter->second;
-}
-
-void VideoPlayerController::initProjectorState() {
-
-    //用于锁定 projectorCallbackList
-    pthread_mutex_init(&callbackLock, NULL);
-
-    string key = requestHeader->getURI();
-    LOGI("insert url to urlMap : %s", key.c_str());
-    urlMap.insert(pair<string,VideoPlayerController*>(key ,this));
-
-}
-
-void VideoPlayerController::destroyProjectorState() {
-    //移除 url
-    string key = requestHeader->getURI();
-    urlMap.erase(key);
-    LOGI("remove url : %s", key.c_str());
-    //清空所有回调
-    projectorCallbackList.clear();
-    //销毁锁
-    pthread_mutex_destroy(&callbackLock);
-}
-
-void VideoPlayerController::renderTexToProjector(FrameTexture *frameTexture) {
-    if(projectorCallbackList.size() <= 0) return;
-    pthread_mutex_lock(&callbackLock);
-    LOGI("render texture to projector");
-    list<ProjectorCallbackImpl*>::iterator iterator;
-    for(iterator = projectorCallbackList.begin(); iterator!= projectorCallbackList.end(); iterator++){
-        (*iterator)->onRenderTexture(frameTexture);
-    }
-    pthread_mutex_unlock(&callbackLock);
-}
-
-void VideoPlayerController::renderTexCallback(FrameTexture *frameTexture, void *ctx) {
-    //LOGI("renderTexCallback -- enter");
-    VideoPlayerController* controller = (VideoPlayerController *)ctx;
-    if(controller != NULL)
-        controller->renderTexToProjector(frameTexture);
-   // LOGI("renderTexCallback -- exist");
 }
 
 AVMessageQueue* VideoPlayerController::getMessageQueue() {

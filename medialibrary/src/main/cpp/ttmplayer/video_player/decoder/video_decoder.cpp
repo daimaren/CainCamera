@@ -71,7 +71,6 @@ int VideoDecoder::openFile(DecoderRequestHeader *requestHeader) {
 		buriedPoint.duration = 0.0f;
 	}
 	long long startTimeMills = currentTimeMills();
-	//打开文件读取视频信息
 	int errorCode = openInput();
 //	LOGI("openInput [%s] waste TimeMills is %d", requestHeader->getURI(), (int )(currentTimeMills() - startTimeMills));
 	//现在 pFormatCtx->streams 中已经有所有流了，因此现在我们遍历它找出对应的视频流、音频流、字幕流等：
@@ -110,9 +109,6 @@ int VideoDecoder::openFile(DecoderRequestHeader *requestHeader) {
 
 void VideoDecoder::startUploader(UploaderCallback * pUploaderCallback) {
 	mUploaderCallback = pUploaderCallback;
-	//由具体的解码器 -- 软件解码器 ffmpeg_video_decoder 或者硬件解码器 mediacodec_video_decoder去创建具体的FrameUploader
-	//前者是 yuv_texture_frame_uploader
-	//硬件解码器是 gpu_texture_frame_uploader
 	textureFrameUploader = createTextureFrameUploader();
 	textureFrameUploader->registerUpdateTexImageCallback(update_tex_image_callback, signal_decode_thread_callback, this);
 	textureFrameUploader->setUploaderCallback(pUploaderCallback);
@@ -202,7 +198,6 @@ bool VideoDecoder::hasAllCodecParameters(){
 
 	for (int i = 0; i < pFormatCtx->nb_streams; i++) {
 		AVStream* st = pFormatCtx->streams[i];
-		//校验流信息是否具备应该具有的参数
 		if (!has_codec_parameters(st)) {
 			return false;
 		}
@@ -216,8 +211,8 @@ bool VideoDecoder::isNeedRetry(){
 }
 
 int VideoDecoder::openInput() {
-//	LOGI("VideoDecoder::openInput");
 	char *videoSourceURI = requestHeader->getURI();
+	LOGI("VideoDecoder::openInput %s", videoSourceURI);
 	int* max_analyze_durations = requestHeader->getMaxAnalyzeDurations();
 	int analyzeDurationSize = requestHeader->getAnalyzeCnt();
 
@@ -234,21 +229,18 @@ int VideoDecoder::openInput() {
 
 	readLatestFrameTimemills = currentTimeMills();
 	isTimeout = false;
-	//获取 ffmpeg 的容器上下文
 	pFormatCtx = avformat_alloc_context();
 	int_cb = {VideoDecoder::interrupt_cb, this};
-	//设置回调函数，用于超时处理
 	pFormatCtx->interrupt_callback = int_cb;
 	//打开一个文件 只是读文件头，并不会填充流信息 需要注意的是，此处的pFormatContext必须为NULL或由avformat_alloc_context分配得到
 	int openInputErrCode = 0;
-	//开始读取文件信息，信息将会封装在 pFormatCtx 中
 	if ((openInputErrCode = this->openFormatInput(videoSourceURI)) != 0) {
 		LOGI("Video decoder open input file failed... videoSourceURI is %s openInputErr is %s", videoSourceURI, av_err2str(openInputErrCode));
 		return -1;
 	}
 	this->initAnalyzeDurationAndProbesize(max_analyze_durations, analyzeDurationSize, probesize, fpsProbeSizeConfigured);
-//	LOGI("pFormatCtx->max_analyze_duration is %d", pFormatCtx->max_analyze_duration);
-//	LOGI("pFormatCtx->probesize is %d", pFormatCtx->probesize);
+	LOGI("pFormatCtx->max_analyze_duration is %d", pFormatCtx->max_analyze_duration);
+	LOGI("pFormatCtx->probesize is %d", pFormatCtx->probesize);
 	//获取文件中的流信息，此函数会读取packet，并确定文件中所有的流信息  设置pFormatCtx->streams指向文件中的流，但此函数并不会改变文件指针，读取的packet会给后面的解码进行处理
 	if (avformat_find_stream_info(pFormatCtx, NULL) < 0) {
 //		avformat_close_input(&pFormatCtx);
@@ -257,7 +249,7 @@ int VideoDecoder::openInput() {
 	}
 	is_eof = false;
 	//输出文件的信息，也就是我们在使用ffmpeg时能看到的文件详细信息
-//	av_dump_format(pFormatCtx, -1, videoSourceURI, 0);
+	av_dump_format(pFormatCtx, -1, videoSourceURI, 0);
 	if (this->isNeedRetry()) {
 		if (isNeedBuriedPoint) {
 			long long curTime = currentTimeMills();
@@ -338,8 +330,6 @@ int VideoDecoder::openVideoStream(int streamIndex) {
 	//5、now: we think we can Correctly identify the video stream
 	this->videoStreamIndex = streamIndex;
 	//6、determine fps and videoTimeBase
-	//timebase就是帧与帧之间的刻度，如果帧率是25，timebase 是 1/25，而pts是何时显示该帧，它指的是处于视频中的第几个刻度
-	//那么我们可以通过 timebase * pts，就可以知道这个帧在视频中的具体位置了 -- 即播放时间。
 	avStreamFPSTimeBase(videoStream, 0.04, &fps, &videoTimeBase);
 	float* actualFps = (float*)requestHeader->get(DECODER_HEADER_FORCE_FPS);
 	if(NULL != actualFps){
@@ -784,42 +774,8 @@ std::list<MovieFrame*>* VideoDecoder::decodeFrames(float minDuration, int* decod
 			break;
 		}
 		if (packet.stream_index == videoStreamIndex) {
-		    /**
-		     * 解出视频未压缩的数据 - AVPacket 之后，交由具体的解码器去处理：比如软件解码器 -- ffmpeg_video_decoder
-		     * 在解码器中，将AVPacket 解码成 AVFrame. videoOutput 把视频帧渲染成画面的话，是需要将视频帧转化成纹理图片，无论软件解码器还是硬件解码器都是如此，
-		     * 所以在解码器中，需要将视频帧绘制到一张纹理图片上，又因为拥有共同eglContext，这样子，只需要传递纹理id就可以被 videoOutput 直接使用了。
-		     *
-		     * 所以解码器得到 AVFrame ，就调用 uploadTexture 函数，阻塞当前解码线程，然后唤醒 texture_frame_uploader 的线程，然后开始转换过程
-		     *  1. 先调用具体解码器，比如ffmpeg_video_decoder 的 updateTexImage 方法，将 AVFrame 转换成具备 YUV分量和position的 视频帧结构 VideoFrame
-		     *  2. 然后设置 ffmpeg_video_decoder 的 textureFrame 的数据，并且 将 yuv分量的数据 绑定到 具体的纹理id上，这样的话，textureFrame 就具备 yuv 3个分量
-		     *  的纹理id，后续在调用 opengl 函数时，只要重新绑定具体的纹理id，就可以将 yuv 3张纹理图片应用上了，这里具体是将 YUV 纹理 + 矩阵 转化成 rgb 一张纹理，作为输出
-		     *  3. 因为当前上下文绑定的是一个离线的 surface的，并且绑定到 一个 Framebuffer 中，这样就会将opengl的绘制输出到 FrameBuffer，而Framebuffer 绑定一个 纹理id，
-		     *  也就是上面提到的rgb纹理，那么 opengl 的输出就会输出到 该纹理 - rgb纹理
-		     *  4. 调用 yuv_texture_frame_copier 的renderCoors 方法，通过opengl 输出到 rgb纹理上。
-		     *  5. 返回rgb的纹理id，调用 uploadCallback 将 rgb 纹理id 传到 av_synchronizer 的 renderToVideoQueue 函数，函数里会将 该rgb纹理 再做一次输出，
-		     *  这里的输出，对 viewport 进行了处理，这样获取到新的纹理id，就像做了复制操作一样，并且做了viewport处理，然后将新的纹理id放到 circle_texture_queue 中一个 TextFrame 节点的 纹理中 （circle_texture_queue中的就是视频队列了，
-		     *  videoOutput就是靠这个队列获取纹理id，然后绑定到 可视的surface 上，渲染到屏幕）
-		     *  6. 做完第5点（复制了rgb纹理到 队列中的 textureFrame 节点的纹），调用就结束了，在 texture_frame_uploader 的下一次循环，就会唤醒解码线程，堵塞当前上传线程，继续解码下一帧图片
-		     */
 			this->decodeVideoFrame(packet, decodeVideoErrorState);
 		} else if (packet.stream_index == audioStreamIndex) {
-		    /**
-		     * 音频的解码：
-		     * 进入循环体
-		     * 1. 用 ffmpeg 的 avcodec_decode_audio4 方法，对 AVPacket 进行解码 成 AVFrame，
-		     * 2. 然后调用 handleAudioFrame 转化成 AudioFrame，
-		     *    1. 先判断 重采样上下文是否不为空， 因为这里只处理 PCM_16的音频数据，如果重采样上下文不空，代表在打开流的时候，检测到当前的流的音频数据不符合要求，
-		     *    需要对其进行重采样操作。
-		     *    2. 然后 调用 av_frame_get_best_effort_timestamp 函数从 AVFrame 中获取到时间戳，时间戳 * audioTimeBase 就可以得到该 音频帧的首播时间了。
-		     *    3. 然后调用 av_frame_get_pkt_duration 函数从 AVFrame 中获取到 duration， duration * audioTimebase 就可以得到该视频帧的播放长度了
-		     *    4. 通过 uploadCallBack.processAudioData() 封装 AVFrame的 sample data 到 AudioFrame 的 byte* 中，这里会应用 通道数量，采样率等做处理。
-		     *    5. 这样，一个 AudioFrame 就封装完毕了
-		     * 3. 然后插进 result 中，叠加 AudioFrame 的 duration，如果叠加的duration 大于 minDuration，就可以标识一下finished 为true，好让这里的循环退出。
-		     * 4. 知道 AVPacket的数据全部解析完，就退出 decodeAudioFrames的调用
-		     * 5. 这里根据 decodeAudioFrames 的返回值决定是否需要继续解码，这里只对音频的解码时长做控制，是因为采用了 视频对齐音频的同步处理，市场上基本都是这种方式
-		     * 这样的话，只需要控制好音频的解码速度，视频的解码也相应的被控制住。
-
-		     */
 			finished = decodeAudioFrames(&packet, result, decodedDuration, minDuration, decodeVideoErrorState);
 		}
 		av_free_packet(&packet);
@@ -910,7 +866,6 @@ AudioFrame * VideoDecoder::handleAudioFrame() {
 	int numChannels = audioCodecCtx->channels;
 	int numFrames = 0;
 	void * audioData;
-	//当打开流时，会检测音频流是否是 PCM_16的，如果是，则是正常的，否则需要进行重采样处理，如果重采样的话，swrContext 就不会空
 	if (swrContext) {
 //		LOGI("start resample audio...");
 		const int ratio = 2;

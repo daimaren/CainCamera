@@ -11,9 +11,6 @@
 #include "opengl_media/render/video_gl_surface_render.h"
 #include "./video_output.h"
 #include "egl_core/egl_share_context.h"
-#include <map>
-#include <string>
-#include "./video_projector_player_controller.h"
 #include "../android/AVMessageQueue.h"
 /**
  * Video Player Controller
@@ -74,33 +71,11 @@ public:
 
 	void signalOutputFrameAvailable();
 
-    virtual int getAudioChannels();
-
-    int getAudioSampleRate(){
-        if(synchronizer){
-            return synchronizer->getAudioSampleRate();
-        }
-        return -1;
-    };
-
 	EGLContext getUploaderEGLContext();
-	bool registerProjectorCallback(ProjectorCallbackImpl* callback);
-	void unRegisterCallback(ProjectorCallbackImpl* callback);
-	void renderTexToProjector(FrameTexture* frameTexture);
-	static void renderTexCallback(FrameTexture* frameTexture, void* ctx);
-	static VideoPlayerController* getPlayerControlWithUrl(string key);
-	AVMessageQueue* getMessageQueue();
+    AVMessageQueue* getMessageQueue();
 public:
-	AVMessageQueue *messageQueue;
+    AVMessageQueue *messageQueue;
 protected:
-	static std::map<string, VideoPlayerController*> urlMap;
-	//add start...
-	std::list<ProjectorCallbackImpl*> projectorCallbackList;
-	pthread_mutex_t callbackLock;
-	void initProjectorState();
-	void destroyProjectorState();
-	//add end
-
 	ANativeWindow* window;
 	int screenWidth;
 	int screenHeight;
@@ -125,6 +100,14 @@ protected:
 	VideoOutput* videoOutput;
 	AudioOutput* audioOutput;
 	bool initAudioOutput();
+	virtual int getAudioChannels();
+
+	int getAudioSampleRate(){
+		if(synchronizer){
+			return synchronizer->getAudioSampleRate();
+		}
+		return -1;
+	};
 
 	virtual bool initAVSynchronizer();
 

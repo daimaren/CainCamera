@@ -8,7 +8,7 @@
 #include <AndroidLog.h>
 #include <Mutex.h>
 #include <Condition.h>
-#include <Thread.h>
+#include <CainThread.h>
 #include <android/native_window.h>
 #include <video_player/video_player_controller.h>
 #include "AVMessageQueue.h"

@@ -121,6 +121,7 @@ status_t CainMediaPlayer::prepare(JavaVM* g_jvm, jobject obj) {
     int max_analyze_duration[] = {-1, -1, -1};
     int cnt = 3;
     jboolean  initCode = mediaPlayer->init(mUrl, g_jvm, obj, max_analyze_duration, cnt, -1, true, 0.5f, 0.5f);
+
     //status_t ret = mediaPlayer->prepare();
     if (mPrepareSync) {
         mPrepareSync = false;
