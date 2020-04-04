@@ -189,6 +189,9 @@ void CainMediaPlayer_setDataSourceAndHeaders(JNIEnv *env, jobject thiz, jstring 
 
         headers = &hdrs[0];
     }
+    JavaVM* g_jvm = NULL;
+    env->GetJavaVM(&g_jvm);
+    jobject  obj = env->NewGlobalRef(thiz);
 
     status_t opStatus = mp->setDataSource(path, 0, headers);
     process_media_player_call(env, thiz, opStatus, "java/io/IOException",
@@ -344,10 +347,7 @@ void CainMediaPlayer_prepare(JNIEnv *env, jobject thiz) {
         jniThrowException(env, "java/lang/IllegalStateException");
         return;
     }
-	JavaVM* g_jvm = NULL;
-    env->GetJavaVM(&g_jvm);
-    jobject  obj = env->NewGlobalRef(thiz);
-    mp->prepare(g_jvm, obj);
+    mp->prepare();
 }
 
 void CainMediaPlayer_prepareAsync(JNIEnv *env, jobject thiz) {

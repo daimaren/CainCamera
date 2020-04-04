@@ -106,7 +106,7 @@ public:
 
     status_t setListener(MediaPlayerListener *listener);
 
-    status_t prepare(JavaVM* g_jvm, jobject obj);
+    status_t prepare();
 
     status_t prepareAsync();
 

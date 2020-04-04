@@ -123,6 +123,7 @@ void VideoPlayerController::onSurfaceCreated(ANativeWindow* window, int width, i
     }
     if (!videoOutput) {
         initVideoOutput(window);
+    }else{
         videoOutput->onSurfaceCreated(window);
     }
     LOGI("Leave VideoPlayerController::onSurfaceCreated...");
@@ -170,7 +171,7 @@ void VideoPlayerController::setInitializedStatus(bool initCode) {
     LOGI("leave VideoPlayerController::setInitializedStatus...");
 }
 
-bool VideoPlayerController::init(char *srcFilenameParam, JavaVM *g_jvm, jobject obj, int* max_analyze_duration, int analyzeCnt, int probesize, bool fpsProbeSizeConfigured,
+bool VideoPlayerController::init(char *srcFilenameParam, int* max_analyze_duration, int analyzeCnt, int probesize, bool fpsProbeSizeConfigured,
         float minBufferedDuration, float maxBufferedDuration){
     isPlaying = false;
     synchronizer = NULL;
@@ -179,8 +180,8 @@ bool VideoPlayerController::init(char *srcFilenameParam, JavaVM *g_jvm, jobject 
 
     requestHeader = new DecoderRequestHeader();
     requestHeader->init(srcFilenameParam, max_analyze_duration, analyzeCnt, probesize, fpsProbeSizeConfigured);
-    this->g_jvm = g_jvm;
-    this->obj = obj;
+    //this->g_jvm = g_jvm;
+    //this->obj = obj;
     this->minBufferedDuration = minBufferedDuration;
     this->maxBufferedDuration = maxBufferedDuration;
 
