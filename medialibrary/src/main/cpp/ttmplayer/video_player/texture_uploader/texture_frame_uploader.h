@@ -49,7 +49,7 @@ static GLfloat DECODER_COPIER_GL_TEXTURE_COORDS_ROTATED_270[8] = {
 		0.0f, 1.0f
 	};
 
-// callback from VideoPlayerController
+// callback from MediaPlayer
 class UploaderCallback
 {
 public:

@@ -15,16 +15,16 @@
 /**
  * Video Player Controller
  */
-class VideoPlayerController {
+class MediaPlayer {
 public:
-	VideoPlayerController();
-	virtual ~VideoPlayerController();
+	MediaPlayer();
+	virtual ~MediaPlayer();
 
 	/** 初始化播放器 **/
 	//bool init(char *srcFilenameParam, JavaVM *g_jvm, jobject obj, int* max_analyze_duration, int analyzeCnt, int probesize, bool fpsProbeSizeConfigured, float minBufferedDuration, float maxBufferedDuration);
-	bool init(char *srcFilenameParam, int* max_analyze_duration, int analyzeCnt, int probesize, bool fpsProbeSizeConfigured, float minBufferedDuration, float maxBufferedDuration);
+	status_t prepare(char *srcFilenameParam, int* max_analyze_duration, int analyzeCnt, int probesize, bool fpsProbeSizeConfigured, float minBufferedDuration, float maxBufferedDuration);
 	/** 继续播放 **/
-	void play();
+	void start();
 	/** seek到某个位置 **/
 	void seekToPosition(float position);
 
@@ -92,8 +92,6 @@ protected:
 	/** 用于回调Java层 **/
 	JavaVM *g_jvm;
 	jobject obj;
-	/** 当初始化完毕之后 回调给客户端 **/
-	void setInitializedStatus(bool initCode);
 
 	/** 3个最主要的成员变量 **/
 	AVSynchronizer* synchronizer;

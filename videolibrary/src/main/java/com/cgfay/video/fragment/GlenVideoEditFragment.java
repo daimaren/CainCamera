@@ -740,10 +740,10 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             if (mSurface == null) {
                 mSurface = new Surface(mSurfaceTexture);
             }
-            mMediaPlayer.setSurface(mSurface);
             mMediaPlayer.setVolume(mSourceVolumePercent, mSourceVolumePercent);
             mMediaPlayer.setOption(CainMediaPlayer.OPT_CATEGORY_PLAYER, "vcodec", "h264_mediacodec");
             mMediaPlayer.prepare();
+            mMediaPlayer.setSurface(mSurface);
         } catch (IOException e) {
             e.printStackTrace();
         }

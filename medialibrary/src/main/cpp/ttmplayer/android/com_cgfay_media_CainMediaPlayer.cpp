@@ -52,7 +52,7 @@ JNIMediaPlayerListener::JNIMediaPlayerListener(JNIEnv *env, jobject thiz, jobjec
     // that posts events to the application thread.
     jclass clazz = env->GetObjectClass(thiz);
     if (clazz == NULL) {
-        ALOGE("Can't find com/cgfay/media/CainMediaPlayer");
+        ALOGE("Can't find com/cgfay/media/GlenMediaPlayer");
         jniThrowException(env, "java/lang/Exception");
         return;
     }

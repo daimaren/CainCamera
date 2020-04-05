@@ -179,7 +179,7 @@ private:
     bool abortRequest;
 
     MediaPlayerListener *mListener;
-    VideoPlayerController* mediaPlayer;
+    MediaPlayer* mediaPlayer;
     bool mSeeking;
     long mSeekingPosition;
     bool mPrepareSync;

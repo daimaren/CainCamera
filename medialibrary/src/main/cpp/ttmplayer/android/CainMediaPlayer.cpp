@@ -36,7 +36,7 @@ void CainMediaPlayer::init() {
     mMutex.unlock();
 
     if (mediaPlayer == nullptr) {
-        mediaPlayer = new VideoPlayerController();
+        mediaPlayer = new MediaPlayer();
     }
 }
 
@@ -71,9 +71,6 @@ status_t CainMediaPlayer::setDataSource(const char *url, int64_t offset, const c
         return BAD_VALUE;
     }
     mUrl = av_strdup(url);
-    int max_analyze_duration[] = {-1, -1, -1};
-    int cnt = 3;
-    jboolean  initCode = mediaPlayer->init(mUrl, max_analyze_duration, cnt, -1, true, 0.5f, 0.5f);
     return NO_ERROR;
 }
 
@@ -122,7 +119,12 @@ status_t CainMediaPlayer::prepare() {
     }
     mPrepareSync = true;
 
-    //status_t ret = mediaPlayer->prepare();
+    int max_analyze_duration[] = {-1, -1, -1};
+    int cnt = 3;
+    status_t ret = mediaPlayer->prepare(mUrl, max_analyze_duration, cnt, -1, true, 0.5f, 0.5f);
+    if (ret != NO_ERROR) {
+        return ret;
+    }
     if (mPrepareSync) {
         mPrepareSync = false;
     }
@@ -138,7 +140,7 @@ status_t CainMediaPlayer::prepareAsync() {
 
 void CainMediaPlayer::start() {
     if (mediaPlayer != nullptr) {
-        mediaPlayer->play();
+        mediaPlayer->start();
     }
 }
 
