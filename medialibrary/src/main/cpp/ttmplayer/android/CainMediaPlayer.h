@@ -5,13 +5,13 @@
 #ifndef CAINMEDIAPLAYER_H
 #define CAINMEDIAPLAYER_H
 
-#include <AndroidLog.h>
 #include <Mutex.h>
 #include <Condition.h>
 #include <CainThread.h>
 #include <android/native_window.h>
 #include <video_player/video_player_controller.h>
 #include "AVMessageQueue.h"
+#include "CommonTools.h"
 
 extern "C" {
 #include <libavutil/time.h>
@@ -175,7 +175,7 @@ private:
 private:
     Mutex mMutex;
     Condition mCondition;
-    Thread *msgThread;
+    CainThread *msgThread;
     bool abortRequest;
 
     MediaPlayerListener *mListener;

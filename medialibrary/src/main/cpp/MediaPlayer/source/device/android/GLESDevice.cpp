@@ -196,7 +196,7 @@ int GLESDevice::onRequestRender(bool flip) {
     }
     mMutex.lock();
     mVideoTexture->direction = flip ? FLIP_VERTICAL : FLIP_NONE;
-    ALOGD("flip ? %d", flip);
+    //ALOGD("flip ? %d", flip);
     if (mRenderNode != NULL && eglSurface != EGL_NO_SURFACE) {
         eglHelper->makeCurrent(eglSurface);
         int texture = mRenderNode->drawFrameBuffer(mVideoTexture);

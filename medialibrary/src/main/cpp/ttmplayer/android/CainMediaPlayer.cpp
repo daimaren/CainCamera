@@ -21,7 +21,9 @@ CainMediaPlayer::~CainMediaPlayer() {
 }
 
 void CainMediaPlayer::init() {
-
+    if (mediaPlayer == nullptr) {
+        mediaPlayer = new MediaPlayer();
+    }
     mMutex.lock();
     abortRequest = false;
     mCondition.signal();
@@ -30,14 +32,10 @@ void CainMediaPlayer::init() {
     mMutex.lock();
 
     if (msgThread == nullptr) {
-        msgThread = new Thread(this);
+        msgThread = new CainThread(this);
         msgThread->start();
     }
     mMutex.unlock();
-
-    if (mediaPlayer == nullptr) {
-        mediaPlayer = new MediaPlayer();
-    }
 }
 
 void CainMediaPlayer::disconnect() {
@@ -108,6 +106,7 @@ status_t CainMediaPlayer::setListener(MediaPlayerListener *listener) {
 }
 
 status_t CainMediaPlayer::prepare() {
+    LOGI("CainMediaPlayer::prepare");
     if (mediaPlayer == nullptr) {
         return NO_INIT;
     }
@@ -158,13 +157,13 @@ void CainMediaPlayer::pause() {
 
 void CainMediaPlayer::resume() {
     if (mediaPlayer) {
-        //mediaPlayer->resume();
+        mediaPlayer->resume();
     }
 }
 
 bool CainMediaPlayer::isPlaying() {
     if (mediaPlayer) {
-        //return (mediaPlayer->isPlaying() != 0);
+        return mediaPlayer->isPlaying();
     }
     return false;
 }
@@ -325,7 +324,7 @@ void CainMediaPlayer::postEvent(int what, int arg1, int arg2, void *obj) {
 }
 
 void CainMediaPlayer::run() {
-
+    LOGI("CainMediaPlayer::run msg thread");
     int retval;
     while (true) {
 
@@ -342,7 +341,7 @@ void CainMediaPlayer::run() {
         AVMessage msg;
         retval = mediaPlayer->getMessageQueue()->getMessage(&msg);
         if (retval < 0) {
-            ALOGE("getMessage error");
+            LOGE("getMessage error");
             break;
         }
 
@@ -350,13 +349,13 @@ void CainMediaPlayer::run() {
 
         switch (msg.what) {
             case MSG_FLUSH: {
-                ALOGD("CainMediaPlayer is flushing.\n");
+                LOGD("CainMediaPlayer is flushing.\n");
                 postEvent(MEDIA_NOP, 0, 0);
                 break;
             }
 
             case MSG_ERROR: {
-                ALOGD("CainMediaPlayer occurs error: %d\n", msg.arg1);
+                LOGD("CainMediaPlayer occurs error: %d\n", msg.arg1);
                 if (mPrepareSync) {
                     mPrepareSync = false;
                     mPrepareStatus = msg.arg1;
@@ -366,7 +365,7 @@ void CainMediaPlayer::run() {
             }
 
             case MSG_PREPARED: {
-                ALOGD("CainMediaPlayer is prepared.\n");
+                LOGD("CainMediaPlayer is prepared.\n");
                 if (mPrepareSync) {
                     mPrepareSync = false;
                     mPrepareStatus = NO_ERROR;
@@ -376,123 +375,123 @@ void CainMediaPlayer::run() {
             }
 
             case MSG_STARTED: {
-                ALOGD("CainMediaPlayer is started!");
+                LOGD("CainMediaPlayer is started!");
                 postEvent(MEDIA_STARTED, 0, 0);
                 break;
             }
 
             case MSG_COMPLETED: {
-                ALOGD("CainMediaPlayer is playback completed.\n");
+                LOGD("CainMediaPlayer is playback completed.\n");
                 postEvent(MEDIA_PLAYBACK_COMPLETE, 0, 0);
                 break;
             }
 
             case MSG_VIDEO_SIZE_CHANGED: {
-                ALOGD("CainMediaPlayer is video size changing: %d, %d\n", msg.arg1, msg.arg2);
+                LOGD("CainMediaPlayer is video size changing: %d, %d\n", msg.arg1, msg.arg2);
                 postEvent(MEDIA_SET_VIDEO_SIZE, msg.arg1, msg.arg2);
                 break;
             }
 
             case MSG_SAR_CHANGED: {
-                ALOGD("CainMediaPlayer is sar changing: %d, %d\n", msg.arg1, msg.arg2);
+                LOGD("CainMediaPlayer is sar changing: %d, %d\n", msg.arg1, msg.arg2);
                 postEvent(MEDIA_SET_VIDEO_SAR, msg.arg1, msg.arg2);
                 break;
             }
 
             case MSG_VIDEO_RENDERING_START: {
-                ALOGD("CainMediaPlayer is video playing.\n");
+                LOGD("CainMediaPlayer is video playing.\n");
                 break;
             }
 
             case MSG_AUDIO_RENDERING_START: {
-                ALOGD("CainMediaPlayer is audio playing.\n");
+                LOGD("CainMediaPlayer is audio playing.\n");
                 break;
             }
 
             case MSG_VIDEO_ROTATION_CHANGED: {
-                ALOGD("CainMediaPlayer's video rotation is changing: %d\n", msg.arg1);
+                LOGD("CainMediaPlayer's video rotation is changing: %d\n", msg.arg1);
                 break;
             }
 
             case MSG_AUDIO_START: {
-                ALOGD("CainMediaPlayer starts audio decoder.\n");
+                LOGD("CainMediaPlayer starts audio decoder.\n");
                 break;
             }
 
             case MSG_VIDEO_START: {
-                ALOGD("CainMediaPlayer starts video decoder.\n");
+                LOGD("CainMediaPlayer starts video decoder.\n");
                 break;
             }
 
             case MSG_OPEN_INPUT: {
-                ALOGD("CainMediaPlayer is opening input file.\n");
+                LOGD("CainMediaPlayer is opening input file.\n");
                 break;
             }
 
             case MSG_FIND_STREAM_INFO: {
-                ALOGD("CanMediaPlayer is finding media stream info.\n");
+                LOGD("CanMediaPlayer is finding media stream info.\n");
                 break;
             }
 
             case MSG_BUFFERING_START: {
-                ALOGD("CanMediaPlayer is buffering start.\n");
+                LOGD("CanMediaPlayer is buffering start.\n");
                 postEvent(MEDIA_INFO, MEDIA_INFO_BUFFERING_START, msg.arg1);
                 break;
             }
 
             case MSG_BUFFERING_END: {
-                ALOGD("CainMediaPlayer is buffering finish.\n");
+                LOGD("CainMediaPlayer is buffering finish.\n");
                 postEvent(MEDIA_INFO, MEDIA_INFO_BUFFERING_END, msg.arg1);
                 break;
             }
 
             case MSG_BUFFERING_UPDATE: {
-                ALOGD("CainMediaPlayer is buffering: %d, %d", msg.arg1, msg.arg2);
+                LOGD("CainMediaPlayer is buffering: %d, %d", msg.arg1, msg.arg2);
                 postEvent(MEDIA_BUFFERING_UPDATE, msg.arg1, msg.arg2);
                 break;
             }
 
             case MSG_BUFFERING_TIME_UPDATE: {
-                ALOGD("CainMediaPlayer time text update");
+                LOGD("CainMediaPlayer time text update");
                 break;
             }
 
             case MSG_SEEK_COMPLETE: {
-                ALOGD("CainMediaPlayer seeks completed!\n");
+                LOGD("CainMediaPlayer seeks completed!\n");
                 mSeeking = false;
                 postEvent(MEDIA_SEEK_COMPLETE, 0, 0);
                 break;
             }
 
             case MSG_PLAYBACK_STATE_CHANGED: {
-                ALOGD("CainMediaPlayer's playback state is changed.");
+                LOGD("CainMediaPlayer's playback state is changed.");
                 break;
             }
 
             case MSG_TIMED_TEXT: {
-                ALOGD("CainMediaPlayer is updating time text");
+                LOGD("CainMediaPlayer is updating time text");
                 postEvent(MEDIA_TIMED_TEXT, 0, 0, msg.obj);
                 break;
             }
 
             case MSG_REQUEST_PREPARE: {
-                ALOGD("CainMediaPlayer is preparing...");
+                LOGD("CainMediaPlayer is preparing...");
                 break;
             }
 
             case MSG_REQUEST_START: {
-                ALOGD("CainMediaPlayer is waiting to start.");
+                LOGD("CainMediaPlayer is waiting to start.");
                 break;
             }
 
             case MSG_REQUEST_PAUSE: {
-                ALOGD("CainMediaPlayer is pausing...");
+                LOGD("CainMediaPlayer is pausing...");
                 pause();
                 break;
             }
 
             case MSG_REQUEST_SEEK: {
-                ALOGD("CainMediaPlayer is seeking...");
+                LOGD("CainMediaPlayer is seeking...");
                 mSeeking = true;
                 mSeekingPosition = (long)msg.arg1;
                 if (mediaPlayer != nullptr) {
@@ -508,7 +507,7 @@ void CainMediaPlayer::run() {
             }
 
             default: {
-                ALOGE("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);
+                LOGE("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);
                 break;
             }
         }

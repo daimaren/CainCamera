@@ -52,7 +52,7 @@ JNIMediaPlayerListener::JNIMediaPlayerListener(JNIEnv *env, jobject thiz, jobjec
     // that posts events to the application thread.
     jclass clazz = env->GetObjectClass(thiz);
     if (clazz == NULL) {
-        ALOGE("Can't find com/cgfay/media/GlenMediaPlayer");
+        LOGE("Can't find com/cgfay/media/GlenMediaPlayer");
         jniThrowException(env, "java/lang/Exception");
         return;
     }
@@ -80,7 +80,7 @@ void JNIMediaPlayerListener::notify(int msg, int ext1, int ext2, void *obj) {
                               msg, ext1, ext2, obj);
 
     if (env->ExceptionCheck()) {
-        ALOGW("An exception occurred while notifying an event.");
+        LOGE("An exception occurred while notifying an event.");
         env->ExceptionClear();
     }
 
@@ -164,7 +164,7 @@ void CainMediaPlayer_setDataSourceAndHeaders(JNIEnv *env, jobject thiz, jstring 
         int valuesCount = env->GetArrayLength(values);
 
         if (keysCount != valuesCount) {
-            ALOGE("keys and values arrays have different length");
+            LOGE("keys and values arrays have different length");
             jniThrowException(env, "java/lang/IllegalArgumentException");
             return;
         }
@@ -220,13 +220,13 @@ void CainMediaPlayer_setDataSourceFD(JNIEnv *env, jobject thiz, jobject fileDesc
     int fd = jniGetFDFromFileDescriptor(env, fileDescriptor);
     if (offset < 0 || length < 0 || fd < 0) {
         if (offset < 0) {
-            ALOGE("negative offset (%lld)", offset);
+            LOGE("negative offset (%lld)", offset);
         }
         if (length < 0) {
-            ALOGE("negative length (%lld)", length);
+            LOGE("negative length (%lld)", length);
         }
         if (fd < 0) {
-            ALOGE("invalid file descriptor");
+            LOGE("invalid file descriptor");
         }
         jniThrowException(env, "java/lang/IllegalArgumentException");
         return;
@@ -305,7 +305,7 @@ void CainMediaPlayer_reset(JNIEnv *env, jobject thiz) {
 void CainMediaPlayer_finalize(JNIEnv *env, jobject thiz) {
     CainMediaPlayer *mp = getMediaPlayer(env, thiz);
     if (mp != NULL) {
-        ALOGW("MediaPlayer finalized without being released");
+        LOGE("MediaPlayer finalized without being released");
     }
     CainMediaPlayer_release(env, thiz);
 }
@@ -450,7 +450,7 @@ jlong CainMediaPlayer_getCurrentPosition(JNIEnv *env, jobject thiz) {
         jniThrowException(env, "java/lang/IllegalStateException");
         return 0L;
     }
-    return mp->getCurrentPosition();
+    return mp->getCurrentPosition() * 1000;//ms
 }
 
 jlong CainMediaPlayer_getDuration(JNIEnv *env, jobject thiz) {
@@ -459,7 +459,7 @@ jlong CainMediaPlayer_getDuration(JNIEnv *env, jobject thiz) {
         jniThrowException(env, "java/lang/IllegalStateException");
         return 0L;
     }
-    return mp->getDuration();
+    return mp->getDuration() * 1000;//ms
 }
 
 jboolean CainMediaPlayer_isPlaying(JNIEnv *env, jobject thiz) {
@@ -621,11 +621,11 @@ static int register_com_cgfay_media_CainMediaPlayer(JNIEnv *env) {
     int numMethods = (sizeof(gMethods) / sizeof( (gMethods)[0]));
     jclass clazz = env->FindClass(CLASS_NAME);
     if (clazz == NULL) {
-        ALOGE("Native registration unable to find class '%s'", CLASS_NAME);
+        LOGE("Native registration unable to find class '%s'", CLASS_NAME);
         return JNI_ERR;
     }
     if (env->RegisterNatives(clazz, gMethods, numMethods) < 0) {
-        ALOGE("Native registration unable to find class '%s'", CLASS_NAME);
+        LOGE("Native registration unable to find class '%s'", CLASS_NAME);
         return JNI_ERR;
     }
     env->DeleteLocalRef(clazz);

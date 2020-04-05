@@ -11,20 +11,25 @@ MediaPlayer::MediaPlayer() {
     videoOutput = NULL;
     audioOutput = NULL;
     synchronizer = NULL;
+    messageQueue = NULL;
 
     screenWidth = 0;
     screenHeight = 0;
     messageQueue = new AVMessageQueue();
-    if(messageQueue) {
-        messageQueue->release();
-        delete messageQueue;
-        messageQueue = nullptr;
+    if (messageQueue == nullptr) {
+        LOGE("messageQueue create failed");
     }
 }
 
 MediaPlayer::~MediaPlayer() {
     audioOutput = NULL;
     synchronizer = NULL;
+
+    if(messageQueue) {
+        messageQueue->release();
+        delete messageQueue;
+        messageQueue = nullptr;
+    }
 }
 
 void MediaPlayer::signalOutputFrameAvailable() {
@@ -65,13 +70,7 @@ bool MediaPlayer::startAVSynchronizer() {
         if (NULL != synchronizer && !synchronizer->isValid()) {
             ret = false;
         } else{
-            isPlaying = true;
             synchronizer->start();
-            LOGI("call audioOutput start...");
-            if (NULL != audioOutput) {
-                audioOutput->start();
-            }
-            LOGI("After call audioOutput start...");
         }
     }
 
@@ -140,7 +139,7 @@ int MediaPlayer::audioCallbackFillData(byte* outData, size_t bufferSize, void* c
 
 status_t MediaPlayer::prepare(char *srcFilenameParam, int* max_analyze_duration, int analyzeCnt, int probesize, bool fpsProbeSizeConfigured,
                               float minBufferedDuration, float maxBufferedDuration){
-    isPlaying = false;
+    mIsPlaying = false;
     synchronizer = NULL;
     audioOutput = NULL;
     videoOutput = NULL;
@@ -190,23 +189,43 @@ bool MediaPlayer::initAudioOutput() {
 }
 
 void MediaPlayer::start() {
-    LOGI("MediaPlayer::start %d ", (int)isPlaying);
-    if (this->isPlaying)
+    LOGI("MediaPlayer::start %d ", (int)mIsPlaying);
+    if (this->mIsPlaying)
         return;
-    this->isPlaying = true;
+    mIsPlaying = true;
+    LOGI("call audioOutput start...");
+    if (NULL != audioOutput) {
+        audioOutput->start();
+    }
+    LOGI("After call audioOutput start...");
+}
+
+void MediaPlayer::pause() {
+    LOGI("MediaPlayer::pause");
+    if (!this->mIsPlaying)
+        return;
+    this->mIsPlaying = false;
+    if (NULL != audioOutput) {
+        audioOutput->pause();
+    }
+}
+
+void MediaPlayer::resume() {
+    LOGI("MediaPlayer::resume %d ", (int)mIsPlaying);
+    if (this->mIsPlaying)
+        return;
+    this->mIsPlaying = true;
     if (NULL != audioOutput) {
         audioOutput->play();
     }
 }
 
-void MediaPlayer::pause() {
-    LOGI("MediaPlayer::pause");
-    if (!this->isPlaying)
-        return;
-    this->isPlaying = false;
-    if (NULL != audioOutput) {
-        audioOutput->pause();
-    }
+int MediaPlayer::isPlaying() {
+    return mIsPlaying;
+}
+
+int MediaPlayer::isLooping() {
+
 }
 
 void MediaPlayer::resetRenderSize(int left, int top, int width, int height) {
@@ -223,17 +242,17 @@ void MediaPlayer::resetRenderSize(int left, int top, int width, int height) {
 
 int MediaPlayer::consumeAudioFrames(byte* outData, size_t bufferSize) {
     int ret = bufferSize;
-    if(this->isPlaying &&
-            synchronizer && !synchronizer->isDestroyed && !synchronizer->isPlayCompleted()) {
+    if(this->mIsPlaying &&
+       synchronizer && !synchronizer->isDestroyed && !synchronizer->isPlayCompleted()) {
 //      LOGI("Before synchronizer fillAudioData...");
         ret = synchronizer->fillAudioData(outData, bufferSize);
 //      LOGI("After synchronizer fillAudioData... ");
         signalOutputFrameAvailable();
         if (messageQueue) {
-            messageQueue->postMessage(MSG_CURRENT_POSITON, getPlayProgress(), getDuration());
+            messageQueue->postMessage(MSG_CURRENT_POSITON, getPlayProgress() * 1000, getDuration() * 1000);//ms
         }
     } else {
-        LOGI("MediaPlayer::consumeAudioFrames set 0");
+        //LOGI("MediaPlayer::consumeAudioFrames set 0");
         memset(outData, 0, bufferSize);
     }
     return ret;

@@ -2,8 +2,8 @@
 // Created by cain on 2018/12/28.
 //
 
-#ifndef THREAD_H
-#define THREAD_H
+#ifndef CAIN_CainThread_H
+#define CAIN_CainThread_H
 
 #include <Mutex.h>
 #include <Condition.h>
@@ -13,7 +13,7 @@ typedef enum {
     Priority_Low = 0,
     Priority_Normal = 1,
     Priority_High = 2
-} ThreadPriority;
+} CainThreadPriority;
 
 class Runnable {
 public:
@@ -23,20 +23,20 @@ public:
 };
 
 /**
- * Thread can use a custom Runnable, but must delete Runnable constructor yourself
+ * CainThread can use a custom Runnable, but must delete Runnable constructor yourself
  */
-class Thread : public Runnable {
+class CainThread : public Runnable {
 public:
 
-    Thread();
+    CainThread();
 
-    Thread(ThreadPriority priority);
+    CainThread(CainThreadPriority priority);
 
-    Thread(Runnable *runnable);
+    CainThread(Runnable *runnable);
 
-    Thread(Runnable *runnable, ThreadPriority priority);
+    CainThread(Runnable *runnable, CainThreadPriority priority);
 
-    virtual ~Thread();
+    virtual ~CainThread();
 
     void start();
 
@@ -49,9 +49,9 @@ public:
     bool isActive() const;
 
 protected:
-    static void *threadEntry(void *arg);
+    static void *CainThreadEntry(void *arg);
 
-    int schedPriority(ThreadPriority priority);
+    int schedPriority(CainThreadPriority priority);
 
     virtual void run();
 
@@ -59,13 +59,13 @@ protected:
     Mutex mMutex;
     Condition mCondition;
     Runnable *mRunnable;
-    ThreadPriority mPriority; // thread priority
-    pthread_t mId;  // thread id
-    bool mRunning;  // thread running
+    CainThreadPriority mPriority; // CainThread priority
+    pthread_t mId;  // CainThread id
+    bool mRunning;  // CainThread running
     bool mNeedJoin; // if call detach function, then do not call join function
 };
 
-inline Thread::Thread() {
+inline CainThread::CainThread() {
     mNeedJoin = true;
     mRunning = false;
     mId = -1;
@@ -73,7 +73,7 @@ inline Thread::Thread() {
     mPriority = Priority_Default;
 }
 
-inline Thread::Thread(ThreadPriority priority) {
+inline CainThread::CainThread(CainThreadPriority priority) {
     mNeedJoin = true;
     mRunning = false;
     mId = -1;
@@ -81,7 +81,7 @@ inline Thread::Thread(ThreadPriority priority) {
     mPriority = priority;
 }
 
-inline Thread::Thread(Runnable *runnable) {
+inline CainThread::CainThread(Runnable *runnable) {
     mNeedJoin = false;
     mRunning = false;
     mId = -1;
@@ -89,7 +89,7 @@ inline Thread::Thread(Runnable *runnable) {
     mPriority = Priority_Default;
 }
 
-inline Thread::Thread(Runnable *runnable, ThreadPriority priority) {
+inline CainThread::CainThread(Runnable *runnable, CainThreadPriority priority) {
     mNeedJoin = false;
     mRunning = false;
     mId = -1;
@@ -97,17 +97,17 @@ inline Thread::Thread(Runnable *runnable, ThreadPriority priority) {
     mPriority = priority;
 }
 
-inline Thread::~Thread() {
+inline CainThread::~CainThread() {
     join();
     mRunnable = NULL;
 }
 
-inline void Thread::start() {
+inline void CainThread::start() {
     if (!mRunning) {
-        pthread_create(&mId, NULL, threadEntry, this);
+        pthread_create(&mId, NULL, CainThreadEntry, this);
         mNeedJoin = true;
     }
-    // wait thread to run
+    // wait CainThread to run
     mMutex.lock();
     while (!mRunning) {
         mCondition.wait(mMutex);
@@ -115,7 +115,7 @@ inline void Thread::start() {
     mMutex.unlock();
 }
 
-inline void Thread::join() {
+inline void CainThread::join() {
     Mutex::Autolock lock(mMutex);
     if (mId > 0 && mNeedJoin) {
         pthread_join(mId, NULL);
@@ -124,7 +124,7 @@ inline void Thread::join() {
     }
 }
 
-inline  void Thread::detach() {
+inline  void CainThread::detach() {
     Mutex::Autolock lock(mMutex);
     if (mId >= 0) {
         pthread_detach(mId);
@@ -132,16 +132,16 @@ inline  void Thread::detach() {
     }
 }
 
-inline pthread_t Thread::getId() const {
+inline pthread_t CainThread::getId() const {
     return mId;
 }
 
-inline bool Thread::isActive() const {
+inline bool CainThread::isActive() const {
     return mRunning;
 }
 
-inline void* Thread::threadEntry(void *arg) {
-    Thread *thread = (Thread *) arg;
+inline void* CainThread::CainThreadEntry(void *arg) {
+    CainThread *thread = (CainThread *) arg;
 
     if (thread != NULL) {
         thread->mRunning = true;
@@ -165,7 +165,7 @@ inline void* Thread::threadEntry(void *arg) {
     return NULL;
 }
 
-inline int Thread::schedPriority(ThreadPriority priority) {
+inline int CainThread::schedPriority(CainThreadPriority priority) {
     if (priority == Priority_Default) {
         return 0;
     }
@@ -192,9 +192,9 @@ inline int Thread::schedPriority(ThreadPriority priority) {
     return 0;
 }
 
-inline void Thread::run() {
+inline void CainThread::run() {
     // do nothing
 }
 
 
-#endif //THREAD_H
+#endif //CainThread_H

@@ -54,7 +54,7 @@ import java.io.IOException;
  */
 public class GlenVideoEditFragment extends Fragment implements View.OnClickListener {
 
-    private static final String TAG = "GlenVideoEditFragment";
+    private static final String TAG = "CainPlayer";
 
     private Activity mActivity;
 
@@ -681,6 +681,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         mMediaPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(final IMediaPlayer mp) {
+                Log.d(TAG, "onPrepared");
                 mp.start();
                 mActivity.runOnUiThread(new Runnable() {
                     @Override

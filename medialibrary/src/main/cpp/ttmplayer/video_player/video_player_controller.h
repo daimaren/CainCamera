@@ -30,6 +30,9 @@ public:
 
 	/** 暂停播放 **/
 	void pause();
+	void resume();
+	int isPlaying();
+	int isLooping();
 	/** 销毁播放器 **/
 	virtual void destroy();
 	/** 以下是对视频的操作参数，单位都是秒 但是后边保留三位小数相当于 精度到毫秒 **/
@@ -83,7 +86,7 @@ protected:
 	EGLContext mSharedEGLContext;
 
 	/** 整个movie是否在播放 **/
-	bool isPlaying;
+	bool mIsPlaying;
 	/** 保存临时参数在新的线程中启动 **/
 	DecoderRequestHeader* requestHeader;
 	float minBufferedDuration;
