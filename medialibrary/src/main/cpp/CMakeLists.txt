@@ -51,9 +51,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
 add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
 
 # MiniRecorder
-add_subdirectory(${CMAKE_SOURCE_DIR}/MiniRecorder)
-
-add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEditor2)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/MiniRecorder)
 
 # FLV录制器
 add_subdirectory(${CMAKE_SOURCE_DIR}/FLVRecorder)
@@ -62,28 +60,28 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/FLVRecorder)
 add_subdirectory(${CMAKE_SOURCE_DIR}/Metadata)
 
 # SoundTouch库
-add_subdirectory(${CMAKE_SOURCE_DIR}/SoundTouch)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/SoundTouch)
 
 # GLFilter库
-add_subdirectory(${CMAKE_SOURCE_DIR}/CainFilter)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/CainFilter)
 
 # 媒体播放器
-add_subdirectory(${CMAKE_SOURCE_DIR}/MediaPlayer)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/MediaPlayer)
 
 # 媒体编辑器
 add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
 
-# Video编辑器，用最简洁到代码实现功能，麻雀虽小五脏俱全
-#add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEditor)
+# Video编辑器，用最简洁的代码实现功能，麻雀虽小五脏俱全
+add_subdirectory(${CMAKE_SOURCE_DIR}/minivideoeditor)
 
 # AudioEffect
 #add_subdirectory(${CMAKE_SOURCE_DIR}/AudioEffect)
 
 # VideoEffect
-add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
 
 # ttmplayer
-add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
 
 # ttvideoeditor
 add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideoeditor)

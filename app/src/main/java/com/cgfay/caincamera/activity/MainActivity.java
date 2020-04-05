@@ -25,9 +25,9 @@ import com.cgfay.scan.loader.impl.GlideMediaLoader;
 import com.cgfay.scan.model.MimeType;
 import com.cgfay.uitls.utils.PermissionUtils;
 import com.cgfay.video.activity.GlenVideoEditActivity;
+import com.cgfay.video.activity.MiniVideoEditActivity;
 import com.cgfay.video.activity.VideoCutActivity;
 import com.cgfay.video.activity.VideoEditActivity;
-import com.cgfay.video.activity.VideoEditorActivity;
 
 import java.util.List;
 
@@ -291,7 +291,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * 自研移动端迷你播放器框架
      */
     private void miniTTMplayer() {
-        startActivity(new Intent(MainActivity.this, VideoEditorActivity.class));
+        Intent intent = new Intent(MainActivity.this, MiniVideoEditActivity.class);
+        intent.putExtra(MiniVideoEditActivity.VIDEO_PATH, "/mnt/sdcard/a_songstudio/recording.flv");
+        startActivity(intent);
     }
 
     /**
