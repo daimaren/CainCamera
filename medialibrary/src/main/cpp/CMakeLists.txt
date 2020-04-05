@@ -80,13 +80,16 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
 #add_subdirectory(${CMAKE_SOURCE_DIR}/AudioEffect)
 
 # VideoEffect
-#add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
-
-# codec
-#add_subdirectory(${CMAKE_SOURCE_DIR}/codec)
+add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
 
 # ttmplayer
 add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
+
+# ttvideoeditor
+add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideoeditor)
+
+# ttvideorecorder
+add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideorecorder)
 
 
 
