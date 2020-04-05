@@ -24,6 +24,7 @@ import com.cgfay.scan.listener.OnMediaSelectedListener;
 import com.cgfay.scan.loader.impl.GlideMediaLoader;
 import com.cgfay.scan.model.MimeType;
 import com.cgfay.uitls.utils.PermissionUtils;
+import com.cgfay.video.activity.GlenVideoEditActivity;
 import com.cgfay.video.activity.VideoCutActivity;
 import com.cgfay.video.activity.VideoEditActivity;
 import com.cgfay.video.activity.VideoEditorActivity;
@@ -43,6 +44,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         checkPermissions();
         initView();
         initResources();
+        //add for upload to mi app store
+        //previewCamera();
     }
 
     private void checkPermissions() {
@@ -61,9 +64,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.btn_edit_music_merge).setOnClickListener(this);
         findViewById(R.id.btn_ff_media_record).setOnClickListener(this);
         findViewById(R.id.btn_flv_record).setOnClickListener(this);
-        findViewById(R.id.btn_media_record).setOnClickListener(this);
-        findViewById(R.id.btn_mini_record).setOnClickListener(this);
-        findViewById(R.id.btn_media_edit).setOnClickListener(this);
+        //自研部分
+        findViewById(R.id.btn_mini_ttvideorecorder).setOnClickListener(this);
+        findViewById(R.id.btn_mini_ttmplayer).setOnClickListener(this);
+        findViewById(R.id.btn_ttvideorecorder).setOnClickListener(this);
+        findViewById(R.id.btn_ttmplayer).setOnClickListener(this);
+        findViewById(R.id.btn_ttvideoeditor).setOnClickListener(this);
     }
 
     @Override
@@ -113,16 +119,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 flvRecord();
                 break;
             }
-            case R.id.btn_media_record: {
-                mediaRecord();
+            case R.id.btn_mini_ttvideorecorder: {
+                miniTTVideoRecorder();
                 break;
             }
-            case R.id.btn_mini_record: {
-                miniRecord();
+
+            case R.id.btn_mini_ttmplayer: {
+                miniTTMplayer();
                 break;
             }
-            case R.id.btn_media_edit: {
-                mediaEdit();
+
+            case R.id.btn_ttvideorecorder: {
+                ttVideoRecorder();
+                break;
+            }
+
+            case R.id.btn_ttmplayer: {
+                ttMplayer();
+                break;
+            }
+
+            case R.id.btn_ttvideoeditor: {
+                ttVideoEditor();
                 break;
             }
         }
@@ -263,23 +281,39 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * 自研录制器
+     * 自研移动端迷你录制器框架
      */
-    private void mediaRecord() {
-        startActivity(new Intent(MainActivity.this, MediaRecordActivity.class));
-    }
-
-    /**
-     * 自研录制器
-     */
-    private void miniRecord() {
+    private void miniTTVideoRecorder() {
         startActivity(new Intent(MainActivity.this, MiniRecordActivity.class));
     }
 
     /**
-     * 自研编辑器
+     * 自研移动端迷你播放器框架
      */
-    private void mediaEdit() {
+    private void miniTTMplayer() {
         startActivity(new Intent(MainActivity.this, VideoEditorActivity.class));
+    }
+
+    /**
+     * 自研移动端录制器框架
+     */
+    private void ttVideoRecorder() {
+        startActivity(new Intent(MainActivity.this, MediaRecordActivity.class));
+    }
+
+    /**
+     * 自研移动端播放器框架
+     */
+    private void ttMplayer() {
+
+    }
+
+    /**
+     * 自研移动端编辑器框架
+     */
+    private void ttVideoEditor() {
+        Intent intent = new Intent(MainActivity.this, GlenVideoEditActivity.class);
+        intent.putExtra(GlenVideoEditActivity.VIDEO_PATH, "/mnt/sdcard/a_songstudio/recording.flv");
+        startActivity(intent);
     }
 }

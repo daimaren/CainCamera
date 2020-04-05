@@ -9,9 +9,12 @@
     <string name="btn_edit_music_merge">添加背景音乐</string>
     <string name="btn_ff_media_record">使用 FFmpeg 录制视频</string>
     <string name="btn_flv_record">录制FLV视频</string>
-    <string name="btn_media_record">自研录制器</string>
-    <string name="btn_mini_record">mini recorder</string>
-    <string name="btn_media_edit">自研编辑器</string>
+
+    <string name="btn_mini_ttvideorecorder">自研移动端迷你录制器框架</string>
+    <string name="btn_mini_ttmplayer">自研移动端迷你播放器框架</string>
+    <string name="btn_ttvideorecorder">自研移动端录制器框架</string>
+    <string name="btn_ttmplayer">自研移动端播放器框架</string>
+    <string name="btn_ttvideoeditor">自研移动端编辑器框架</string>
 
     <!-- 添加背景音乐部分 -->
     <string name="tv_test_source_voice">原声音量</string>

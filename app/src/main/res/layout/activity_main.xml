@@ -75,31 +75,49 @@
             android:text="@string/btn_flv_record"/>
 
         <Button
-            android:id="@+id/btn_media_record"
+            android:id="@+id/btn_mini_ttvideorecorder"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/dp5"
             android:background="@android:color/transparent"
             android:textColor="@color/white"
-            android:text="@string/btn_media_record"/>
+            android:text="@string/btn_mini_ttvideorecorder"/>
 
         <Button
-            android:id="@+id/btn_mini_record"
+            android:id="@+id/btn_mini_ttmplayer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/dp5"
             android:background="@android:color/transparent"
             android:textColor="@color/white"
-            android:text="@string/btn_mini_record"/>
+            android:text="@string/btn_mini_ttmplayer"/>
 
         <Button
-            android:id="@+id/btn_media_edit"
+            android:id="@+id/btn_ttvideorecorder"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/dp5"
             android:background="@android:color/transparent"
             android:textColor="@color/white"
-            android:text="@string/btn_media_edit"/>
+            android:text="@string/btn_ttvideorecorder"/>
+
+        <Button
+            android:id="@+id/btn_ttmplayer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/dp5"
+            android:background="@android:color/transparent"
+            android:textColor="@color/white"
+            android:text="@string/btn_ttmplayer"/>
+
+        <Button
+            android:id="@+id/btn_ttvideoeditor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/dp5"
+            android:background="@android:color/transparent"
+            android:textColor="@color/white"
+            android:text="@string/btn_ttvideoeditor"/>
     </LinearLayout>
 
 </ScrollView>
