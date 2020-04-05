@@ -249,7 +249,7 @@ int MediaPlayer::consumeAudioFrames(byte* outData, size_t bufferSize) {
 //      LOGI("After synchronizer fillAudioData... ");
         signalOutputFrameAvailable();
         if (messageQueue) {
-            messageQueue->postMessage(MSG_CURRENT_POSITON, getPlayProgress() * 1000, getDuration() * 1000);//ms
+            messageQueue->postMessage(MSG_CURRENT_POSITON, getCurrentPosition() * 1000, getDuration() * 1000);//ms
         }
     } else {
         //LOGI("MediaPlayer::consumeAudioFrames set 0");
@@ -286,14 +286,14 @@ float MediaPlayer::getBufferedProgress() {
     return 0.0f;
 }
 
-float MediaPlayer::getPlayProgress() {
+float MediaPlayer::getCurrentPosition() {
     if (NULL != synchronizer) {
         return synchronizer->getPlayProgress();
     }
     return 0.0f;
 }
 
-void MediaPlayer::seekToPosition(float position) {
+void MediaPlayer::seekTo(float position) {
     LOGI("enter MediaPlayer::seekToPosition...");
     if (NULL != synchronizer) {
         return synchronizer->seekToPosition(position);

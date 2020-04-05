@@ -196,7 +196,7 @@ status_t CainMediaPlayer::seekTo(float msec) {
             mediaPlayer->getMessageQueue()->postMessage(MSG_REQUEST_SEEK, msec);
         } else {
             //mediaPlayer->seekTo(msec);
-            mediaPlayer->seekToPosition(msec * 1000);
+            mediaPlayer->seekTo(msec * 1000);
             mSeekingPosition = (long)msec;
             mSeeking = true;
         }
@@ -209,7 +209,7 @@ long CainMediaPlayer::getCurrentPosition() {
         if (mSeeking) {
             return mSeekingPosition;
         }
-        return mediaPlayer->getPlayProgress();
+        return mediaPlayer->getCurrentPosition();
     }
     return 0;
 }
@@ -495,7 +495,7 @@ void CainMediaPlayer::run() {
                 mSeeking = true;
                 mSeekingPosition = (long)msg.arg1;
                 if (mediaPlayer != nullptr) {
-                    mediaPlayer->seekToPosition(mSeekingPosition * 1000);
+                    mediaPlayer->seekTo(mSeekingPosition * 1000);
                     //mediaPlayer->seekTo(mSeekingPosition);
                 }
                 break;
