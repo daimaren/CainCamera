@@ -6,7 +6,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include "opengl_media/render/video_gl_surface_render.h"
-#include "./common/circle_texture_queue.h"
+#include "circle_texture_queue.h"
 #include "egl_core/egl_core.h"
 #include "CommonTools.h"
 #include "message_queue/handler.h"
@@ -53,10 +53,7 @@ public:
 	int getScreenHeight(){
 		return screenHeight;
 	};
-
 	bool eglHasDestroyed;
-
-protected:
 private:
 	getTextureCallback produceDataCallback;
 	void* ctx;
@@ -79,8 +76,6 @@ private:
 	bool surfaceExists;
 	bool isANativeWindowValid;
 	bool forceGetFrame;
-
-
 };
 
 class VideoOuputHandler: public Handler {

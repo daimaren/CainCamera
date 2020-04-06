@@ -22,7 +22,7 @@ CainMediaPlayer::~CainMediaPlayer() {
 
 void CainMediaPlayer::init() {
     if (mediaPlayer == nullptr) {
-        mediaPlayer = new MediaPlayer();
+        mediaPlayer = new VideoEditor();
     }
     mMutex.lock();
     abortRequest = false;
@@ -118,9 +118,7 @@ status_t CainMediaPlayer::prepare() {
     }
     mPrepareSync = true;
 
-    int max_analyze_duration[] = {-1, -1, -1};
-    int cnt = 3;
-    status_t ret = mediaPlayer->prepare(mUrl, max_analyze_duration, cnt, -1, true, 0.5f, 0.5f);
+    status_t ret = mediaPlayer->prepare(mUrl, false);
     if (ret != NO_ERROR) {
         return ret;
     }

@@ -26,6 +26,7 @@ void CircleFrameTextureQueue::init(int width, int height, int queueSizeParam){
 	int i = queueSize - 1;
 	FrameTextureNode* nextCursor = tail;
 	FrameTextureNode* curCursor = NULL;
+	//初始化所有 FrameTextureNode
 	while (i > 0) {
 		curCursor = new FrameTextureNode();
 		curCursor->texture = buildFrameTexture(width, height, INVALID_FRAME_POSITION);
@@ -190,24 +191,6 @@ int CircleFrameTextureQueue::getValidSize(){
 	pthread_mutex_unlock(&mLock);
 	return size;
 }
-
-//int CircleFrameTextureQueue::getValidSize(){
-//	int size = 1;
-//	int getLockCode = pthread_mutex_lock(&mLock);
-//	FrameTextureNode* beginCursor = pullCursor;
-//	FrameTextureNode* endCursor = pushCursor;
-//	LOGI("pullCursor texId : %d pushCursor texId : %d", pullCursor->texture->texId, pushCursor->texture->texId);
-//	if(beginCursor == endCursor){
-//		size = 0;
-//	} else{
-//		while(beginCursor->next != endCursor){
-//			size++;
-//			beginCursor = beginCursor->next;
-//		}
-//	}
-//	pthread_mutex_unlock(&mLock);
-//	return size;
-//}
 
 bool CircleFrameTextureQueue::checkGlError(const char* op) {
 	GLint error;

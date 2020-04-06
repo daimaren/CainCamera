@@ -9,7 +9,7 @@
 #include <Condition.h>
 #include <CainThread.h>
 #include <android/native_window.h>
-#include <video_player/video_player_controller.h>
+#include <video_player/VideoEditor.h>
 #include "AVMessageQueue.h"
 #include "CommonTools.h"
 
@@ -179,7 +179,7 @@ private:
     bool abortRequest;
 
     MediaPlayerListener *mListener;
-    MediaPlayer* mediaPlayer;
+    VideoEditor* mediaPlayer;
     bool mSeeking;
     long mSeekingPosition;
     bool mPrepareSync;
