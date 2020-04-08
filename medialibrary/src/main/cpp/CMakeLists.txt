@@ -74,6 +74,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
 # Video编辑器，用最简洁的代码实现功能，麻雀虽小五脏俱全
 add_subdirectory(${CMAKE_SOURCE_DIR}/minivideoeditor)
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/minivideorecorder)
+
 # AudioEffect
 #add_subdirectory(${CMAKE_SOURCE_DIR}/AudioEffect)
 
