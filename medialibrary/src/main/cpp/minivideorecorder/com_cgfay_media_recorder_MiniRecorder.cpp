@@ -153,7 +153,7 @@ void JNIOnRecordListener::onRecordError(const char *msg) {
  * 初始化一个录制器对象
  */
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_nativeInit(JNIEnv *env, jobject thiz) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_nativeInit(JNIEnv *env, jobject thiz) {
     MiniRecorder *recorder = new MiniRecorder();
     return (jlong) recorder;
 }
@@ -162,8 +162,8 @@ Java_com_cgfay_media_recorder_MiniRecorder_nativeInit(JNIEnv *env, jobject thiz)
  * prepareEGLContext
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jlong handle, jobject surface, jint screenWidth, jint screenHeight,
-        jint cameraFacingId) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jlong handle, jobject surface, jint screenWidth, jint screenHeight,
+                                                                  jint cameraFacingId) {
     MiniRecorder *recorder = (MiniRecorder *)handle;
     JavaVM *jvm = NULL;
     env->GetJavaVM(&jvm);
@@ -180,7 +180,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_prepareEGLContext(JNIEnv *env, jobjec
  * prepareEGLContext
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_destroyEGLContext(JNIEnv *env, jobject thiz, jlong handle) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_destroyEGLContext(JNIEnv *env, jobject thiz, jlong handle) {
     MiniRecorder *recorder = (MiniRecorder *)handle;
     if (recorder) {
         recorder->destroyEGLContext();
@@ -191,7 +191,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_destroyEGLContext(JNIEnv *env, jobjec
  * notifyFrameAvailable
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz, jlong handle) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz, jlong handle) {
     MiniRecorder *recorder = (MiniRecorder *)handle;
     if (recorder) {
         recorder->notifyFrameAvailable();
@@ -201,7 +201,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_notifyFrameAvailable(JNIEnv *env, job
  * 释放录制器对象
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_nativeRelease(JNIEnv *env, jobject thiz, jlong handle) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_nativeRelease(JNIEnv *env, jobject thiz, jlong handle) {
     MiniRecorder *recorder = (MiniRecorder *)handle;
     if (recorder != nullptr) {
         recorder->release();
@@ -213,7 +213,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_nativeRelease(JNIEnv *env, jobject th
  * 设置录制监听器
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setRecordListener(JNIEnv *env, jobject thiz, jlong handle, jobject listener) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setRecordListener(JNIEnv *env, jobject thiz, jlong handle, jobject listener) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         JNIOnRecordListener *recordListener = new JNIOnRecordListener(javaVM, env, listener);
@@ -225,7 +225,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_setRecordListener(JNIEnv *env, jobjec
  * 设置录制输出路径
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setOutput(JNIEnv *env, jobject thiz, jlong handle, jstring dstPath_) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setOutput(JNIEnv *env, jobject thiz, jlong handle, jstring dstPath_) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         const char *dstPath = env->GetStringUTFChars(dstPath_, nullptr);
@@ -239,7 +239,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_setOutput(JNIEnv *env, jobject thiz, 
  * 设置音频编码器名称
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setAudioEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setAudioEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         const char *encoder = env->GetStringUTFChars(encoder_, nullptr);
@@ -253,7 +253,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_setAudioEncoder(JNIEnv *env, jobject 
  * 设置视频编码器名称
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setVideoEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setVideoEncoder(JNIEnv *env, jobject thiz, jlong handle, jstring encoder_) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         const char *encoder = env->GetStringUTFChars(encoder_, nullptr);
@@ -267,7 +267,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_setVideoEncoder(JNIEnv *env, jobject 
  * 设置音频AVFilter
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setAudioFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setAudioFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         const char *filter = env->GetStringUTFChars(filter_, nullptr);
@@ -281,7 +281,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_setAudioFilter(JNIEnv *env, jobject t
  * 设置视频AVFilter
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setVideoFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setVideoFilter(JNIEnv *env, jobject thiz, jlong handle, jstring filter_) {
 
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
@@ -297,7 +297,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_setVideoFilter(JNIEnv *env, jobject t
  * 设置录制视频旋转角度
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setVideoRotate(JNIEnv *env, jobject thiz, jlong handle, jint rotate) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setVideoRotate(JNIEnv *env, jobject thiz, jlong handle, jint rotate) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         RecordParams *recordParams = recorder->getRecordParams();
@@ -309,8 +309,8 @@ Java_com_cgfay_media_recorder_MiniRecorder_setVideoRotate(JNIEnv *env, jobject t
  * 设置视频录制参数
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setVideoParams(JNIEnv *env, jobject thiz, jlong handle,
-        jint width, jint height, jint frameRate, jint pixelFormat, jlong maxBitRate, jint quality) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setVideoParams(JNIEnv *env, jobject thiz, jlong handle,
+                                                               jint width, jint height, jint frameRate, jint pixelFormat, jlong maxBitRate, jint quality) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         RecordParams *recordParams = recorder->getRecordParams();
@@ -322,8 +322,8 @@ Java_com_cgfay_media_recorder_MiniRecorder_setVideoParams(JNIEnv *env, jobject t
  * 设置音频录制参数
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_setAudioParams(JNIEnv *env, jobject thiz, jlong handle,
-        jint sampleRate, jint sampleFormat, jint channels) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_setAudioParams(JNIEnv *env, jobject thiz, jlong handle,
+                                                               jint sampleRate, jint sampleFormat, jint channels) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         RecordParams *recordParams = recorder->getRecordParams();
@@ -335,8 +335,8 @@ Java_com_cgfay_media_recorder_MiniRecorder_setAudioParams(JNIEnv *env, jobject t
  * 录制一帧视频帧
  */
 extern "C" JNIEXPORT jint JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_recordVideoFrame(JNIEnv *env, jobject thiz, jlong handle,
-        jbyteArray data_, jint length, jint width, jint height, jint pixelFormat) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_recordVideoFrame(JNIEnv *env, jobject thiz, jlong handle,
+                                                                 jbyteArray data_, jint length, jint width, jint height, jint pixelFormat) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
     }
@@ -347,8 +347,8 @@ Java_com_cgfay_media_recorder_MiniRecorder_recordVideoFrame(JNIEnv *env, jobject
  * 录制一帧音频帧
  */
 extern "C" JNIEXPORT jint JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_recordAudioFrame(JNIEnv *env, jobject thiz, jlong handle,
-        jbyteArray data_, jint length) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_recordAudioFrame(JNIEnv *env, jobject thiz, jlong handle,
+                                                                 jbyteArray data_, jint length) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
         uint8_t *pcmData = (uint8_t *) malloc((size_t) length);
@@ -369,7 +369,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_recordAudioFrame(JNIEnv *env, jobject
  * 开始录制
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_startRecord(JNIEnv *env, jobject thiz, jlong handle) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_startRecord(JNIEnv *env, jobject thiz, jlong handle) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         recorder->startRecord();
@@ -380,7 +380,7 @@ Java_com_cgfay_media_recorder_MiniRecorder_startRecord(JNIEnv *env, jobject thiz
  * 停止录制
  */
 extern "C" JNIEXPORT void JNICALL
-Java_com_cgfay_media_recorder_MiniRecorder_stopRecord(JNIEnv *env, jobject thiz, jlong handle) {
+Java_com_cgfay_media_recorder_MiniVideoRecorder_stopRecord(JNIEnv *env, jobject thiz, jlong handle) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr) {
         recorder->stopRecord();

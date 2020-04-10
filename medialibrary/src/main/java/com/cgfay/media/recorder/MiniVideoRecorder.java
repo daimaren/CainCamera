@@ -16,7 +16,7 @@ import java.nio.ByteBuffer;
 /**
  * 基于FFmpeg的音频/视频录制器
  */
-public final class MiniRecorder {
+public final class MiniVideoRecorder {
     private static final String TAG = "MiniRecorder";
     private int defaultCameraFacingId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     public static final String MIME_TYPE = "video/avc"; // H.264 Advanced Video
@@ -40,13 +40,13 @@ public final class MiniRecorder {
 
     // 初始化
     private native long nativeInit();
+    // 释放资源
+    private native void nativeRelease(long handle);
     // prepareEGLContext
     public native void prepareEGLContext(long handle, Surface surface, int width, int height, int cameraFacingId);
     public native void destroyEGLContext(long handle);
     // notifyFrameAvailable
     public native void notifyFrameAvailable(long handle);
-    // 释放资源
-    private native void nativeRelease(long handle);
     // 设置录制监听回调
     private native void setRecordListener(long handle, Object listener);
     // 设置录制输出文件
@@ -72,6 +72,8 @@ public final class MiniRecorder {
     // 录制一帧音频帧
     private native int recordAudioFrame(long handle, byte[] data, int length);
     // 开始录制
+    //private native void prepare(long handle);
+    // 开始录制
     private native void startRecord(long handle);
     // 停止录制
     private native void stopRecord(long handle);
@@ -79,7 +81,7 @@ public final class MiniRecorder {
     private long handle;
     private String dstPath;
 
-    private MiniRecorder() {
+    private MiniVideoRecorder() {
         handle = nativeInit();
     }
 
@@ -132,6 +134,13 @@ public final class MiniRecorder {
             mCameraSurfaceTexture.updateTexImage();//OpenGL渲染线程才可以调用该函数
         }
     }
+    /**
+     * createMediaCodecSurfaceEncoderFromNative
+     * @param width
+     * @param height
+     * @param bitRate
+     * @param frameRate
+     */
     /***************************************MediaCodec functions***********************************************/
     public void createMediaCodecSurfaceEncoderFromNative(int width, int height, int bitRate, int frameRate) {
         try {
@@ -503,8 +512,8 @@ public final class MiniRecorder {
          * 创建一个录制器
          * @return
          */
-        public MiniRecorder create() {
-            MiniRecorder recorder = new MiniRecorder();
+        public MiniVideoRecorder create() {
+            MiniVideoRecorder recorder = new MiniVideoRecorder();
             recorder.setOutput(mDstPath);
             recorder.setVideoParams(mWidth, mHeight, mFrameRate, mPixelFormat, mMaxBitRate, mQuality);
             recorder.setVideoRotate(mRotate);

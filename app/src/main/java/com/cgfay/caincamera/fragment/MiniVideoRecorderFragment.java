@@ -22,14 +22,14 @@ import com.cgfay.caincamera.R;
 import com.cgfay.camera.utils.PathConstraints;
 import com.cgfay.camera.widget.RecordProgressView;
 import com.cgfay.media.recorder.AudioRecorder;
-import com.cgfay.media.recorder.MiniRecorder;
+import com.cgfay.media.recorder.MiniVideoRecorder;
 import com.cgfay.uitls.utils.NotchUtils;
 import com.cgfay.uitls.utils.StatusBarUtils;
 
-public class MiniRecordFragment extends Fragment implements View.OnClickListener, SurfaceHolder.Callback,
-        MiniRecorder.OnRecordListener, AudioRecorder.OnRecordCallback{
+public class MiniVideoRecorderFragment extends Fragment implements View.OnClickListener, SurfaceHolder.Callback,
+        MiniVideoRecorder.OnRecordListener, AudioRecorder.OnRecordCallback{
 
-    private static final String TAG = "MediaRecordFragment";
+    private static final String TAG = "MiniVideoRecorderFragment";
     private static final int CAMERA_FACING_BACK = 0;
     private static final int CAMERA_FACING_FRONT = 1;
 
@@ -44,7 +44,7 @@ public class MiniRecordFragment extends Fragment implements View.OnClickListener
     private Button mBtnNext;
     private Button mBtnDelete;
 
-    private MiniRecorder mMiniRecorder;
+    private MiniVideoRecorder mMiniRecorder;
     private AudioRecorder mAudioRecorder;
 
     private boolean mIsRecording = false;
@@ -72,7 +72,7 @@ public class MiniRecordFragment extends Fragment implements View.OnClickListener
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mMiniRecorder = new MiniRecorder.RecordBuilder(generateOutputPath())
+        mMiniRecorder = new MiniVideoRecorder.RecordBuilder(generateOutputPath())
                 .create();
         mMiniRecorder.setRecordListener(this);
         initView();
@@ -86,7 +86,6 @@ public class MiniRecordFragment extends Fragment implements View.OnClickListener
         mSVRecordView.getHolder().addCallback(this);
         // 进度条
         mProgressView = (RecordProgressView) mContentView.findViewById(R.id.record_progress_view);
-
         // 录制按钮
         mRecordButton = (Button) mContentView.findViewById(R.id.record_button);
         mRecordButton.setOnClickListener(v -> {
