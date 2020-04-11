@@ -1,8 +1,6 @@
 package com.timeapp.shawn.recorder.pro;
 
 
-import com.timeapp.shawn.recorder.pro.recording.video.VideoRecordingStudio;
-
 public class Videostudio {
 
     private static Videostudio instance = new Videostudio();
@@ -32,9 +30,7 @@ public class Videostudio {
                                 int audioSampleRate, int audioChannels, int audioBitRate,
                                 int qualityStrategy, int adaptiveBitrateWindowSizeInSecs, int adaptiveBitrateEncoderReconfigInterval,
                                 int adaptiveBitrateWarCntThreshold, int adaptiveMinimumBitrate,
-                                int adaptiveMaximumBitrate,
-                                VideoRecordingStudio.RecordingStudioStateCallback recordingStudioStateCallback) {
-        this.setRecordingStudioStateCallback(recordingStudioStateCallback);
+                                int adaptiveMaximumBitrate) {
         return this.startCommonVideoRecord(outputPath, videoWidth, videoheight, videoFrameRate, videoBitRate, audioSampleRate,
                 audioChannels, audioBitRate, qualityStrategy,adaptiveBitrateWindowSizeInSecs, adaptiveBitrateEncoderReconfigInterval,
                 adaptiveBitrateWarCntThreshold, adaptiveMinimumBitrate, adaptiveMaximumBitrate);
@@ -45,54 +41,7 @@ public class Videostudio {
      **/
     public void stopRecord() {
         this.stopVideoRecord();
-        this.recordingStudioStateCallback = null;
     }
 
     public native void stopVideoRecord();
-
-    private VideoRecordingStudio.RecordingStudioStateCallback recordingStudioStateCallback;
-
-    public void setRecordingStudioStateCallback(VideoRecordingStudio.RecordingStudioStateCallback recordingStudioStateCallback) {
-        this.recordingStudioStateCallback = recordingStudioStateCallback;
-    }
-
-    public void publishTimeOutFromNative() {
-        if (null != recordingStudioStateCallback) {
-            recordingStudioStateCallback.onPublishTimeOut();
-        }
-    }
-
-    private long connectSuccessTimeMills;
-
-    public void connectSuccess() {
-        connectSuccessTimeMills = System.currentTimeMillis();
-    }
-
-    public void statisticsCallbackFromNative(int connectTimeMills, int publishDurationInSec,
-                                             float discardFrameRatio, float publishAVGBitRate, float expectedBitRate, String adaptiveBitrateChart) {
-        if (null != recordingStudioStateCallback) {
-            long startTimeMills = connectSuccessTimeMills - connectTimeMills;
-            recordingStudioStateCallback.statisticsCallback(startTimeMills, connectTimeMills, publishDurationInSec,
-                    discardFrameRatio, publishAVGBitRate, expectedBitRate, adaptiveBitrateChart);
-        }
-    }
-
-    public void adaptiveVideoQualityFromNative(int videoQuality) {
-        if (null != recordingStudioStateCallback) {
-            recordingStudioStateCallback.adaptiveVideoQuality(videoQuality);
-        }
-    }
-
-    public void hotAdaptiveVideoQualityFromNative(int maxBitrate, int avgBitrate, int fps) {
-        if (null != recordingStudioStateCallback) {
-            recordingStudioStateCallback.hotAdaptiveVideoQuality(maxBitrate, avgBitrate, fps);
-        }
-    }
-    
-    public void statisticsBitrateFromNative(int sendBitrate, int compressedBitrate) {
-        if (null != recordingStudioStateCallback) {
-            recordingStudioStateCallback.statisticsBitrateCallback(sendBitrate, compressedBitrate);
-        }
-    }
-
 }

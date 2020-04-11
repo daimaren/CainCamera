@@ -18,7 +18,6 @@ import com.timeapp.shawn.recorder.pro.recording.exception.StartRecordingExceptio
 import com.timeapp.shawn.recorder.pro.recording.service.PlayerService;
 import com.timeapp.shawn.recorder.pro.recording.service.factory.PlayerServiceFactory;
 import com.timeapp.shawn.recorder.pro.recording.service.impl.AudioRecordRecorderServiceImpl;
-import com.timeapp.shawn.recorder.pro.recording.video.VideoRecordingStudio;
 import com.timeapp.shawn.recorder.pro.recording.video.service.MediaRecorderService;
 import com.timeapp.shawn.recorder.pro.recording.video.service.factory.MediaRecorderServiceFactory;
 
@@ -122,7 +121,6 @@ public final class MediaRecorder {
                     if (ret < 0) {
                         destroyRecordingResource();
                     } else {
-                        Videostudio.getInstance().connectSuccess();
                         startProducer(videoWidth, videoHeight, useHardWareEncoding, qualityStrategy);
                     }
                 } catch (StartRecordingException exception) {
@@ -139,16 +137,16 @@ public final class MediaRecorder {
                                 int adaptiveMaximumBitrate) {
 
         qualityStrategy = ifQualityStrayegyEnable(qualityStrategy);
-        return Videostudio.getInstance().startVideoRecord(outputPath,
+        return startCommonVideoRecord(outputPath,
                 videoWidth, videoHeight, VIDEO_FRAME_RATE, COMMON_VIDEO_BIT_RATE,
                 audioSampleRate, audioChannels, audioBitRate,
                 qualityStrategy, adaptiveBitrateWindowSizeInSecs, adaptiveBitrateEncoderReconfigInterval,
-                adaptiveBitrateWarCntThreshold, adaptiveMinimumBitrate, adaptiveMaximumBitrate, null);
+                adaptiveBitrateWarCntThreshold, adaptiveMinimumBitrate, adaptiveMaximumBitrate);
     }
 
     public void stopRecording() {
         destroyRecordingResource();
-        Videostudio.getInstance().stopRecord();
+        stopVideoRecord();
     }
 
     protected boolean startProducer(final int videoWidth, int videoHeight, boolean useHardWareEncoding, int strategy) throws StartRecordingException {
@@ -156,7 +154,7 @@ public final class MediaRecorder {
             playerService.start();
         }
         if (recorderService != null) {
-            return recorderService.start(videoWidth, videoHeight, VideoRecordingStudio.getInitializeVideoBitRate(), VIDEO_FRAME_RATE, useHardWareEncoding, strategy);
+            return recorderService.start(videoWidth, videoHeight, initializeVideoBitRate, VIDEO_FRAME_RATE, useHardWareEncoding, strategy);
         }
 
         return false;
@@ -243,7 +241,19 @@ public final class MediaRecorder {
             playerService.setAudioEffect(audioEffect);
         }
     }
-
+    /**
+     * 开启普通录制歌曲的视频的后台Publisher线程
+     **/
+    public native int startCommonVideoRecord(String outputPath, int videoWidth,
+                                             int videoheight, int videoFrameRate, int videoBitRate,
+                                             int audioSampleRate, int audioChannels, int audioBitRate,
+                                             int qualityStrategy,
+                                             int adaptiveBitrateWindowSizeInSecs,
+                                             int adaptiveBitrateEncoderReconfigInterval,
+                                             int adaptiveBitrateWarCntThreshold,
+                                             int adaptiveMinimumBitrate,
+                                             int adaptiveMaximumBitrate);
+    public native void stopVideoRecord();
     // 初始化
     private native long nativeInit();
     // 释放资源
