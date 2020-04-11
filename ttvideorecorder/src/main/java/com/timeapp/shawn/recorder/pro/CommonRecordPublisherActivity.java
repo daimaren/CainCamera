@@ -39,15 +39,13 @@ import com.timeapp.shawn.recorder.pro.audioeffect.AudioEffectParamController;
 import com.timeapp.shawn.recorder.pro.audioeffect.AudioEffectStyleEnum;
 import com.timeapp.shawn.recorder.pro.audioeffect.AudioInfo;
 import com.timeapp.shawn.recorder.pro.recording.RecordingImplType;
-import com.timeapp.shawn.recorder.pro.recording.camera.preview.ChangbaRecordingPreviewScheduler;
+import com.timeapp.shawn.recorder.pro.recording.camera.preview.PreviewScheduler;
 import com.timeapp.shawn.recorder.pro.recording.camera.preview.ChangbaRecordingPreviewView;
 import com.timeapp.shawn.recorder.pro.recording.camera.preview.ChangbaVideoCamera;
 import com.timeapp.shawn.recorder.pro.recording.camera.preview.PreviewFilterType;
 import com.timeapp.shawn.recorder.pro.recording.exception.RecordingStudioException;
 import com.timeapp.shawn.recorder.pro.recording.exception.StartRecordingException;
 import com.timeapp.shawn.recorder.pro.recording.service.PlayerService;
-import com.timeapp.shawn.recorder.pro.recording.video.CommonVideoRecordingStudio;
-import com.timeapp.shawn.recorder.pro.recording.video.VideoRecordingStudio;
 import com.timeapp.shawn.recorder.pro.util.FilePathUtil;
 import com.timeapp.shawn.recorder.pro.util.LogUtils;
 
@@ -104,9 +102,8 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
     private AudioEffect audioEffect;
 
     private ChangbaVideoCamera videoCamera;
-    private ChangbaRecordingPreviewScheduler previewScheduler;
-    private CommonVideoRecordingStudio recordingStudio;
-
+    private PreviewScheduler previewScheduler;
+    private MediaRecorder mMediaRecorder;
 
     private Button highBtn;
     private Button middleBtn;
@@ -125,12 +122,12 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
         findView();
         bindListener();
         initView();
-        initRecordingStudio();
+        initPreview();
     }
     
-    private void initRecordingStudio() {
+    private void initPreview() {
         videoCamera = new ChangbaVideoCamera(this);
-        previewScheduler = new ChangbaRecordingPreviewScheduler(surfaceView, videoCamera) {
+        previewScheduler = new PreviewScheduler(surfaceView, videoCamera) {
             public void onPermissionDismiss(final String tip) {
                 mHandler.post(new Runnable() {
                     @Override
@@ -140,8 +137,8 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
                 });
             }
         };
-        recordingStudio = new CommonVideoRecordingStudio(RecordingImplType.ANDROID_PLATFORM,
-                mTimeHandler, onComletionListener, recordingStudioStateCallback);
+        mMediaRecorder = new MediaRecorder(RecordingImplType.ANDROID_PLATFORM,
+                mTimeHandler, onComletionListener);
     }
 
     PlayerService.OnCompletionListener onComletionListener = new PlayerService.OnCompletionListener() {
@@ -179,7 +176,7 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
             audioEffect = AudioEffectParamController.getInstance().extractParam(AudioEffectStyleEnum.POPULAR,
                     AudioEffectEQEnum.STANDARD);
             int duration = 120 * 60 * 1000;
-            int audioSampleRate = recordingStudio.getRecordSampleRate();
+            int audioSampleRate = mMediaRecorder.getRecordSampleRate();
             int channels = 1;
             int recordedTimeMills = duration;
             int totalTimeMills = 120 * 60 * 1000;
@@ -189,9 +186,9 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
                     accompanyAGCVolume, audioAGCVolume, (float) accompanyPitch, "", pitchShiftLevel);
             audioEffect.setAudioInfo(audioInfo);
             audioEffect.setAudioVolume(audioVolume);
-            recordingStudio.initRecordingResource(previewScheduler, audioEffect);
+            mMediaRecorder.initRecordingResource(previewScheduler, audioEffect);
         } catch (RecordingStudioException e) {
-            recordingStudio.destroyRecordingResource();
+            mMediaRecorder.destroyRecordingResource();
             return;
         }
         mHandler.sendEmptyMessageDelayed(START_RECORD, 800);
@@ -200,10 +197,7 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
     }
 
     public void recordStart() {
-
         LogUtils.e("Recorder", "recordStart start");
-
-        connect_tip_layout.setVisibility(View.VISIBLE);
 
         int adaptiveBitrateWindowSizeInSecs = 3;
         int adaptiveBitrateEncoderReconfigInterval = 15 * 1000;
@@ -212,174 +206,16 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
         int width = 360;
         int height = 640;
         int bitRateKbs = 900;
-        int audioSampleRate = recordingStudio.getRecordSampleRate();
-        recordingStudio.startVideoRecording(FilePathUtil.getVideoRecordingFilePath(),bitRateKbs, width, height,
+        int audioSampleRate = mMediaRecorder.getRecordSampleRate();
+        mMediaRecorder.startVideoRecording(FilePathUtil.getVideoRecordingFilePath(),bitRateKbs, width, height,
         		audioSampleRate,0, adaptiveBitrateWindowSizeInSecs, adaptiveBitrateEncoderReconfigInterval, 
         		adaptiveBitrateWarCntThreshold,300, 800, isUseHWEncoder);
 
         LogUtils.e("Recorder", "recordStart end");
     }
 
-    private VideoRecordingStudio.RecordingStudioStateCallback recordingStudioStateCallback = new VideoRecordingStudio.RecordingStudioStateCallback() {
-        @Override
-        public void onConnectRTMPServerFailed() {
-            isPublishing = false;
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    connect_tip_layout.setVisibility(View.GONE);
-                    btn_start.setText(getResources().getString(R.string.start_live));
-                    btn_start.setVisibility(View.VISIBLE);
-                    btn_start.setOnClickListener(CommonRecordPublisherActivity.this);
-                    countDownTimeSec = 3;
-                    initRecordingStudio();
-                    mCompleteBtn.setVisibility(View.GONE);
-                    Toast.makeText(CommonRecordPublisherActivity.this, "连接RTMP服务器失败", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        @Override
-        public void onConnectRTMPServerSuccessed() {
-            isPublishing = true;
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    connect_tip_layout.setVisibility(View.GONE);
-                }
-            });
-        }
-
-        @Override
-        public void onStartRecordingException(final StartRecordingException exception) {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(CommonRecordPublisherActivity.this, exception.getMessage(), Toast.LENGTH_SHORT)
-                            .show();
-                }
-            });
-        }
-
-        @Override
-        public void onPublishTimeOut() {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    recordStop();
-                    load_text_tip.setText(getResources().getString(R.string.publish_timeout_tip));
-                    connect_tip_layout.setVisibility(View.VISIBLE);
-                    btn_start.setVisibility(View.VISIBLE);
-                    mCompleteBtn.setVisibility(View.GONE);
-                    Toast.makeText(CommonRecordPublisherActivity.this, "推流期间，由于网络原因超时", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        @Override
-        public void statisticsCallback(long startTimeMills, int connectTimeMills, int publishDurationInSec,
-                                       float discardFrameRatio, float publishAVGBitRate, float expectedBitRate, String adaptiveBitrateChart) {
-            StringBuilder statisticsBuilder = new StringBuilder("statisticsCallback : ");
-            statisticsBuilder.append("startTimeMills【").append(startTimeMills).append("】");
-            statisticsBuilder.append("connectTimeMills【").append(connectTimeMills).append("】");
-            statisticsBuilder.append("publishDurationInSec【").append(publishDurationInSec).append("】");
-            statisticsBuilder.append("discardFrameRatio【").append(discardFrameRatio).append("】");
-            statisticsBuilder.append("publishAVGBitRate【").append(publishAVGBitRate).append("】");
-            statisticsBuilder.append("expectedBitRate【").append(expectedBitRate).append("】");
-            statisticsBuilder.append("adaptiveBitrateChart【").append(adaptiveBitrateChart).append("】");
-            Log.i("problem", statisticsBuilder.toString());
-        }
-
-        @Override
-        public void adaptiveVideoQuality(int videoQuality) {
-            boolean invalidFlag = false;
-            boolean showUserTip = false;
-            int bitrate = VideoRecordingStudio.COMMON_VIDEO_BIT_RATE;
-            int bitrateLimits = VideoRecordingStudio.COMMON_VIDEO_BIT_RATE;
-            int fps = VideoRecordingStudio.VIDEO_FRAME_RATE;
-            switch (videoQuality) {
-                case VideoRecordingStudio.HIGHT_VIDEO_QUALITY:
-                    bitrate = VideoRecordingStudio.COMMON_VIDEO_BIT_RATE;
-                    ;
-                    bitrateLimits = VideoRecordingStudio.COMMON_VIDEO_BIT_RATE;
-                    ;
-                    fps = VideoRecordingStudio.VIDEO_FRAME_RATE;
-                    ;
-                    break;
-                case VideoRecordingStudio.MIDDLE_VIDEO_QUALITY:
-                    bitrate = VideoRecordingStudio.MIDDLE_VIDEO_BIT_RATE;
-                    bitrateLimits = VideoRecordingStudio.MIDDLE_VIDEO_BIT_RATE;
-                    fps = VideoRecordingStudio.MIDDLE_VIDEO_FRAME_RATE;
-                    break;
-                case VideoRecordingStudio.LOW_VIDEO_QUALITY:
-                    showUserTip = true;
-                    bitrate = VideoRecordingStudio.LOW_VIDEO_BIT_RATE;
-                    bitrateLimits = VideoRecordingStudio.LOW_VIDEO_BIT_RATE;
-                    fps = VideoRecordingStudio.LOW_VIDEO_FRAME_RATE;
-                    break;
-                case VideoRecordingStudio.INVLAID_QUALITY:
-                    invalidFlag = true;
-                    break;
-                default:
-                    break;
-            }
-            if (invalidFlag) {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        recordStop();
-                        load_text_tip.setText(getResources().getString(R.string.publish_timeout_tip));
-                        connect_tip_layout.setVisibility(View.VISIBLE);
-                        btn_start.setVisibility(View.VISIBLE);
-                        mCompleteBtn.setVisibility(View.GONE);
-                        Toast.makeText(CommonRecordPublisherActivity.this, "由于当前网络环境过差，无法支持视频直播。请切换至其他网络或改善所处网络环境后重新开播！", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            } else {
-                Log.i("problem", "由于当前网络环境较差，已切换至流畅模式。如需使用高清模式，请改善所处网络环境后重新开播！[" + (int) (bitrate / 1024) + "Kbps, " + fps + "]");
-                if (showUserTip) {
-                    mHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            String text = "由于当前网络环境较差，已切换至流畅模式。如需使用高清模式，请改善所处网络环境后重新开播！";
-                            new AlertDialog.Builder(CommonRecordPublisherActivity.this).setMessage(text)
-                                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                                        @Override
-                                        public void onClick(DialogInterface dialog, int arg1) {
-                                            if (null != dialog) {
-                                                dialog.dismiss();
-                                                dialog = null;
-                                            }
-                                        }
-                                    }).setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int id) {
-                                    if (null != dialog) {
-                                        dialog.dismiss();
-                                        dialog = null;
-                                    }
-                                }
-                            }).show();
-                        }
-                    });
-                }
-                previewScheduler.adaptiveVideoQuality(bitrateLimits, bitrate, fps);
-            }
-        }
-
-        @Override
-        public void hotAdaptiveVideoQuality(int maxBitrate, int avgBitrate, int fps) {
-            previewScheduler.hotConfigQuality(maxBitrate * 1000, avgBitrate * 1000, fps);
-
-            Log.d("adaptiveVideoQuality", " maxBitrate " + maxBitrate + " fps " + fps);
-        }
-
-		@Override
-		public void statisticsBitrateCallback(int sendBitrate, int compressedBitrate) {
-		}
-    };
-
     public void recordStop() {
-        recordingStudio.stopRecording();
+        mMediaRecorder.stopRecording();
     }
 
     private void completeRecord() {
@@ -487,35 +323,35 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_rock.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_rnb) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.RNB;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_rnb.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_popular) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.POPULAR;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_popular.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_dance) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.DANCE;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_dance.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_new_centrury) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.NEW_CENT;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_new_centrury.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_tune) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.AUTO_TUNE;
@@ -530,28 +366,28 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
                 }
                 audioInfo.setMelFilePath(melFilePath);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_tune.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_phonograph) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.GRAMOPHONE;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_phonograph.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_original) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.ORIGINAL;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_original.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             } else if (id == R.id.audio_double_u) {
                 AudioEffectStyleEnum songStyleEnum = AudioEffectStyleEnum.DOUBLEYOU;
                 audioEffect = AudioEffectParamController.getInstance().extractParam(songStyleEnum,
                         AudioEffectEQEnum.STANDARD);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
                 audio_double_u.setBackgroundDrawable(getResources().getDrawable(R.drawable.filter_selected));
             }
         }
@@ -761,7 +597,7 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
         } catch (Exception e) {
             e.printStackTrace();
         }
-        recordingStudio.startAccompany(musicPath);
+        mMediaRecorder.startAccompany(musicPath);
         isPlaying = true;
         //如果是电音, 需要把AudioEffect 重新设置一下
         if (audioEffect.getSongStyleId() == AudioEffectStyleEnum.AUTO_TUNE.getId()) {
@@ -769,17 +605,17 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
                 String melFilePath = song.getMelpPath();
                 audioInfo.setMelFilePath(melFilePath);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
             }
         }
     }
 
     private void pauseMiniPlayer() {
-        recordingStudio.pauseAccompany();
+        mMediaRecorder.pauseAccompany();
     }
 
     private void resumeMiniPlayer() {
-        recordingStudio.resumeAccompany();
+        mMediaRecorder.resumeAccompany();
     }
 
     private void hideMiniPlayer() {
@@ -790,13 +626,13 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
             if (null != song.getMelpPath() && song.getMelpPath().trim().length() > 0) {
                 audioInfo.setMelFilePath(defaultMelFilePath);
                 audioEffect.setAudioInfo(audioInfo);
-                recordingStudio.setAudioEffect(audioEffect);
+                mMediaRecorder.setAudioEffect(audioEffect);
             }
         }
     }
 
     private void closeMiniPlayer() {
-        recordingStudio.stopAccompany();
+        mMediaRecorder.stopAccompany();
         this.hideMiniPlayer();
     }
 
@@ -909,19 +745,19 @@ public class CommonRecordPublisherActivity extends Activity implements OnClickLi
                 case AUDIO_VOLUME_CHANGED:
                     if (null != audioEffect) {
                         audioEffect.setAudioVolume(audioVolume);
-                        recordingStudio.setAudioEffect(audioEffect);
+                        mMediaRecorder.setAudioEffect(audioEffect);
                     }
                     break;
                 case ACCOMPANY_VOLUME_CHANGED:
-                    if (null != recordingStudio) {
-                        recordingStudio.setAccompanyVolume(accompanyVolume, 1.0f);
+                    if (null != mMediaRecorder) {
+                        mMediaRecorder.setAccompanyVolume(accompanyVolume, 1.0f);
                     }
                     break;
                 case PITCH_LEVEL_CHANGED:
                     if (null != audioEffect) {
                         accompanyPitch = (float) Math.pow(1.059463094359295, pitchShiftLevel);
                         audioEffect.getAudioInfo().setAccomanyPitch(accompanyPitch, pitchShiftLevel);
-                        recordingStudio.setAccompanyEffect(audioEffect);
+                        mMediaRecorder.setAccompanyEffect(audioEffect);
                     }
                     break;
             }

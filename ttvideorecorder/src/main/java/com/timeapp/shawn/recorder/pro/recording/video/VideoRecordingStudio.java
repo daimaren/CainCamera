@@ -7,7 +7,7 @@ import com.timeapp.shawn.recorder.pro.Videostudio;
 import com.timeapp.shawn.recorder.pro.audioeffect.AudioEffect;
 import com.timeapp.shawn.recorder.pro.recording.RecordingImplType;
 import com.timeapp.shawn.recorder.pro.recording.camera.exception.CameraParamSettingException;
-import com.timeapp.shawn.recorder.pro.recording.camera.preview.ChangbaRecordingPreviewScheduler;
+import com.timeapp.shawn.recorder.pro.recording.camera.preview.PreviewScheduler;
 import com.timeapp.shawn.recorder.pro.recording.camera.preview.PreviewFilterType;
 import com.timeapp.shawn.recorder.pro.recording.exception.InitRecorderFailException;
 import com.timeapp.shawn.recorder.pro.recording.exception.RecordingStudioException;
@@ -76,7 +76,7 @@ public abstract class VideoRecordingStudio {
         this.recordingStudioStateCallback = recordingStudioStateCallback;
     }
 
-    public void initRecordingResource(ChangbaRecordingPreviewScheduler scheduler, AudioEffect audioEffect) throws RecordingStudioException {
+    public void initRecordingResource(PreviewScheduler scheduler, AudioEffect audioEffect) throws RecordingStudioException {
         // 实例化以及init录音器
         /**
          * 这里一定要注意顺序，先初始化record在初始化player，因为player中要用到recorder中的samplerateSize

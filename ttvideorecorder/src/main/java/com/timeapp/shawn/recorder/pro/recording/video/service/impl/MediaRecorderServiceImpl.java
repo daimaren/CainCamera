@@ -5,7 +5,7 @@ import android.content.res.AssetManager;
 import com.timeapp.shawn.recorder.pro.audioeffect.AudioEffect;
 import com.timeapp.shawn.recorder.pro.encoder.MediaCodecSurfaceEncoder;
 import com.timeapp.shawn.recorder.pro.recording.camera.exception.CameraParamSettingException;
-import com.timeapp.shawn.recorder.pro.recording.camera.preview.ChangbaRecordingPreviewScheduler;
+import com.timeapp.shawn.recorder.pro.recording.camera.preview.PreviewScheduler;
 import com.timeapp.shawn.recorder.pro.recording.camera.preview.PreviewFilterType;
 import com.timeapp.shawn.recorder.pro.recording.exception.AudioConfigurationException;
 import com.timeapp.shawn.recorder.pro.recording.exception.StartRecordingException;
@@ -16,9 +16,9 @@ import com.timeapp.shawn.recorder.pro.recording.video.service.MediaRecorderServi
 public class MediaRecorderServiceImpl implements MediaRecorderService {
 
 	private RecorderService audioRecorderService;
-	private ChangbaRecordingPreviewScheduler previewScheduler;
+	private PreviewScheduler previewScheduler;
 
-	public MediaRecorderServiceImpl(RecorderService recorderService, ChangbaRecordingPreviewScheduler scheduler) {
+	public MediaRecorderServiceImpl(RecorderService recorderService, PreviewScheduler scheduler) {
 		this.audioRecorderService = recorderService;
 		this.previewScheduler = scheduler;
 	}

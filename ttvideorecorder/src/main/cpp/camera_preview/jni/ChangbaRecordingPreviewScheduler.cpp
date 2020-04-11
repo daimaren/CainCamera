@@ -5,7 +5,7 @@
 static MVRecordingPreviewController *previewController = 0;
 static jobject g_obj = 0;
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchPreviewFilter(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchPreviewFilter(
         JNIEnv *env, jobject obj, jint filterType, jobject assetManager, jstring filename) {
     if (NULL != previewController) {
         byte *buffer = NULL;
@@ -40,14 +40,14 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchCameraFacing(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchCameraFacing(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->switchCameraFacing();
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_adaptiveVideoQuality(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_adaptiveVideoQuality(
         JNIEnv *env, jobject obj, jint maxBitRate, jint avgBitRate, jint fps) {
     if (NULL != previewController) {
         previewController->adaptiveVideoQuality(maxBitRate, avgBitRate, fps);
@@ -55,7 +55,7 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
 }
 
 JNIEXPORT void JNICALL
-Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_hotConfigQuality(
+Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_hotConfigQuality(
         JNIEnv *env, jobject instance, jint max, jint avg, jint fps) {
     if (NULL != previewController) {
         previewController->hotConfigQuality(max, avg, fps);
@@ -63,7 +63,7 @@ Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPre
 
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_startEncoding(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_startEncoding(
         JNIEnv *env, jobject obj, jint width, jint height, jint videoBitRate, jint frameRate,
         jboolean useHardWareEncoding, jint strategy) {
     if (NULL != previewController) {
@@ -72,14 +72,14 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_stopEncoding(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_stopEncoding(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->stopEncoding();
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_createWindowSurface(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_createWindowSurface(
         JNIEnv *env, jobject obj, jobject surface) {
     if (surface != 0 && NULL != previewController) {
         ANativeWindow *window = ANativeWindow_fromSurface(env, surface);
@@ -89,14 +89,14 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_destroyWindowSurface(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_destroyWindowSurface(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->destroyWindowSurface();
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_prepareEGLContext(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_prepareEGLContext(
         JNIEnv *env, jobject obj, jobject surface, jint screenWidth, jint screenHeight,
         jint cameraFacingId) {
     previewController = new MVRecordingPreviewController();
@@ -112,14 +112,14 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_resetRenderSize(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_resetRenderSize(
         JNIEnv *env, jobject obj, jint screenWidth, jint screenHeight) {
     if (NULL != previewController) {
         previewController->resetRenderSize(screenWidth, screenHeight);
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_destroyEGLContext(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_destroyEGLContext(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->destroyEGLContext();
@@ -133,14 +133,14 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_notifyFrameAvailable(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_notifyFrameAvailable(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->notifyFrameAvailable();
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_updateTexMatrix(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_updateTexMatrix(
         JNIEnv *env, jobject obj, jfloatArray array) {
     if (NULL != previewController) {
         jfloat *texMatrix;
@@ -150,21 +150,21 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchPauseRecordingPreviewState(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchPauseRecordingPreviewState(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->switchPauseRecordingPreviewState();
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchCommonPreviewState(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchCommonPreviewState(
         JNIEnv *env, jobject obj) {
     if (NULL != previewController) {
         previewController->switchCommonPreviewState();
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_hotConfig(
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_hotConfig(
         JNIEnv *env, jobject instance, jint bitRate, jint fps, jint gopSize) {
     LOGI(" %s", "Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_hotConfig");
     if (NULL != previewController) {
@@ -172,7 +172,7 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
     }
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_setBeautifyParam(JNIEnv* env, jobject obj, jint key, jfloat value) {
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_setBeautifyParam(JNIEnv* env, jobject obj, jint key, jfloat value) {
 	LOGI("Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_setBeautifyParam");
 	LOGI("setbeautify: %d, %f", key, value);
 	if(NULL != previewController) {

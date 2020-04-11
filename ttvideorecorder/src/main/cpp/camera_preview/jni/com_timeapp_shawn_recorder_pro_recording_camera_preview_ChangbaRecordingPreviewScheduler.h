@@ -18,14 +18,14 @@ extern "C" {
  * Method:    switchPreviewFilter
  * Signature: (ILjava/lang/Object;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchPreviewFilter
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchPreviewFilter
   (JNIEnv *, jobject, jint, jobject, jstring);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_adaptiveVideoQuality
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_adaptiveVideoQuality
   (JNIEnv *, jobject, jint, jint, jint);
 
 JNIEXPORT void JNICALL
-Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_hotConfigQuality(
+Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_hotConfigQuality(
         JNIEnv *env, jobject instance,jint max, jint avg, jint fps);
 
 /*
@@ -33,20 +33,20 @@ Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPre
  * Method:    switchCameraFacing
  * Signature: (I)V
  */
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchCameraFacing
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchCameraFacing
   (JNIEnv *, jobject);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_startEncoding
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_startEncoding
   (JNIEnv *, jobject, jint, jint, jint, jint, jboolean, jint);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_stopEncoding
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_stopEncoding
   (JNIEnv *, jobject);
 /*
  * Class:     com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler
  * Method:    prepareEGLContext
  * Signature: (Ljava/lang/Object;II)V
  */
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_prepareEGLContext
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_prepareEGLContext
   (JNIEnv *, jobject, jobject, jint, jint, jint);
 
 /*
@@ -54,7 +54,7 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
  * Method:    resetRenderSize
  * Signature: (II)V
  */
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_resetRenderSize
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_resetRenderSize
   (JNIEnv *, jobject, jint, jint);
 
 /*
@@ -62,7 +62,7 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
  * Method:    destroyEGLContext
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_destroyEGLContext
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_destroyEGLContext
   (JNIEnv *, jobject);
 
 /*
@@ -70,26 +70,26 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_prev
  * Method:    notifyFrameAvailable
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_notifyFrameAvailable
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_notifyFrameAvailable
   (JNIEnv *, jobject);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_updateTexMatrix
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_updateTexMatrix
   (JNIEnv *, jobject, jfloatArray);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchPauseRecordingPreviewState
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchPauseRecordingPreviewState
   (JNIEnv* env, jobject obj);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_switchCommonPreviewState
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_switchCommonPreviewState
   (JNIEnv* env, jobject obj);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_createWindowSurface
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_createWindowSurface
   (JNIEnv*, jobject, jobject);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_destroyWindowSurface
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_destroyWindowSurface
   (JNIEnv*, jobject);
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_setBeautifyParam(JNIEnv* env, jobject, jint, jfloat);
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_ChangbaRecordingPreviewScheduler_hotConfig
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_setBeautifyParam(JNIEnv* env, jobject, jint, jfloat);
+JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recording_camera_preview_PreviewScheduler_hotConfig
         (JNIEnv *env, jobject obj, jint bitRate, jint fps, jint gopSize);
 
 #ifdef __cplusplus

@@ -1,11 +1,15 @@
 先用时序图从整体上理解底层模块实现，分哪些模块，之前怎么交互的
 
+预览和录制时分开的，第一步只重构录制。
+目标是VideoRecordingStudio核心必要的代码sync到MediaRecorder
+
 decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
 
 1. initRecordingStudio()<--VideoRecorderActivity.java
   2. new ChangbaVideoCamera()
   2. new ChangbaRecordingPreviewScheduler()
   2. new CommonVideoRecordingStudio()
+
 1. conClick()<--VideoRecorderActivity.java
 1. startRecordAndPlay()<--VideoRecorderActivity.java //开始放伴奏加录音加录制视频
   2. initRecordingResource()<--VideoRecordingStudio.java
@@ -39,12 +43,12 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
             7. decoder.readSamples()
               8. readSamples()<--MusicDecoder.cpp
             7. audioTrack.write() //后面这里播放出声音
-  2. sendMessage(START_RECORD)
-  2. recordStart()
-    3. startVideoRecording()
+  2. sendMessage(START_RECORD)<--Activity
+  2. recordStart()<--Activity
+    3. startVideoRecording()<--VideoRecordingStudio.java
       4. startConsumer()<--CommonVideoRecordingStudio.java
-        5. startVideoRecord()
-          6. startCommonVideoRecord()
+        5. startVideoRecord()<--VideoStudio.java
+          6. startCommonVideoRecord()<--VideoStudio.cpp
             7. 初始化3个队列 video audio 伴奏 
             7. videoPacketConsumerThread->init
               8. VideoConsumerThread::init()

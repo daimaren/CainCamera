@@ -9,13 +9,13 @@ import android.view.SurfaceHolder;
 import com.timeapp.shawn.recorder.pro.encoder.MediaCodecSurfaceEncoder;
 
 
-public class ChangbaRecordingPreviewScheduler
+public class PreviewScheduler
         implements ChangbaVideoCamera.ChangbaVideoCameraCallback, ChangbaRecordingPreviewView.ChangbaRecordingPreviewViewCallback {
     private static final String TAG = "ChangbaRecordingPreviewScheduler";
     private ChangbaRecordingPreviewView mPreviewView;
     private ChangbaVideoCamera mCamera;
 
-    public ChangbaRecordingPreviewScheduler(ChangbaRecordingPreviewView previewView, ChangbaVideoCamera camera) {
+    public PreviewScheduler(ChangbaRecordingPreviewView previewView, ChangbaVideoCamera camera) {
         isStopped = false;
         this.mPreviewView = previewView;
         this.mCamera = camera;

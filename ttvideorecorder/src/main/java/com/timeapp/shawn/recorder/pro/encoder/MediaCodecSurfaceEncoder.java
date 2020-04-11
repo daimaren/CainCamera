@@ -15,13 +15,11 @@ import android.view.Surface;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static com.timeapp.shawn.recorder.pro.recording.video.VideoRecordingStudio.MEDIA_CODEC_NOSIE_DELTA;
-
-
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 
 public class MediaCodecSurfaceEncoder {
     private static final String TAG = "MediaCodecEncoder";
+    public static final int MEDIA_CODEC_NOSIE_DELTA = 80*1024;
     private static final boolean VERBOSE = false;
 
     public static final String MIME_TYPE = "video/avc"; // H.264 Advanced Video

@@ -169,6 +169,10 @@ add_library(ttvideorecorder SHARED
             video_consumer/jni/VideoStudio.cpp
             recorder_processor/jni/NativeRecordProcessor.cpp
             music_decoder/jni/MusicDecoder.cpp
+            #自研部分，JNI对接MediaRecorder
+            android/MediaRecorder.cpp
+            android/RecordParams.cpp
+            android/com_timeapp_shawn_recorder_pro_MediaRecorder.cpp
             )
 
 target_link_libraries(ttvideorecorder
