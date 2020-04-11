@@ -22,8 +22,8 @@ protected:
     int audioSampleRate;
     int channels;
 
-    /** 边录边合成---视频的YUV数据帧的queue **/
-    LiveVideoPacketQueue* recordingVideoPacketQueue;
+    /** 边录边合成---H264的queue **/
+    LiveVideoPacketQueue* recordingVideoPacketQueue; //H264
 
 private:
     /** 为了丢帧策略所做的实例变量 **/

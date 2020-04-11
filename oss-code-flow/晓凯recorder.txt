@@ -3,6 +3,13 @@
 预览和录制时分开的，第一步只重构录制。
 目标是VideoRecordingStudio核心必要的代码sync到MediaRecorder
 
+
+recordingVideoPacketQueue是H264的queue
+编码后的AAC队列
+decoderAccompanyPacketQueue是解码出来的伴奏的queue
+accompanyPacketQueue是mix后的队列，给编码线程用
+是人声队列
+
 decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
 
 1. initRecordingStudio()<--VideoRecorderActivity.java
@@ -100,6 +107,25 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
                         13. renderLoop()
                           14. this->loadTexture()
                              15. yuy2PacketPool->pushYUY2PacketToQueue() //yuv队列入数据
+
+#audio encode
+startEncodeThread()<--audio_encode_adapter.cpp
+  startEncode()<--
+    new AudioEncoder()
+    audioEncoder->init()
+    audioEncoder->encode()
+      fillPCMFrameCallback()
+        getAudioFrame()<--audio_encode_adapter.cpp
+          getAudioPacket()<--audio_encode_adapter.cpp
+            pcmPacketPool->getAudioPacket()<-- //从人声队列获取录音数据
+            processAudio()
+              accompanyPacketPool->getAccompanyPacket()
+              musicMerger->mixtureMusicBuffer()
+                audioEffectProcessor->process()
+      avcodec_encode_audio2()
+    aacPacketPool->pushAudioPacketToQueue()
+
+
 setCameraPreviewTexture()
   notifyFrameAvailable()<--ChangbaRecordingPreviewScheduler.java
     postMessage(MSG_RENDER_FRAME)<--

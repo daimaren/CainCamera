@@ -171,9 +171,9 @@ Java_com_timeapp_shawn_recorder_pro_MediaRecorder_startCommonVideoRecord(JNIEnv 
     videoPacketConsumerThread = new VideoPacketConsumerThread();
     /** 预先初始化3个队列, 防止在init过程中把Statistics重新置为空的问题；
      * 由于先初始化消费者，在初始化生产者，所以队列初始化放到这里 **/
-    LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
-    LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(audioSampleRate);
-    LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
+    LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue(); //yuv frame packet queue
+    LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(audioSampleRate); //audioPacket queue
+    LiveAudioPacketPool::GetInstance()->initAudioPacketQueue(); //AAC Data queue
 
     std::map<std::string, int> configMap;
 

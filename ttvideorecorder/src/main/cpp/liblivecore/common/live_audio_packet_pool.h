@@ -6,7 +6,7 @@ class LiveAudioPacketPool {
 protected:
 	LiveAudioPacketPool(); //注意:构造方法私有
     static LiveAudioPacketPool* instance; //惟一实例
-    /** 边录边合---人声的packet queue **/
+    /** 边录边合---packet queue **/
     LiveAudioPacketQueue* audioPacketQueue;
 
 public:

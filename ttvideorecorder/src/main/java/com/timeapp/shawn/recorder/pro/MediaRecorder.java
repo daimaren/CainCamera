@@ -41,6 +41,7 @@ public final class MediaRecorder {
     public static final int audioBitRate = 64 * 1000;
     //伴奏播放
     protected PlayerService playerService = null;
+    //Mic录音
     protected MediaRecorderService recorderService = null;
     // 输出video的路径
     protected RecordingImplType recordingImplType;
