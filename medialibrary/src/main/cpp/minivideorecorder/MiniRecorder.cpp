@@ -273,20 +273,27 @@ void MiniRecorder::renderFrame() {
 }
 
 /**
- * 启动录制
+ * 准备录制
  */
 void MiniRecorder::startRecord() {
     if (mHandler)
         mHandler->postMessage(new Msg(MSG_START_RECORDING));
 }
 
-void MiniRecorder::startRecording() {
-    startConsumer();
-    startProducer();
+/**
+ * 准备录制
+ */
+int MiniRecorder::prepare() {
+    if (mHandler)
+        mHandler->postMessage(new Msg(MSG_PREPARE_RECORDING));
 }
 
-int MiniRecorder::startConsumer() {
+/**
+ * 开始录制
+ */
+void MiniRecorder::startRecording() {
     createMediaWriter();
+    startProducer();
 }
 
 /**
@@ -336,6 +343,13 @@ void MiniRecorder::stopRecord() {
         //SW Encode
     }
 }
+/**
+ * 准备阶段，初始化所有的资源，比如source、codec、writer
+ */
+int MiniRecorder::prepare_l() {
+
+    createMediaWriter();
+}
 
 /**
  * 判断是否正在录制
@@ -373,10 +387,6 @@ void MiniRecorder::release() {
 
 RecordParams* MiniRecorder::getRecordParams() {
     return mRecordParams;
-}
-
-int MiniRecorder::prepare() {
-    //do nothing
 }
 
 /**
@@ -1040,6 +1050,7 @@ bool MiniRecorder::initTextureFBO() {
     else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mTextureWidth, mTextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
+    return true;
 }
 
 bool MiniRecorder::initRenderer() {

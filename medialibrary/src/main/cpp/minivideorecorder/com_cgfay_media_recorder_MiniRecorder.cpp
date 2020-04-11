@@ -366,6 +366,17 @@ Java_com_cgfay_media_recorder_MiniVideoRecorder_recordAudioFrame(JNIEnv *env, jo
 }
 
 /**
+ * 准备录制
+ */
+extern "C" JNIEXPORT void JNICALL
+Java_com_cgfay_media_recorder_MiniVideoRecorder_prepare(JNIEnv *env, jobject thiz, jlong handle) {
+    MiniRecorder *recorder = (MiniRecorder *) handle;
+    if (recorder != nullptr) {
+        recorder->prepare();
+    }
+}
+
+/**
  * 开始录制
  */
 extern "C" JNIEXPORT void JNICALL

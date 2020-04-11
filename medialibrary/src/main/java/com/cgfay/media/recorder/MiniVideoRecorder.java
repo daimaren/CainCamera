@@ -33,7 +33,7 @@ public final class MiniVideoRecorder {
     private long mLastPresentationTimeUs = -1;
 
     static {
-        System.loadLibrary("soundtouch");
+        //System.loadLibrary("soundtouch");
         System.loadLibrary("yuv");
         System.loadLibrary("mini_recorder");
     }
@@ -71,8 +71,8 @@ public final class MiniVideoRecorder {
                                         int pixelFormat);
     // 录制一帧音频帧
     private native int recordAudioFrame(long handle, byte[] data, int length);
-    // 开始录制
-    //private native void prepare(long handle);
+    // 准备录制
+    private native void prepare(long handle);
     // 开始录制
     private native void startRecord(long handle);
     // 停止录制
@@ -346,6 +346,13 @@ public final class MiniVideoRecorder {
      */
     public void recordAudioFrame(byte[] data, int length) {
         recordAudioFrame(handle, data, length);
+    }
+
+    /**
+     * 准备录制
+     */
+    public void prepare() {
+        prepare(handle);
     }
 
     /**

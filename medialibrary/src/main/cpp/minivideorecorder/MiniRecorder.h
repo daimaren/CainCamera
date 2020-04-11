@@ -73,6 +73,7 @@ enum RenderThreadMessage {
     MSG_EGL_CREATE_PREVIEW_SURFACE,
     MSG_SWITCH_CAMERA_FACING,
     MSG_SWITCH_FILTER,
+    MSG_PREPARE_RECORDING,
     MSG_START_RECORDING,
     MSG_STOP_RECORDING,
     MSG_EGL_DESTROY_PREVIEW_SURFACE,
@@ -180,10 +181,8 @@ public:
     void notifyFrameAvailable();
     // 设置录制监听器
     void setOnRecordListener(OnRecordListener *listener);
-
     // 准备录制器
     int prepare();
-
     // 释放资源
     void release();
 
@@ -202,9 +201,9 @@ public:
     virtual bool initialize();
     virtual void renderFrame();
     virtual void destroyEGLContext();
+    int prepare_l();
 private:
     int startProducer();
-    int startConsumer();
     //HW Encoder
     void createHWEncoder();
     void createSurfaceRender();
@@ -381,6 +380,10 @@ void handleMessage(Msg *msg) {
             break;
         case MSG_RENDER_FRAME:
             mMiniRecorder->renderFrame();
+            break;
+        case MSG_PREPARE_RECORDING:
+            mMiniRecorder->prepare_l();
+            //createMediaWriter();
             break;
         case MSG_START_RECORDING:
             mMiniRecorder->startRecording();

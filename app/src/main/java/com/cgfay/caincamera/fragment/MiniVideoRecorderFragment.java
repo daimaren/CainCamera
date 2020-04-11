@@ -91,6 +91,7 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
         mRecordButton.setOnClickListener(v -> {
             //mRecordButton.setEnabled(false);
             if (!mIsRecording) {
+                //mMiniRecorder.prepare();
                 mMiniRecorder.startRecord();
                 mAudioRecorder.start();
                 mIsRecording = true;
