@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string>
 
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))

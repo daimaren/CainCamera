@@ -1,4 +1,7 @@
-先用时序图从整体上理解底层模块实现
+先用时序图从整体上理解底层模块实现，分哪些模块，之前怎么交互的
+
+decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
+
 1. initRecordingStudio()<--VideoRecorderActivity.java
   2. new ChangbaVideoCamera()
   2. new ChangbaRecordingPreviewScheduler()
@@ -13,7 +16,7 @@
     3. recorderService.initMetaData()
       4. audioRecorderService.initMetaData()
         5. audioRecorderService.initMetaData()
-          6. new AudioRecord() 用来录音
+          6. new AudioRecord() //初始化用来录音
     3. recorderService.initMediaRecorderProcessor()<MediaRecorderServiceImpl.java
       4. audioRecorderService.initAudioRecorderProcessor()<--AudioRecordRecorderServiceImpl.java
         5. songstudio.getAudioRecorder()
@@ -82,7 +85,7 @@
                       12. init()<--VideoX264Encoder.cpp
                       12. pthread_create(startEncodeThread)
                         13. startEncode()
-                          14. getYUY2Packet() //从yuv队列取数据
+                          14. getYUY2Packet() //从yuy2队列取数据编码入video packet队列
                             15. get()<--live_video_packet_queue.cpp 
                           14. encode()
                             15. avcodec_encode_video2()
@@ -107,3 +110,11 @@ setCameraPreviewTexture()
       4. stopRecord()
         5. stopVideoRecord()<--VideoStudio.cpp
           6. stop()<--video_consumer_thread.cpp
+
+
+startCameraPreview
+
+onFrameAvailable
+  notifyFrameAvailable
+
+  

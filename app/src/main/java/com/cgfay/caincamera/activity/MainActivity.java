@@ -28,6 +28,7 @@ import com.cgfay.video.activity.GlenVideoEditActivity;
 import com.cgfay.video.activity.MiniVideoEditActivity;
 import com.cgfay.video.activity.VideoCutActivity;
 import com.cgfay.video.activity.VideoEditActivity;
+import com.timeapp.shawn.recorder.pro.CommonRecordPublisherActivity;
 
 import java.util.List;
 
@@ -300,7 +301,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * 自研移动端录制器框架
      */
     private void ttVideoRecorder() {
-        startActivity(new Intent(MainActivity.this, MediaRecordActivity.class));
+        //startActivity(new Intent(MainActivity.this, MediaRecordActivity.class));
+        startActivity(new Intent(MainActivity.this, CommonRecordPublisherActivity.class));
     }
 
     /**
