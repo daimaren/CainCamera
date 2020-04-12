@@ -53,6 +53,8 @@ int LivePacketPool::getAudioPacket(LiveAudioPacket **audioPacket, bool block) {
     int result = -1;
     if(NULL != audioPacketQueue){
         result = audioPacketQueue->get(audioPacket, block);
+    } else {
+        ALOGE("audioPacketQueue null");
     }
     return result;
 }

@@ -455,6 +455,7 @@ int MiniRecorder::createAudioEncoder() {
     alloc_audio_stream("libfdk_aac");
     alloc_avframe();
     pthread_create(&mAudioEncoderThreadId, NULL, startAudioEncodeThread, this);
+    return 0;
 }
 
 int MiniRecorder::destoryAudioEncoder() {
@@ -485,6 +486,7 @@ int MiniRecorder::destoryAudioEncoder() {
 
     accompanyPacketPool->abortAccompanyPacketQueue();
     accompanyPacketPool->destoryAccompanyPacketQueue();
+    return 0;
 }
 
 /**
@@ -1730,6 +1732,7 @@ int MiniRecorder::getAudioFrame(int16_t * samples, int frame_size, int nb_channe
         if (packetBufferSize == 0) {
             int ret = getAudioPacket();
             if (ret < 0) {
+                ALOGE("getAudioPacket error");
                 return ret;
             }
         }
@@ -1751,7 +1754,7 @@ int MiniRecorder::getAudioFrame(int16_t * samples, int frame_size, int nb_channe
 }
 
 int MiniRecorder::cpyToSamples(int16_t * samples, int samplesInShortCursor, int cpyPacketBufferSize, double* presentationTimeMills) {
-    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));
+    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));//todo
     return 1;
 }
 

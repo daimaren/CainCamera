@@ -307,7 +307,7 @@ private:
     int audioBufferTimeMills;
 
     int packetBufferSize;
-    short* packetBuffer;
+    short* packetBuffer = NULL;
     int packetBufferCursor;
     double  packetBufferPresentationTimeMills;
     //Audio Encode变量
