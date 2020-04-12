@@ -211,7 +211,7 @@ void MediaRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM
 }
 
 void *MediaRecorder::threadStartCallback(void *myself) {
-    aw_log("threadStartCallback");
+    aw_log("startPreviewThread");
     MediaRecorder *recorder = (MediaRecorder *) myself;
     recorder->processMessage();
     pthread_exit(0);

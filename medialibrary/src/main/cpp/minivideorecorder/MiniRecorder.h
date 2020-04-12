@@ -17,6 +17,9 @@
 #include "RecordParams.h"
 #include "handler.h"
 #include "utils.h"
+#include "live_audio_packet_queue.h"
+#include "live_video_packet_queue.h"
+#include "live_common_packet_pool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,7 +56,7 @@ extern "C" {
 #endif
 
 #define DUMP_YUV_BUFFER    0
-#define DUMP_SW_ENCODER_H264_BUFFER    1
+#define DUMP_SW_ENCODER_H264_BUFFER    0
 #define DUMP_HW_ENCODER_H264_BUFFER    1
 
 #define H264_NALU_TYPE_NON_IDR_PICTURE                                  1
@@ -185,12 +188,12 @@ public:
     int prepare();
     // 释放资源
     void release();
-
     // 开始录制
     void startRecord();
     void startRecording();
     // 停止录制
     void stopRecord();
+    void stopRecording();
     // drainEncodedData
     void drainEncodedData();
     // 是否正在录制
@@ -203,15 +206,16 @@ public:
     virtual void destroyEGLContext();
     int prepare_l();
 private:
-    int startProducer();
+    int createEncoder();
     //HW Encoder
     void createHWEncoder();
     void createSurfaceRender();
     void destroyHWEncoder();
-    //MediaWriter
-    int createMediaWriter();
+    //MediaMux
+    int initFFmepg();
+    int deinitFFmpeg();
+    int getH264Packet(LiveVideoPacket ** packet);
     int writeFrame();
-    int closeMediaWriter();
     int write_audio_frame(AVFormatContext *oc, AVStream *st);
     int write_video_frame(AVFormatContext *oc, AVStream *st);
     AVStream *add_stream(AVFormatContext *oc, AVCodec **codec, enum AVCodecID codec_id, char *codec_name);
@@ -246,11 +250,11 @@ private:
     void startCameraPreview();
     void updateTexImage();
 
-    static void *threadStartCallback(void *myself);
-    void processMessage();
-    static void *encoderThreadCallback(void *myself);
+    static void *startPreviewThread(void *myself);
+    void processPreviewMessage();
+    static void *startHardWareEncodeThread(void *myself);
     void encodeLoop();
-    static void *writerThreadCallback(void *myself);
+    static void *startWriteThread(void *myself);
     void writerLoop();
 private:
     FILE* mflvFile;
@@ -268,10 +272,11 @@ private:
     bool mExit;         // 完成退出标志
     bool mIsEncoding = false;
     //HW Encode变量
+    LiveCommonPacketPool *packetPool;
     jbyteArray mEncoderOutputBuf = NULL;
     EGLSurface mEncoderSurface;
     ANativeWindow *mEncoderWindow;
-    bool mIsHWEncode = true;
+    bool mUseHardWareEncoding = true;
     bool mIsSPSUnWriteFlag = false;
     //Media Writer变量
     AVOutputFormat *fmt;
@@ -350,12 +355,14 @@ private:
     GLuint mDownloadFBO;
     //OpenGL Filter
 
-    //msg
-    MiniRecorderHandler *mHandler;
-    MsgQueue            *mMsgQueue;
+    //preview
+    MiniRecorderHandler *mPreviewHandler;
+    MsgQueue            *mPreviewMsgQueue;
+    //hareware encode
     HWEncoderHandler    *mEncodeHandler;
-    MsgQueue            *mMsgEncodeQueue;
-    pthread_t           mThreadId;
+    MsgQueue            *mEncodeMsgQueue;
+    //thread id
+    pthread_t           mPreviewThreadId;
     pthread_t           mEncoderThreadId;
     pthread_t           mWriterThreadId;
 };
@@ -383,10 +390,14 @@ void handleMessage(Msg *msg) {
             break;
         case MSG_PREPARE_RECORDING:
             mMiniRecorder->prepare_l();
-            //createMediaWriter();
             break;
         case MSG_START_RECORDING:
             mMiniRecorder->startRecording();
+            break;
+        case MSG_STOP_RECORDING:
+            mMiniRecorder->stopRecording();
+            break;
+        default:
             break;
     }
 }

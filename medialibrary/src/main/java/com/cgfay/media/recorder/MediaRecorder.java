@@ -201,14 +201,21 @@ public final class MediaRecorder {
                     }
                     mBufferInfo.size = 0;
                 }
-                if (mBufferInfo.size != 0) {
-                    encodedData.position(mBufferInfo.offset);
-                    encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+                if (mBufferInfo.presentationTimeUs >= mLastPresentationTimeUs) {
+                    if (mBufferInfo.size != 0) {
+                        encodedData.position(mBufferInfo.offset);
+                        encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+                        mLastPresentationTimeUs = mBufferInfo.presentationTimeUs;
+                        val = mBufferInfo.size;
 
-                    val = mBufferInfo.size;
-                    encodedData.get(returnedData, 0, mBufferInfo.size);
+                        encodedData.get(returnedData, 0, mBufferInfo.size);
+
+                        Log.d(TAG,"sent " + mBufferInfo.size + " bytes to muxer, ts=" + mBufferInfo.presentationTimeUs);
+                    } else {
+                        Log.i(TAG, "why mBufferInfo.size is equals 0");
+                    }
                 } else {
-                    Log.i(TAG, "why mBufferInfo.size is equals 0");
+                    Log.d(TAG, "mBufferInfo.presentationTimeUs < lastPresentationTimeUs");
                 }
                 mEncoder.releaseOutputBuffer(encoderStatus, false);
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
@@ -220,7 +227,11 @@ public final class MediaRecorder {
         }
         return val;
     }
-    
+
+    public long getLastPresentationTimeUsFromNative() {
+        return mLastPresentationTimeUs;
+    }
+
     /**
      * 设置输出文件
      * @param dstPath

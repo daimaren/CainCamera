@@ -14,6 +14,8 @@ add_library( mini_recorder
              #MediaWriter.cpp
              Handler.cpp
              MsgQueue.cpp
+             live_common_packet_pool.cpp
+             live_packet_pool.cpp
              live_audio_packet_queue.cpp
              live_video_packet_queue.cpp
              # 录制器

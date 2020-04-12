@@ -6,4 +6,4 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 set(SRC_DIR src/main/cpp)
-add_subdirectory(${SRC_DIR})
+#add_subdirectory(${SRC_DIR})

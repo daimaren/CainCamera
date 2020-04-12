@@ -44,9 +44,10 @@ public final class MiniVideoRecorder {
     private native void nativeRelease(long handle);
     // prepareEGLContext
     public native void prepareEGLContext(long handle, Surface surface, int width, int height, int cameraFacingId);
+    // destroyEGLContext
     public native void destroyEGLContext(long handle);
     // notifyFrameAvailable
-    public native void notifyFrameAvailable(long handle);
+    public native void notifyFrameAvailable(long handle);;
     // 设置录制监听回调
     private native void setRecordListener(long handle, Object listener);
     // 设置录制输出文件
@@ -209,14 +210,21 @@ public final class MiniVideoRecorder {
                     }
                     mBufferInfo.size = 0;
                 }
-                if (mBufferInfo.size != 0) {
-                    encodedData.position(mBufferInfo.offset);
-                    encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+                if (mBufferInfo.presentationTimeUs >= mLastPresentationTimeUs) {
+                    if (mBufferInfo.size != 0) {
+                        encodedData.position(mBufferInfo.offset);
+                        encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+                        mLastPresentationTimeUs = mBufferInfo.presentationTimeUs;
+                        val = mBufferInfo.size;
 
-                    val = mBufferInfo.size;
-                    encodedData.get(returnedData, 0, mBufferInfo.size);
+                        encodedData.get(returnedData, 0, mBufferInfo.size);
+
+                        Log.d(TAG,"sent " + mBufferInfo.size + " bytes to muxer, ts=" + mBufferInfo.presentationTimeUs);
+                    } else {
+                        Log.i(TAG, "why mBufferInfo.size is equals 0");
+                    }
                 } else {
-                    Log.i(TAG, "why mBufferInfo.size is equals 0");
+                    Log.d(TAG, "mBufferInfo.presentationTimeUs < lastPresentationTimeUs");
                 }
                 mEncoder.releaseOutputBuffer(encoderStatus, false);
                 if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
@@ -228,7 +236,10 @@ public final class MiniVideoRecorder {
         }
         return val;
     }
-    
+
+    public long getLastPresentationTimeUsFromNative() {
+        return mLastPresentationTimeUs;
+    }
     /**
      * 设置输出文件
      * @param dstPath

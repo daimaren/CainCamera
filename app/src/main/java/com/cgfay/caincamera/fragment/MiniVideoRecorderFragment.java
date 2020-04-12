@@ -21,6 +21,7 @@ import android.widget.LinearLayout;
 import com.cgfay.caincamera.R;
 import com.cgfay.camera.utils.PathConstraints;
 import com.cgfay.camera.widget.RecordProgressView;
+import com.cgfay.media.recorder.AVFormatter;
 import com.cgfay.media.recorder.AudioRecorder;
 import com.cgfay.media.recorder.MiniVideoRecorder;
 import com.cgfay.uitls.utils.NotchUtils;
@@ -29,7 +30,7 @@ import com.cgfay.uitls.utils.StatusBarUtils;
 public class MiniVideoRecorderFragment extends Fragment implements View.OnClickListener, SurfaceHolder.Callback,
         MiniVideoRecorder.OnRecordListener, AudioRecorder.OnRecordCallback{
 
-    private static final String TAG = "MiniVideoRecorderFragment";
+    private static final String TAG = "MiniRecorderFragment";
     private static final int CAMERA_FACING_BACK = 0;
     private static final int CAMERA_FACING_FRONT = 1;
 
@@ -72,12 +73,14 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mMiniRecorder = new MiniVideoRecorder.RecordBuilder(generateOutputPath())
-                .create();
-        mMiniRecorder.setRecordListener(this);
         initView();
         bindListener();
         initAudioRecorder();
+        mMiniRecorder = new MiniVideoRecorder.RecordBuilder("/storage/emulated/0/a_songstudio/test.flv") //generateOutputPath()
+                .setVideoParams(720, 1280,  0, 900)
+                .setAudioParams(mAudioRecorder.getSampleRate(), AVFormatter.getSampleFormat(mAudioRecorder.getSampleFormat()), mAudioRecorder.getChannels())
+                .create();
+        mMiniRecorder.setRecordListener(this);
     }
 
     private void initView() {

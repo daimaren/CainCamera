@@ -2,8 +2,6 @@
 // Created by Glen on 2020/1/08.
 //
 #include "MiniRecorder.h"
-#include "live_audio_packet_queue.h"
-#include "live_video_packet_queue.h"
 
 /**
  * 主要到事情说三遍，为了吃透核心代码，先不要做封装，所有核心代码写在这一个cpp里
@@ -29,8 +27,8 @@ MiniRecorder::MiniRecorder() : mRecordListener(nullptr), mAbortRequest(true),
     tempTextureCoords = CAMERA_TEXTURE_NO_ROTATION;
     memcpy(mTextureCoords, tempTextureCoords, mTextureCoordsSize * sizeof(GLfloat));
 
-    mMsgQueue = new MsgQueue("MiniRecorder MsgQueue");
-    mHandler = new MiniRecorderHandler(this, mMsgQueue);
+    mPreviewMsgQueue = new MsgQueue("MiniRecorder MsgQueue");
+    mPreviewHandler = new MiniRecorderHandler(this, mPreviewMsgQueue);
 }
 
 MiniRecorder::~MiniRecorder() {
@@ -160,23 +158,23 @@ void MiniRecorder::prepareEGLContext(ANativeWindow *window, JNIEnv *env, JavaVM 
     mScreenWidth = screenWidth;
     mScreenHeight = screenHeight;
     mFacingId = cameraFacingId;
-    mHandler->postMessage(new Msg(MSG_EGL_THREAD_CREATE));
-    pthread_create(&mThreadId, 0, threadStartCallback, this);
+    mPreviewHandler->postMessage(new Msg(MSG_EGL_THREAD_CREATE));
+    pthread_create(&mPreviewThreadId, 0, startPreviewThread, this);
 }
 
-void *MiniRecorder::threadStartCallback(void *myself) {
-    ALOGI("threadStartCallback");
+void *MiniRecorder::startPreviewThread(void *myself) {
+    ALOGI("startPreviewThread");
     MiniRecorder *recorder = (MiniRecorder *) myself;
-    recorder->processMessage();
+    recorder->processPreviewMessage();
     pthread_exit(0);
     return 0;
 }
 
-void MiniRecorder::processMessage() {
+void MiniRecorder::processPreviewMessage() {
     bool renderingEnabled = true;
     while (renderingEnabled) {
         Msg *msg = NULL;
-        if (mMsgQueue->dequeueMessage(&msg, true) > 0) {
+        if (mPreviewMsgQueue->dequeueMessage(&msg, true) > 0) {
             if (MESSAGE_QUEUE_LOOP_QUIT_FLAG == msg->execute()) {
                 renderingEnabled = false;
             }
@@ -185,7 +183,7 @@ void MiniRecorder::processMessage() {
     }
 }
 
-void *MiniRecorder::encoderThreadCallback(void *myself) {
+void *MiniRecorder::startHardWareEncodeThread(void *myself) {
     MiniRecorder *recorder = (MiniRecorder *) myself;
     recorder->encodeLoop();
     pthread_exit(0);
@@ -195,7 +193,7 @@ void *MiniRecorder::encoderThreadCallback(void *myself) {
 void MiniRecorder::encodeLoop() {
     while (mIsEncoding) {
         Msg *msg = NULL;
-        if (mMsgEncodeQueue->dequeueMessage(&msg, true) > 0) {
+        if (mEncodeMsgQueue->dequeueMessage(&msg, true) > 0) {
             if (MESSAGE_QUEUE_LOOP_QUIT_FLAG == msg->execute()) {
                 mIsEncoding = false;
             }
@@ -205,8 +203,8 @@ void MiniRecorder::encodeLoop() {
     ALOGI("HWEncoderAdapter encode Thread ending...");
 }
 
-void *MiniRecorder::writerThreadCallback(void *myself) {
-    ALOGI("writerThreadCallback");
+void *MiniRecorder::startWriteThread(void *myself) {
+    ALOGI("startWriteThread");
     MiniRecorder *recorder = (MiniRecorder *) myself;
     recorder->writerLoop();
     pthread_exit(0);
@@ -214,34 +212,39 @@ void *MiniRecorder::writerThreadCallback(void *myself) {
 }
 
 void MiniRecorder::writerLoop() {
+    mIsWriting = true;
     while (mIsWriting) {
-        //write
-
+        int ret = writeFrame();
+        if (ret < 0) {
+            ALOGI("write result is invalid, so we will stop write...");
+            //break;
+        }
     }
+    mIsWriting = false;
     ALOGI("writer Thread ending...");
 }
 
 void MiniRecorder::destroyEGLContext() {
     ALOGI("destroyEGLContext");
-    if (mHandler) {
-        mHandler->postMessage(new Msg(MSG_EGL_THREAD_EXIT));
-        mHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
+    if (mPreviewHandler) {
+        mPreviewHandler->postMessage(new Msg(MSG_EGL_THREAD_EXIT));
+        mPreviewHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
     }
-    pthread_join(mThreadId, 0);
-    if (mMsgQueue) {
-        mMsgQueue->abort();
-        delete mMsgQueue;
-        mMsgQueue = NULL;
+    pthread_join(mPreviewThreadId, 0);
+    ALOGI("preview thread stopped");
+    if (mPreviewMsgQueue) {
+        mPreviewMsgQueue->abort();
+        delete mPreviewMsgQueue;
+        mPreviewMsgQueue = NULL;
     }
-    delete mHandler;
-    mHandler = NULL;
-    ALOGI("MiniRecorder thread stopped");
+    delete mPreviewHandler;
+    mPreviewHandler = NULL;
 }
 
 void MiniRecorder::renderFrame() {
-    //相机视频帧更新到纹理
+    // 相机视频帧更新到纹理
     updateTexImage();
-    //处理纹理
+    // 特效处理纹理
     processFrame();
     if (mPreviewSurface != EGL_NO_SURFACE) {
         eglMakeCurrent(mEGLDisplay, mPreviewSurface, mPreviewSurface, mEGLContext);
@@ -249,7 +252,7 @@ void MiniRecorder::renderFrame() {
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
     if (mIsEncoding) {
-        if (mIsHWEncode) {
+        if (mUseHardWareEncoding) {
             //hw encode
             eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
             renderToView(mRotateTexId, mTextureWidth, mTextureHeight);
@@ -273,56 +276,58 @@ void MiniRecorder::renderFrame() {
 }
 
 /**
- * 准备录制
+ * 准备录制 功能相当于原来的startEncoding
  */
 void MiniRecorder::startRecord() {
-    if (mHandler)
-        mHandler->postMessage(new Msg(MSG_START_RECORDING));
+    // 初始化编码器
+    if (mUseHardWareEncoding) {
+        //packetPool是生产者消费者的桥梁
+        packetPool = LiveCommonPacketPool::GetInstance();
+        LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
+        //todo LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(audioSampleRate);
+        //	LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
+    } else {
+        //todo 软编码
+    }
+    if (mPreviewHandler) {
+        mPreviewHandler->postMessage(new Msg(MSG_START_RECORDING));
+    }
 }
 
 /**
  * 准备录制
  */
 int MiniRecorder::prepare() {
-    if (mHandler)
-        mHandler->postMessage(new Msg(MSG_PREPARE_RECORDING));
+    if (mPreviewHandler)
+        mPreviewHandler->postMessage(new Msg(MSG_PREPARE_RECORDING));
 }
 
 /**
  * 开始录制
  */
 void MiniRecorder::startRecording() {
-    createMediaWriter();
-    startProducer();
-}
-
-/**
- * 通知有新的一帧
- */
-void MiniRecorder::notifyFrameAvailable() {
-    if (mHandler) {
-        mHandler->postMessage(new Msg(MSG_RENDER_FRAME));
-    }
+    initFFmepg();
+    pthread_create(&mWriterThreadId, 0, startWriteThread, this);
+    createEncoder();
 }
 
 /**
  * 停止录制
  */
-void MiniRecorder::stopRecord() {
-    ALOGI("stopRecord_l");
+void MiniRecorder::stopRecording() {
+    ALOGD("enter stopRecording");
     mIsEncoding = false;
-
     mEncodeHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
     pthread_join(mEncoderThreadId, 0);
-    if (mMsgEncodeQueue) {
-        mMsgEncodeQueue->abort();
-        delete mMsgEncodeQueue;
-        mMsgEncodeQueue = NULL;
+    if (mEncodeMsgQueue) {
+        mEncodeMsgQueue->abort();
+        delete mEncodeMsgQueue;
+        mEncodeMsgQueue = NULL;
     }
     delete mEncodeHandler;
     mEncodeHandler = NULL;
 
-    if (mIsHWEncode) {
+    if (mUseHardWareEncoding) {
         destroyHWEncoder();
 #if DUMP_HW_ENCODER_H264_BUFFER
         if (mDumpH264File) {
@@ -340,15 +345,42 @@ void MiniRecorder::stopRecord() {
         mIsSurfaceRenderInit = false;
         glDeleteProgram(mSurfaceRenderProgId);
     } else {
-        //SW Encode
+        //todo SW Encode
+    }
+    //stop writer thread
+    pthread_join(mWriterThreadId, 0);
+
+    packetPool->abortRecordingVideoPacketQueue();
+    //aacPacketPool->abortAudioPacketQueue();
+    deinitFFmpeg();
+    packetPool->destoryRecordingVideoPacketQueue();
+    //aacPacketPool->destoryAudioPacketQueue();
+    ALOGD("leave stopRecording");
+}
+
+/**
+ * 通知有新的一帧
+ */
+void MiniRecorder::notifyFrameAvailable() {
+    if (mPreviewHandler) {
+        mPreviewHandler->postMessage(new Msg(MSG_RENDER_FRAME));
+    }
+}
+
+/**
+ * 停止录制
+ */
+void MiniRecorder::stopRecord() {
+    ALOGI("stopRecord_l");
+
+    if (mPreviewHandler) {
+        mPreviewHandler->postMessage(new Msg(MSG_STOP_RECORDING));
     }
 }
 /**
  * 准备阶段，初始化所有的资源，比如source、codec、writer
  */
 int MiniRecorder::prepare_l() {
-
-    createMediaWriter();
 }
 
 /**
@@ -392,31 +424,17 @@ RecordParams* MiniRecorder::getRecordParams() {
 /**
  * createProducer
  */
-int MiniRecorder::startProducer() {
-    RecordParams *params = mRecordParams;
-    mRecordParams->pixelFormat = 0;
-    mRecordParams->width = mTextureWidth;
-    mRecordParams->height = mTextureHeight;
-    if (params->rotateDegree % 90 != 0) {
-        ALOGE("invalid rotate degree: %d", params->rotateDegree);
-        return -1;
-    }
-
-    int ret;
-
-    ALOGI("Record to file: %s, width: %d, height: %d", params->dstFile, params->width,
-         params->height);
-
-    if (mIsHWEncode) {
-        mMsgEncodeQueue = new MsgQueue("HWEncoder message queue");
-        mEncodeHandler = new HWEncoderHandler(this, mMsgEncodeQueue);
+int MiniRecorder::createEncoder() {
+    if (mUseHardWareEncoding) {
+        mEncodeMsgQueue = new MsgQueue("HWEncoder message queue");
+        mEncodeHandler = new HWEncoderHandler(this, mEncodeMsgQueue);
         createHWEncoder();
         createSurfaceRender();
-        pthread_create(&mEncoderThreadId, 0, encoderThreadCallback, this);
+        pthread_create(&mEncoderThreadId, 0, startHardWareEncodeThread, this);
         mIsSPSUnWriteFlag = true;
         mIsEncoding = true;
 #if DUMP_HW_ENCODER_H264_BUFFER
-        mDumpH264File = fopen("/storage/emulated/0/dump.h264", "wb");
+        mDumpH264File = fopen("/storage/emulated/0/a_songstudio/dump.h264", "wb");
         if (!mDumpH264File) {
             ALOGI("DumpH264File open error");
         }
@@ -424,7 +442,6 @@ int MiniRecorder::startProducer() {
     } else {
         //SoftEncoder
     }
-    ALOGI("prepare done");
     return 0;
 }
 
@@ -500,12 +517,41 @@ void MiniRecorder::drainEncodedData() {
             long bufferSize = (long) env->CallLongMethod(mObj, drainEncoderFunc, mEncoderOutputBuf);
             byte* outputData = (uint8_t*)env->GetByteArrayElements(mEncoderOutputBuf, 0);
             int size = (int) bufferSize;
-#ifdef DUMP_HW_ENCODER_H264_BUFFER
+            //ALOGI("h264 size is %d", size);
+#if DUMP_HW_ENCODER_H264_BUFFER
             //dump H.264 data to file
             int count = fwrite(outputData, size, 1, mDumpH264File);
             //ALOGI("write h264 size %d len %d", count, size); //从log来看，只有sps，没有pps
 #endif
-            //todo push to queue
+            jmethodID getLastPresentationTimeUsFunc = env->GetMethodID(jcls, "getLastPresentationTimeUsFromNative","()J");
+            long long lastPresentationTimeUs = (long long) env->CallLongMethod(mObj, getLastPresentationTimeUsFunc);
+            int timeMills = (int) (lastPresentationTimeUs / 1000.0f);
+            int nalu_type = (outputData[4] & 0x1F);
+            if (H264_NALU_TYPE_SEQUENCE_PARAMETER_SET == nalu_type) {
+                if (mIsSPSUnWriteFlag) {
+
+                    LiveVideoPacket *videoPacket = new LiveVideoPacket();
+                    videoPacket->buffer = new byte[size];
+                    memcpy(videoPacket->buffer, outputData, size);
+                    videoPacket->size = size;
+                    videoPacket->timeMills = timeMills;
+                    if (videoPacket->size > 0) {
+                        ALOGI("write sps");
+                        packetPool->pushRecordingVideoPacketToQueue(videoPacket); //生产者
+                    }
+                    mIsSPSUnWriteFlag = false;
+                }
+            } else {
+                LiveVideoPacket *videoPacket = new LiveVideoPacket();
+                videoPacket->buffer = new byte[size];
+                memcpy(videoPacket->buffer, outputData, size);
+                videoPacket->size = size;
+                videoPacket->timeMills = timeMills;
+                if (videoPacket->size > 0) {
+                    ALOGI("write video");
+                    packetPool->pushRecordingVideoPacketToQueue(videoPacket); //生产者
+                }
+            }
             env->ReleaseByteArrayElements(mEncoderOutputBuf, (jbyte *) outputData, 0);
         }
     }
@@ -542,7 +588,7 @@ void MiniRecorder::destroyHWEncoder() {
 //===============HW Encoder End=============================/
 //===============Media Writer Start=============================/
 
-int MiniRecorder::createMediaWriter() {
+int MiniRecorder::initFFmepg() {
     AVCodec *video_codec = NULL;
     AVCodec *audio_codec = NULL;
     //1.register all codecs and formats
@@ -571,7 +617,43 @@ int MiniRecorder::createMediaWriter() {
             return -1;
         }
     }
-    pthread_create(&mWriterThreadId, 0, threadStartCallback, this);
+    return 1;
+}
+
+int MiniRecorder::deinitFFmpeg() {
+    ALOGI("enter deinitFFmpeg");
+    int ret = 0;
+    if (isWriteHeaderSuccess) {
+        av_write_trailer(oc);
+        oc->duration = duration * AV_TIME_BASE;
+    }
+
+    if (video_st) {
+        if (NULL != video_st->codec) {
+            avcodec_close(video_st->codec);
+        }
+        video_st = NULL;
+    }
+    if (audio_st) {
+        if (NULL != audio_st->codec) {
+            avcodec_close(audio_st->codec);
+        }
+        if (NULL != bsfc) {
+            av_bitstream_filter_close(bsfc);
+        }
+        audio_st = NULL;
+    }
+
+    if (!(fmt->flags & AVFMT_NOFILE)) {
+        avio_close(oc->pb);
+    }
+
+    if (oc) {
+        /* free the stream */
+        avformat_free_context(oc);
+        oc = NULL;
+    }
+    ALOGI("leave deinitFFmpeg");
 }
 
 int MiniRecorder::writeFrame() {
@@ -592,14 +674,10 @@ int MiniRecorder::writeFrame() {
     return ret;
 }
 
-int MiniRecorder::closeMediaWriter() {
-
-}
-
 int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
     int ret = AUDIO_QUEUE_ABORT_ERR_CODE;
     LiveAudioPacket *audioPacket = NULL;
-    //ret = fillAACPacket(&audioPacket)
+    //todo ret = fillAACPacket(&audioPacket)
     if (ret > 0) {
         AVPacket pkt = {0}; // data and size must be 0;
         av_init_packet(&pkt);
@@ -634,12 +712,20 @@ int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
     return ret;
 }
 
+int MiniRecorder::getH264Packet(LiveVideoPacket ** packet) {
+    if (packetPool->getRecordingVideoPacket(packet, true) < 0) {
+        ALOGI("packetPool->getRecordingVideoPacket return negetive value...");
+        return -1;
+    }
+    return 1;
+}
+
 int MiniRecorder::write_video_frame(AVFormatContext *oc, AVStream *st) {
     int ret = 0;
     AVCodecContext *c = st->codec;
 
     LiveVideoPacket *h264Packet = NULL;
-    //fillH264Packet(&h264Packet);
+    getH264Packet(&h264Packet);
     if (h264Packet == NULL) {
         ALOGE("fillH264PacketCallback get null packet");
         return VIDEO_QUEUE_ABORT_ERR_CODE;
@@ -838,7 +924,7 @@ AVStream *MiniRecorder::add_stream(AVFormatContext *oc, AVCodec **codec, enum AV
     switch ((*codec)->type) {
         case AVMEDIA_TYPE_AUDIO:
             ALOGI("audioChannels is %d audioSampleRate is %d", mRecordParams->channels, mRecordParams->sampleRate);
-            c->sample_fmt = AV_SAMPLE_FMT_S16;
+            c->sample_fmt = AV_SAMPLE_FMT_S16;//mRecordParams->sampleFormat
             c->codec_type = AVMEDIA_TYPE_AUDIO;
             c->sample_rate = mRecordParams->sampleRate;
             c->channel_layout = mRecordParams->channels == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
@@ -863,7 +949,7 @@ AVStream *MiniRecorder::add_stream(AVFormatContext *oc, AVCodec **codec, enum AV
             c->gop_size = mRecordParams->frameRate;
             c->qmin = 10;
             c->qmax = 30;
-            c->pix_fmt = AV_PIX_FMT_YUV420P;
+            c->pix_fmt = AV_PIX_FMT_YUV420P; //todo
             av_opt_set(c->priv_data, "preset", "ultrafast", 0);
             av_opt_set(c->priv_data, "tune", "zerolatency", 0);
 

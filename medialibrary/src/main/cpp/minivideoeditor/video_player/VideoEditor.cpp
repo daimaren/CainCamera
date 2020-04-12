@@ -1319,7 +1319,7 @@ void VideoEditor::processMessage() {
 }
 
 void* VideoEditor::threadStartCallback(void *self) {
-    LOGI("threadStartCallback");
+    LOGI("startPreviewThread");
     VideoEditor* videoEditor = (VideoEditor*)self;
     videoEditor->processMessage();
     pthread_exit(0);

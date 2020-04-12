@@ -56,14 +56,14 @@ public abstract class OkHttpCallBack<T> implements Callback {
 //                final BaseApiResponse baseApiResponse;
 //                baseApiResponse = (BaseApiResponse) t;
 //                if (baseApiResponse.getCode() == HttpBaseUrl.STATUS_SUCCESS) {
-//                    mHandler.post(new Runnable() {
+//                    mPreviewHandler.post(new Runnable() {
 //                        @Override
 //                        public void run() {
 //                            onSuccess(code, t);
 //                        }
 //                    });
 //                } else {
-//                    mHandler.post(new Runnable() {
+//                    mPreviewHandler.post(new Runnable() {
 //                        @Override
 //                        public void run() {
 //                            onError(baseApiResponse.getCode(), baseApiResponse.getMsg());

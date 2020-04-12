@@ -1,14 +1,7 @@
-ÏÈÓÃÊ±ÐòÍ¼´ÓÕûÌåÉÏÀí½âµ×²ãÄ£¿éÊµÏÖ£¬·ÖÄÄÐ©Ä£¿é£¬Ö®Ç°ÔõÃ´½»»¥µÄ
+ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×²ï¿½Ä£ï¿½ï¿½Êµï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½Ð©Ä£ï¿½é£¬Ö®Ç°ï¿½ï¿½Ã´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-Ô¤ÀÀºÍÂ¼ÖÆÊ±·Ö¿ªµÄ£¬µÚÒ»²½Ö»ÖØ¹¹Â¼ÖÆ¡£
-Ä¿±êÊÇVideoRecordingStudioºËÐÄ±ØÒªµÄ´úÂësyncµ½MediaRecorder
-
-
-recordingVideoPacketQueueÊÇH264µÄqueue
-±àÂëºóµÄAAC¶ÓÁÐ
-decoderAccompanyPacketQueueÊÇ½âÂë³öÀ´µÄ°é×àµÄqueue
-accompanyPacketQueueÊÇmixºóµÄ¶ÓÁÐ£¬¸ø±àÂëÏß³ÌÓÃ
-ÊÇÈËÉù¶ÓÁÐ
+Ô¤ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Ê±ï¿½Ö¿ï¿½ï¿½Ä£ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ö»ï¿½Ø¹ï¿½Â¼ï¿½Æ¡ï¿½
+Ä¿ï¿½ï¿½ï¿½ï¿½VideoRecordingStudioï¿½ï¿½ï¿½Ä±ï¿½Òªï¿½Ä´ï¿½ï¿½ï¿½syncï¿½ï¿½MediaRecorder
 
 decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
 
@@ -18,7 +11,7 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
   2. new CommonVideoRecordingStudio()
 
 1. conClick()<--VideoRecorderActivity.java
-1. startRecordAndPlay()<--VideoRecorderActivity.java //¿ªÊ¼·Å°é×à¼ÓÂ¼Òô¼ÓÂ¼ÖÆÊÓÆµ
+1. startRecordAndPlay()<--VideoRecorderActivity.java //ï¿½ï¿½Ê¼ï¿½Å°ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½Æµ
   2. initRecordingResource()<--VideoRecordingStudio.java
     3. getRecorderService()<--MediaRecorderServiceFactory
       4. getAudioRecorderService()
@@ -27,7 +20,7 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
     3. recorderService.initMetaData()
       4. audioRecorderService.initMetaData()
         5. audioRecorderService.initMetaData()
-          6. new AudioRecord() //³õÊ¼»¯ÓÃÀ´Â¼Òô
+          6. new AudioRecord() //ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½
     3. recorderService.initMediaRecorderProcessor()<MediaRecorderServiceImpl.java
       4. audioRecorderService.initAudioRecorderProcessor()<--AudioRecordRecorderServiceImpl.java
         5. songstudio.getAudioRecorder()
@@ -49,14 +42,14 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
           6. run()<--PlayerThread
             7. decoder.readSamples()
               8. readSamples()<--MusicDecoder.cpp
-            7. audioTrack.write() //ºóÃæÕâÀï²¥·Å³öÉùÒô
+            7. audioTrack.write() //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï²¥ï¿½Å³ï¿½ï¿½ï¿½ï¿½ï¿½
   2. sendMessage(START_RECORD)<--Activity
   2. recordStart()<--Activity
     3. startVideoRecording()<--VideoRecordingStudio.java
       4. startConsumer()<--CommonVideoRecordingStudio.java
         5. startVideoRecord()<--VideoStudio.java
           6. startCommonVideoRecord()<--VideoStudio.cpp
-            7. ³õÊ¼»¯3¸ö¶ÓÁÐ video audio °é×à 
+            7. ï¿½ï¿½Ê¼ï¿½ï¿½3ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ video audio ï¿½ï¿½ï¿½ï¿½ 
             7. videoPacketConsumerThread->init
               8. VideoConsumerThread::init()
                 9. buildPublisherInstance()
@@ -72,9 +65,9 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
              7. videoPacketConsumerThread->startAsync()
                8.pthread_create(startThread)
                  9. startThread()
-      4. startProducer()<--CommonVideoRecordingStudio.java
+      4. createEncoder()<--CommonVideoRecordingStudio.java
         5. playerService.start()<--AudioTrackPlayerServiceImpl.java
-          6. mediaPlayer.start() //¿ªÊ¼²¥·Å
+          6. mediaPlayer.start() //ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½
         5. recorderService.start()
           6. start()<--MediaRecorderServiceImpl.java
             7. audioRecorderService.start()
@@ -83,7 +76,7 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
                 9. run()
                   10. audioRecord.read()
                   10. recordProcessor.pushAudioBufferToQueue<--record_processor.cpp 
-                    11. cpyToAudioSamples() //Â¼ÒôÈç¶ÓÁÐ
+                    11. cpyToAudioSamples() //Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             7. previewScheduler.startEncoding()
               8. startEncoding()<--mv_recording_preview_controller.cpp
                 9. new SoftEncoderAdapter() //soft or hw
@@ -96,17 +89,17 @@ decodeTexId(SampleOES)->inputTexId(Sample2D)->outputTexId->View
                       12. init()<--VideoX264Encoder.cpp
                       12. pthread_create(startEncodeThread)
                         13. startEncode()
-                          14. getYUY2Packet() //´Óyuy2¶ÓÁÐÈ¡Êý¾Ý±àÂëÈëvideo packet¶ÓÁÐ
+                          14. getYUY2Packet() //ï¿½ï¿½yuy2ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½Ý±ï¿½ï¿½ï¿½ï¿½ï¿½video packetï¿½ï¿½ï¿½ï¿½
                             15. get()<--live_video_packet_queue.cpp 
                           14. encode()
                             15. avcodec_encode_video2()
-                            15. this->pushToQueue() //Èëvideo packet¶ÓÁÐ
+                            15. this->pushToQueue() //ï¿½ï¿½video packetï¿½ï¿½ï¿½ï¿½
                               16. packetPool->pushRecordingVideoPacketToQueue()
                                 17. recordingVideoPacketQueue->put()
                       12. pthread_create(startDownloadThread)
                         13. renderLoop()
                           14. this->loadTexture()
-                             15. yuy2PacketPool->pushYUY2PacketToQueue() //yuv¶ÓÁÐÈëÊý¾Ý
+                             15. yuy2PacketPool->pushYUY2PacketToQueue() //yuvï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 #audio encode
 startEncodeThread()<--audio_encode_adapter.cpp
@@ -117,7 +110,7 @@ startEncodeThread()<--audio_encode_adapter.cpp
       fillPCMFrameCallback()
         getAudioFrame()<--audio_encode_adapter.cpp
           getAudioPacket()<--audio_encode_adapter.cpp
-            pcmPacketPool->getAudioPacket()<-- //´ÓÈËÉù¶ÓÁÐ»ñÈ¡Â¼ÒôÊý¾Ý
+            pcmPacketPool->getAudioPacket()<-- //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½È¡Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             processAudio()
               accompanyPacketPool->getAccompanyPacket()
               musicMerger->mixtureMusicBuffer()
@@ -132,7 +125,7 @@ setCameraPreviewTexture()
       previewController->renderFrame()
         renderer->processFrame()
         encoder->encode()
-          pthread_cond_signal() //·¢ÐÅºÅÍ¨Öªloadtexture
+          pthread_cond_signal() //ï¿½ï¿½ï¿½Åºï¿½Í¨Öªloadtexture
 1. completeRecord()
   2. recordStop()
     3. stopRecording()<--VideoRecordingStudio.java
