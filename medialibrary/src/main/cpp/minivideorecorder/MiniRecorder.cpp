@@ -592,7 +592,10 @@ int MiniRecorder::initFFmepg() {
     AVCodec *video_codec = NULL;
     AVCodec *audio_codec = NULL;
     //1.register all codecs and formats
+    avcodec_register_all();
     av_register_all();
+    avformat_network_init();
+    ALOGI("dstFile %s", mRecordParams->dstFile);
     //2.alloc output context
     avformat_alloc_output_context2(&oc, NULL, "flv", mRecordParams->dstFile);
     if (!oc) {
@@ -664,6 +667,7 @@ int MiniRecorder::writeFrame() {
 
     ALOGI("video_time is %lf, audio_time is %f", video_time, audio_time);
     /* write interleaved audio and video frames */
+
     if (!video_st || (video_st && audio_st && audio_time < video_time)) {
         ret = write_audio_frame(oc, audio_st);
     } else if (video_st) {
@@ -741,11 +745,11 @@ int MiniRecorder::write_video_frame(AVFormatContext *oc, AVStream *st) {
     int64_t cal_pts = lastPresentationTimeMs / 1000.0f / av_q2d(video_st->time_base);
     int64_t pts = h264Packet->pts == PTS_PARAM_UN_SETTIED_FLAG ? cal_pts : h264Packet->pts;
     int64_t dts = h264Packet->dts == DTS_PARAM_UN_SETTIED_FLAG ? pts : h264Packet->dts == DTS_PARAM_NOT_A_NUM_FLAG ? AV_NOPTS_VALUE : h264Packet->dts;
-//    LOGI("h264Packet is {%llu, %llu}", h264Packet->pts, h264Packet->dts);
+    ALOGI("h264Packet is {%llu, %llu}", h264Packet->pts, h264Packet->dts);
     int nalu_type = (outputData[4] & 0x1F);
-//    LOGI("Final is {%llu, %llu} nalu_type is %d", pts, dts, nalu_type);
+    ALOGI("Final is {%llu, %llu} nalu_type is %d", pts, dts, nalu_type);
     if (nalu_type == H264_NALU_TYPE_SEQUENCE_PARAMETER_SET) {
-
+        ALOGI("write sps nalu");
         headerSize = bufferSize;
         headerData = new uint8_t[headerSize];
         memcpy(headerData, outputData, bufferSize);
@@ -827,7 +831,7 @@ int MiniRecorder::write_video_frame(AVFormatContext *oc, AVStream *st) {
         }
 
         if (pkt.size) {
-//        		LOGI("pkt : {%llu, %llu}", pkt.pts, pkt.dts);
+        		ALOGI("pkt : {%llu, %llu}", pkt.pts, pkt.dts);
             ret = av_interleaved_write_frame(oc, &pkt);
             if (ret != 0) {
                 ALOGI("Error while writing Video frame: %s\n", av_err2str(ret));
