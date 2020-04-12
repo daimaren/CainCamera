@@ -1,0 +1,13 @@
+cd E:\Software\android-ndk-r16-beta1\toolchains\arm-linux-androideabi-4.9\prebuilt\windows-x86_64\bin
+arm-linux-androideabi-addr2line -C -f -e E:\all_code_in_here\CainCamera\medialibrary\build\intermediates\cmake\debug\obj\armeabi-v7a\libmini_recorder.so 00012f69
+
+arm-linux-androideabi-readelf -a E:\抖音so分析\aweme_aweGW_v10.6.0_795fda9\lib\armeabi-v7a\libttvideorecorder.so > E:\抖音so分析\ttvideorecorder_func.txt
+arm-linux-androideabi-readelf -a E:\抖音so分析\aweme_aweGW_v10.6.0_795fda9\lib\armeabi-v7a\libttvideoeditor.so > E:\抖音so分析\ttvideoeditor_func.txt
+
+arm-linux-androideabi-readelf -a E:\抖音so分析\aweme_aweGW_v10.6.0_795fda9\lib\armeabi-v7a\libavframework.so > E:\抖音so分析\avframework_func.txt
+
+arm-linux-androideabi-readelf -a E:\抖音so分析\aweme_aweGW_v10.6.0_795fda9\lib\armeabi-v7a\libttmain.so > E:\抖音so分析\ttmain_func.txt
+
+arm-linux-androideabi-readelf -a E:\抖音so分析\aweme_aweGW_v10.6.0_795fda9\lib\armeabi-v7a\libttmplayer.so > E:\抖音so分析\ttmplayer_func.txt
+
+arm-linux-androideabi-readelf -a E:\all_code_in_here\CainCamera\medialibrary\build\intermediates\cmake\debug\obj\armeabi-v7a\libmini_recorder.so > E:\抖音so分析\self_func.txt

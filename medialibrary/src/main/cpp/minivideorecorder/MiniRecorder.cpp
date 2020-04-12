@@ -1754,7 +1754,7 @@ int MiniRecorder::getAudioFrame(int16_t * samples, int frame_size, int nb_channe
 }
 
 int MiniRecorder::cpyToSamples(int16_t * samples, int samplesInShortCursor, int cpyPacketBufferSize, double* presentationTimeMills) {
-    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));//todo
+    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));//todo why crash in here
     return 1;
 }
 
