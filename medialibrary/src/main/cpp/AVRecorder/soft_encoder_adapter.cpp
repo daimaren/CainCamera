@@ -24,7 +24,7 @@ SoftEncoderAdapter::~SoftEncoderAdapter() {
 }
 
 void SoftEncoderAdapter::createEncoder(EGLCore *eglCore, int inputTexId) {
-	LOGI("enter createEncoder");
+	LOGI("enter createVideoEncoder");
     this->loadTextureContext = eglCore->getContext();
     this->texId = inputTexId;
     pixelSize = videoWidth * videoHeight * PIXEL_BYTE_SIZE;
@@ -41,7 +41,7 @@ void SoftEncoderAdapter::createEncoder(EGLCore *eglCore, int inputTexId) {
     _msg = MSG_WINDOW_SET;
     pthread_create(&imageDownloadThread, NULL, startDownloadThread, this);
 
-    LOGI("leave createEncoder");
+    LOGI("leave createVideoEncoder");
 }
 
 void SoftEncoderAdapter::reConfigure(int maxBitRate, int avgBitRate, int fps) {

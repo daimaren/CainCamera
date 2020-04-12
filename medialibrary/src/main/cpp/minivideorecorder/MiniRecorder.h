@@ -20,6 +20,7 @@
 #include "live_audio_packet_queue.h"
 #include "live_video_packet_queue.h"
 #include "live_common_packet_pool.h"
+#include "live_audio_packet_pool.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -205,12 +206,28 @@ public:
     virtual void renderFrame();
     virtual void destroyEGLContext();
     int prepare_l();
+    int pushAudioBufferToQueue(short* samples, int size);
 private:
-    int createEncoder();
+    int createVideoEncoder();
+    int createAudioEncoder();
+    int destoryAudioEncoder();
     //HW Encoder
     void createHWEncoder();
     void createSurfaceRender();
     void destroyHWEncoder();
+    //audio encoder
+    void cpyToAudioSamples(short* sourceBuffer, int cpyLength);
+    void flushAudioBufferToQueue();
+    int alloc_audio_stream(const char * codec_name);
+    int alloc_avframe();
+    int encodeAudio(LiveAudioPacket **audioPacket);
+    int getAudioFrame(int16_t * samples, int frame_size, int nb_channels, double* presentationTimeMills);
+    int cpyToSamples(int16_t * samples, int samplesInShortCursor, int cpyPacketBufferSize, double* presentationTimeMills);
+    void discardAudioPacket();
+    int getAudioPacket();
+    int processAudio();
+    int mixtureMusicBuffer(long frameNum, short* accompanySamples, int accompanySampleSize, short* audioSamples, int audioSampleSize);
+    int getAudioPacket(LiveAudioPacket ** audioPacket);
     //MediaMux
     int initFFmepg();
     int deinitFFmpeg();
@@ -253,9 +270,11 @@ private:
     static void *startPreviewThread(void *myself);
     void processPreviewMessage();
     static void *startHardWareEncodeThread(void *myself);
-    void encodeLoop();
+    void videoEncodeLoop();
     static void *startWriteThread(void *myself);
     void writerLoop();
+    static void *startAudioEncodeThread(void *myself);
+    void audioEncodeLoop();
 private:
     FILE* mflvFile;
     FILE* mDumpYuvFile;
@@ -270,7 +289,7 @@ private:
     bool mAbortRequest; // 停止请求
     bool mStartRequest; // 开始录制请求
     bool mExit;         // 完成退出标志
-    bool mIsEncoding = false;
+    bool mIsVideoEncoding = false;
     //HW Encode变量
     LiveCommonPacketPool *packetPool;
     jbyteArray mEncoderOutputBuf = NULL;
@@ -278,6 +297,27 @@ private:
     ANativeWindow *mEncoderWindow;
     bool mUseHardWareEncoding = true;
     bool mIsSPSUnWriteFlag = false;
+    //Audio变量
+    LivePacketPool* 	  pcmPacketPool;
+    LiveCommonPacketPool* accompanyPacketPool;
+    LiveAudioPacketPool *aacPacketPool;
+    int audioSamplesCursor = 0;
+    int audioBufferSize;
+    short* audioSamples;
+    int audioBufferTimeMills;
+
+    int packetBufferSize;
+    short* packetBuffer;
+    int packetBufferCursor;
+    double  packetBufferPresentationTimeMills;
+    //Audio Encode变量
+    bool mIsAudioEncoding = false;
+    AVCodecContext *avCodecContext;
+    AVFrame         *encode_frame;
+    int64_t         audio_next_pts;
+    uint8_t         **audio_samples_data;
+    int       		audio_nb_samples; //todo 还没初始化
+    int 			audio_samples_size;
     //Media Writer变量
     AVOutputFormat *fmt;
     AVFormatContext *oc;
@@ -363,7 +403,8 @@ private:
     MsgQueue            *mEncodeMsgQueue;
     //thread id
     pthread_t           mPreviewThreadId;
-    pthread_t           mEncoderThreadId;
+    pthread_t           mAudioEncoderThreadId;
+    pthread_t           mVideoEncoderThreadId;
     pthread_t           mWriterThreadId;
 };
 /**

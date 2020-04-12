@@ -185,22 +185,40 @@ void MiniRecorder::processPreviewMessage() {
 
 void *MiniRecorder::startHardWareEncodeThread(void *myself) {
     MiniRecorder *recorder = (MiniRecorder *) myself;
-    recorder->encodeLoop();
+    recorder->videoEncodeLoop();
     pthread_exit(0);
     return 0;
 }
 
-void MiniRecorder::encodeLoop() {
-    while (mIsEncoding) {
+void MiniRecorder::videoEncodeLoop() {
+    while (mIsVideoEncoding) {
         Msg *msg = NULL;
         if (mEncodeMsgQueue->dequeueMessage(&msg, true) > 0) {
             if (MESSAGE_QUEUE_LOOP_QUIT_FLAG == msg->execute()) {
-                mIsEncoding = false;
+                mIsVideoEncoding = false;
             }
             delete msg;
         }
     }
     ALOGI("HWEncoderAdapter encode Thread ending...");
+}
+
+void *MiniRecorder::startAudioEncodeThread(void *myself) {
+    MiniRecorder *recorder = (MiniRecorder *) myself;
+    recorder->audioEncodeLoop();
+    pthread_exit(0);
+    return 0;
+}
+
+void MiniRecorder::audioEncodeLoop() {
+    mIsAudioEncoding = true;
+    while(mIsAudioEncoding){
+        LiveAudioPacket *audioPacket = NULL;
+        int ret = encodeAudio(&audioPacket);
+        if(ret >= 0 && NULL != audioPacket){
+            aacPacketPool->pushAudioPacketToQueue(audioPacket);
+        }
+    }
 }
 
 void *MiniRecorder::startWriteThread(void *myself) {
@@ -251,7 +269,7 @@ void MiniRecorder::renderFrame() {
         renderToViewWithAutofit(mRotateTexId, mScreenWidth, mScreenHeight, mTextureWidth, mTextureHeight);
         eglSwapBuffers(mEGLDisplay, mPreviewSurface);
     }
-    if (mIsEncoding) {
+    if (mIsVideoEncoding) {
         if (mUseHardWareEncoding) {
             //hw encode
             eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
@@ -282,10 +300,11 @@ void MiniRecorder::startRecord() {
     // 初始化编码器
     if (mUseHardWareEncoding) {
         //packetPool是生产者消费者的桥梁
-        packetPool = LiveCommonPacketPool::GetInstance();
+        packetPool = LiveCommonPacketPool::GetInstance(); //H264队列
+        aacPacketPool = LiveAudioPacketPool::GetInstance();
         LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
-        //todo LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(audioSampleRate);
-        //	LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
+        LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(mRecordParams->sampleRate);
+        LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
     } else {
         //todo 软编码
     }
@@ -308,7 +327,8 @@ int MiniRecorder::prepare() {
 void MiniRecorder::startRecording() {
     initFFmepg();
     pthread_create(&mWriterThreadId, 0, startWriteThread, this);
-    createEncoder();
+    createVideoEncoder();
+    createAudioEncoder();
 }
 
 /**
@@ -316,9 +336,10 @@ void MiniRecorder::startRecording() {
  */
 void MiniRecorder::stopRecording() {
     ALOGD("enter stopRecording");
-    mIsEncoding = false;
+    mIsVideoEncoding = false;
     mEncodeHandler->postMessage(new Msg(MESSAGE_QUEUE_LOOP_QUIT_FLAG));
-    pthread_join(mEncoderThreadId, 0);
+    mIsVideoEncoding = false;
+    pthread_join(mVideoEncoderThreadId, 0);
     if (mEncodeMsgQueue) {
         mEncodeMsgQueue->abort();
         delete mEncodeMsgQueue;
@@ -347,14 +368,16 @@ void MiniRecorder::stopRecording() {
     } else {
         //todo SW Encode
     }
+    destoryAudioEncoder();
     //stop writer thread
+    mIsWriting = false;
     pthread_join(mWriterThreadId, 0);
 
     packetPool->abortRecordingVideoPacketQueue();
-    //aacPacketPool->abortAudioPacketQueue();
+    aacPacketPool->abortAudioPacketQueue();
     deinitFFmpeg();
     packetPool->destoryRecordingVideoPacketQueue();
-    //aacPacketPool->destoryAudioPacketQueue();
+    aacPacketPool->destoryAudioPacketQueue();
     ALOGD("leave stopRecording");
 }
 
@@ -388,8 +411,7 @@ int MiniRecorder::prepare_l() {
  * @return
  */
 bool MiniRecorder::isRecording() {
-    bool recording = false;
-    return recording;
+    return mIsAudioEncoding;
 }
 
 /**
@@ -421,18 +443,62 @@ RecordParams* MiniRecorder::getRecordParams() {
     return mRecordParams;
 }
 
+int MiniRecorder::createAudioEncoder() {
+    audioSamplesCursor = 0;
+    float percent = 0.2f;
+    audioBufferSize = 44100 * percent;
+    audioSamples = new short[audioBufferSize];
+    audioBufferTimeMills = (float)audioBufferSize * 1000.0f / (float)mRecordParams->sampleRate;
+
+    accompanyPacketPool = LiveCommonPacketPool::GetInstance();
+    pcmPacketPool = LiveCommonPacketPool::GetInstance();
+    alloc_audio_stream("libfdk_aac");
+    alloc_avframe();
+    pthread_create(&mAudioEncoderThreadId, NULL, startAudioEncodeThread, this);
+}
+
+int MiniRecorder::destoryAudioEncoder() {
+    mIsAudioEncoding = false;
+    pcmPacketPool->abortAudioPacketQueue();
+    pthread_join(mAudioEncoderThreadId, 0);
+    pcmPacketPool->destoryAudioPacketQueue();
+
+    if(NULL != packetBuffer){
+        delete packetBuffer;
+        packetBuffer = NULL;
+    }
+    if(NULL != audioSamples){
+        delete[] audioSamples;
+        audioSamples = NULL;
+    }
+
+    if (NULL != audio_samples_data[0]) {
+        av_free(audio_samples_data[0]);
+    }
+    if (NULL != encode_frame) {
+        av_free(encode_frame);
+    }
+    if (NULL != avCodecContext) {
+        avcodec_close(avCodecContext);
+        av_free(avCodecContext);
+    }
+
+    accompanyPacketPool->abortAccompanyPacketQueue();
+    accompanyPacketPool->destoryAccompanyPacketQueue();
+}
+
 /**
- * createProducer
+ * createVideoEncoder
  */
-int MiniRecorder::createEncoder() {
+int MiniRecorder::createVideoEncoder() {
     if (mUseHardWareEncoding) {
         mEncodeMsgQueue = new MsgQueue("HWEncoder message queue");
         mEncodeHandler = new HWEncoderHandler(this, mEncodeMsgQueue);
         createHWEncoder();
         createSurfaceRender();
-        pthread_create(&mEncoderThreadId, 0, startHardWareEncodeThread, this);
+        pthread_create(&mVideoEncoderThreadId, 0, startHardWareEncodeThread, this);
         mIsSPSUnWriteFlag = true;
-        mIsEncoding = true;
+        mIsVideoEncoding = true;
 #if DUMP_HW_ENCODER_H264_BUFFER
         mDumpH264File = fopen("/storage/emulated/0/a_songstudio/dump.h264", "wb");
         if (!mDumpH264File) {
@@ -496,7 +562,7 @@ void MiniRecorder::createSurfaceRender() {
 }
 
 void MiniRecorder::drainEncodedData() {
-    if (!mIsEncoding) {
+    if (!mIsVideoEncoding) {
         ALOGI("have stop record, drainEncodedData return");
         return;
     }
@@ -678,10 +744,18 @@ int MiniRecorder::writeFrame() {
     return ret;
 }
 
+int MiniRecorder::getAudioPacket(LiveAudioPacket ** audioPacket) {
+    if (aacPacketPool->getAudioPacket(audioPacket, true) < 0) {
+        ALOGI("aacPacketPool->getAudioPacket return negetive value...");
+        return -1;
+    }
+    return 1;
+}
+
 int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
     int ret = AUDIO_QUEUE_ABORT_ERR_CODE;
     LiveAudioPacket *audioPacket = NULL;
-    //todo ret = fillAACPacket(&audioPacket)
+    ret = getAudioPacket(&audioPacket);
     if (ret > 0) {
         AVPacket pkt = {0}; // data and size must be 0;
         av_init_packet(&pkt);
@@ -973,7 +1047,103 @@ AVStream *MiniRecorder::add_stream(AVFormatContext *oc, AVCodec **codec, enum AV
     return st;
 }
 
-//===============Media Writer End=============================/
+int MiniRecorder::alloc_audio_stream(const char * codec_name) {
+    AVCodec *codec = avcodec_find_encoder_by_name(codec_name);
+    if (!codec) {
+        ALOGI("Couldn't find a valid audio codec By Codec Name %s", codec_name);
+        return -1;
+    }
+    avCodecContext = avcodec_alloc_context3(codec);
+    avCodecContext->codec_type = AVMEDIA_TYPE_AUDIO;
+    avCodecContext->sample_rate = mRecordParams->sampleRate;
+    avCodecContext->bit_rate = 64000;
+    avCodecContext->sample_fmt = AV_SAMPLE_FMT_S16;
+    ALOGI("audioChannels is %d", mRecordParams->channels);
+    ALOGI("AV_SAMPLE_FMT_S16 is %d", AV_SAMPLE_FMT_S16);
+    avCodecContext->channel_layout = mRecordParams->channels == 1 ? AV_CH_LAYOUT_MONO : AV_CH_LAYOUT_STEREO;
+    avCodecContext->channels = av_get_channel_layout_nb_channels(avCodecContext->channel_layout);
+    avCodecContext->profile = FF_PROFILE_AAC_LOW;
+    ALOGI("avCodecContext->channels is %d", avCodecContext->channels);
+    avCodecContext->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    avCodecContext->codec_id = codec->id;
+    if (avcodec_open2(avCodecContext, codec, NULL) < 0) {
+        ALOGI("Couldn't open audio codec");
+        return -2;
+    }
+    return 0;
+}
+
+int MiniRecorder::alloc_avframe() {
+    int ret = 0;
+    encode_frame = av_frame_alloc();
+    if (!encode_frame) {
+        ALOGI("Could not allocate audio frame\n");
+        return -1;
+    }
+    encode_frame->nb_samples = avCodecContext->frame_size;
+    encode_frame->format = avCodecContext->sample_fmt;
+    encode_frame->channel_layout = avCodecContext->channel_layout;
+    encode_frame->sample_rate = avCodecContext->sample_rate;
+
+    audio_nb_samples = avCodecContext->codec->capabilities & CODEC_CAP_VARIABLE_FRAME_SIZE ? 10240 : avCodecContext->frame_size;
+    int src_samples_linesize;
+    ret = av_samples_alloc_array_and_samples(&audio_samples_data, &src_samples_linesize, avCodecContext->channels, audio_nb_samples, avCodecContext->sample_fmt, 0);
+    if (ret < 0) {
+        ALOGI("Could not allocate source samples\n");
+        return -1;
+    }
+    audio_samples_size = av_samples_get_buffer_size(NULL, avCodecContext->channels, audio_nb_samples, avCodecContext->sample_fmt, 0);
+    return ret;
+}
+
+int MiniRecorder::encodeAudio(LiveAudioPacket **audioPacket) {
+//	LOGI("begin encode packet..................");
+    double presentationTimeMills = -1;
+    int actualFillSampleSize = -1;
+    actualFillSampleSize = getAudioFrame((int16_t *) audio_samples_data[0], audio_nb_samples, mRecordParams->channels, &presentationTimeMills);
+    if (actualFillSampleSize == -1) {
+        ALOGI("fillPCMFrameCallback failed return actualFillSampleSize is %d \n", actualFillSampleSize);
+        return -1;
+    }
+    if (actualFillSampleSize == 0) {
+        return -1;
+    }
+    int actualFillFrameNum = actualFillSampleSize / mRecordParams->channels;
+    int audioSamplesSize = actualFillFrameNum * mRecordParams->channels * sizeof(short);
+    AVRational time_base = {1, mRecordParams->sampleRate};
+    int ret;
+    AVPacket pkt = { 0 };
+    int got_packet;
+    av_init_packet(&pkt);
+    pkt.duration = (int) AV_NOPTS_VALUE;
+    pkt.pts = pkt.dts = 0;
+    encode_frame->nb_samples = actualFillFrameNum;
+    avcodec_fill_audio_frame(encode_frame, avCodecContext->channels, avCodecContext->sample_fmt, audio_samples_data[0], audioSamplesSize, 0);
+    encode_frame->pts = audio_next_pts;
+    audio_next_pts += encode_frame->nb_samples;
+//	int64_t calcuPTS = presentationTimeMills / 1000 / av_q2d(time_base) / audioChannels;
+//	LOGI("encode_frame pts is %llu, calcuPTS is %llu", encode_frame->pts, calcuPTS);
+    ret = avcodec_encode_audio2(avCodecContext, &pkt, encode_frame, &got_packet);
+    if (ret < 0 || !got_packet) {
+        ALOGI("Error encoding audio frame: %s\n", av_err2str(ret));
+        av_free_packet(&pkt);
+        return ret;
+    }
+    if (got_packet) {
+        pkt.pts = av_rescale_q(encode_frame->pts, avCodecContext->time_base, time_base);
+
+        (*audioPacket) = new LiveAudioPacket();
+        (*audioPacket)->data = new byte[pkt.size];
+        memcpy((*audioPacket)->data, pkt.data, pkt.size);
+        (*audioPacket)->size = pkt.size;
+        (*audioPacket)->position = (float)(pkt.pts * av_q2d(time_base) * 1000.0f);
+		//ALOGI("size and position is {%f, %d}", (*audioPacket)->position, (*audioPacket)->size);
+    }
+    av_free_packet(&pkt);
+    return ret;
+//	LOGI("leave encode packet...");
+}
+//===============FFmpeg End=============================/
 
 //===============EGL Method Start=============================/
 bool MiniRecorder::initEGL() {
@@ -1499,6 +1669,152 @@ void MiniRecorder::downloadImageFromTexture(GLuint texId, void *imageBuf, unsign
 }
 //===============OpenGL Functions End=============================/
 
+int MiniRecorder::pushAudioBufferToQueue(short* samples, int size) {
+    if (size <= 0) {
+        return size;
+    }
+
+    int samplesCursor = 0;
+    int samplesCnt = size;
+    while (samplesCnt > 0) {
+        if ((audioSamplesCursor + samplesCnt) < audioBufferSize) {
+            this->cpyToAudioSamples(samples + samplesCursor, samplesCnt);
+            audioSamplesCursor += samplesCnt;
+            samplesCursor += samplesCnt;
+            samplesCnt = 0;
+        } else {
+            int subFullSize = audioBufferSize - audioSamplesCursor;
+            this->cpyToAudioSamples(samples + samplesCursor, subFullSize);
+            audioSamplesCursor += subFullSize;
+            samplesCursor += subFullSize;
+            samplesCnt -= subFullSize;
+            flushAudioBufferToQueue();
+        }
+    }
+    return size;
+}
+
+void MiniRecorder::cpyToAudioSamples(short* sourceBuffer, int cpyLength) {
+    if(0 == audioSamplesCursor){
+        //audioSamplesTimeMills = currentTimeMills() - startTimeMills;
+    }
+    memcpy(audioSamples + audioSamplesCursor, sourceBuffer, cpyLength * sizeof(short));
+}
+
+void MiniRecorder::flushAudioBufferToQueue() {
+    if (audioSamplesCursor > 0) {
+        short* packetBuffer = new short[audioSamplesCursor];
+        if (NULL == packetBuffer) {
+            return;
+        }
+        memcpy(packetBuffer, audioSamples, audioSamplesCursor * sizeof(short));
+        LiveAudioPacket * audioPacket = new LiveAudioPacket();
+        audioPacket->buffer = packetBuffer;
+        audioPacket->size = audioSamplesCursor;
+        packetPool->pushAudioPacketToQueue(audioPacket);
+        audioSamplesCursor = 0;
+        //dataAccumulateTimeMills+=audioBufferTimeMills;
+//		LOGI("audioSamplesTimeMills is %.6f SampleCnt Cal timeMills %llu", audioSamplesTimeMills, dataAccumulateTimeMills);
+        /*int correctDurationInTimeMills = 0;
+        if(corrector->detectNeedCorrect(dataAccumulateTimeMills, audioSamplesTimeMills, &correctDurationInTimeMills)){
+            //妫€娴嬪埌鏈夐棶棰樹簡, 闇€瑕佽繘琛屼慨澶?
+            this->correctRecordBuffer(correctDurationInTimeMills);
+        }*/
+    }
+}
+
+int MiniRecorder::getAudioFrame(int16_t * samples, int frame_size, int nb_channels, double* presentationTimeMills) {
+    int byteSize = frame_size * nb_channels * 2;
+    int samplesInShortCursor = 0;
+    while (true) {
+        if (packetBufferSize == 0) {
+            int ret = getAudioPacket();
+            if (ret < 0) {
+                return ret;
+            }
+        }
+        int copyToSamplesInShortSize = (byteSize - samplesInShortCursor * 2) / 2;
+        if (packetBufferCursor + copyToSamplesInShortSize <= packetBufferSize) {
+            cpyToSamples(samples, samplesInShortCursor, copyToSamplesInShortSize, presentationTimeMills);
+            packetBufferCursor += copyToSamplesInShortSize;
+            samplesInShortCursor = 0;
+            break;
+        } else {
+            int subPacketBufferSize = packetBufferSize - packetBufferCursor;
+            cpyToSamples(samples, samplesInShortCursor, subPacketBufferSize, presentationTimeMills);
+            samplesInShortCursor += subPacketBufferSize;
+            packetBufferSize = 0;
+            continue;
+        }
+    }
+    return frame_size * nb_channels;
+}
+
+int MiniRecorder::cpyToSamples(int16_t * samples, int samplesInShortCursor, int cpyPacketBufferSize, double* presentationTimeMills) {
+    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));
+    return 1;
+}
+
+void MiniRecorder::discardAudioPacket() {
+    while(pcmPacketPool->detectDiscardAudioPacket()){
+        if(!pcmPacketPool->discardAudioPacket()){
+            break;
+        }
+    }
+}
+
+int MiniRecorder::getAudioPacket() {
+    discardAudioPacket();
+    LiveAudioPacket *audioPacket = NULL;
+    if (pcmPacketPool->getAudioPacket(&audioPacket, true) < 0) {
+        return -1;
+    }
+    packetBufferCursor = 0;
+    packetBufferPresentationTimeMills = audioPacket->position;
+
+    packetBufferSize = audioPacket->size * 1.0f;
+    if (NULL == packetBuffer) {
+        packetBuffer = new short[packetBufferSize];
+    }
+    memcpy(packetBuffer, audioPacket->buffer, audioPacket->size * sizeof(short));
+    int actualSize = processAudio();
+    if (actualSize > 0 && actualSize < packetBufferSize) {
+        packetBufferCursor = packetBufferSize - actualSize;
+        memmove(packetBuffer + packetBufferCursor, packetBuffer, actualSize * sizeof(short));
+    }
+    if (NULL != audioPacket) {
+        delete audioPacket;
+        audioPacket = NULL;
+    }
+    return actualSize > 0 ? 1 : -1;
+}
+
+int MiniRecorder::processAudio() {
+    int ret = packetBufferSize;
+    LiveAudioPacket *accompanyPacket = NULL;
+    if (accompanyPacketPool->getAccompanyPacket(&accompanyPacket, true) < 0) {
+        return -1;
+    }
+    if (NULL != accompanyPacket) {
+        int accompanySampleSize = accompanyPacket->size;
+        short* accompanySamples = accompanyPacket->buffer;
+        long frameNum = accompanyPacket->frameNum;
+        ret = mixtureMusicBuffer(frameNum, accompanySamples, accompanySampleSize, packetBuffer, packetBufferSize);
+        delete accompanyPacket;
+        accompanyPacket = NULL;
+    }
+    return ret;
+}
+
+int MiniRecorder::mixtureMusicBuffer(long frameNum, short* accompanySamples, int accompanySampleSize, short* audioSamples, int audioSampleSize) {
+    for(int i = audioSampleSize - 1; i >= 0; i--) {
+        audioSamples[i] = audioSamples[i / 2];
+    }
+    int actualSize = MIN(accompanySampleSize, audioSampleSize);
+    ALOGI("accompanySampleSize is %d audioSampleSize is %d", accompanySampleSize, audioSampleSize);
+    mixtureAccompanyAudio(accompanySamples, audioSamples, actualSize, audioSamples);
+    return actualSize;
+}
 
 
 

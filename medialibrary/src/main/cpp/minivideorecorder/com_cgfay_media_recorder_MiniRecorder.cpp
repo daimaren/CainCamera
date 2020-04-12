@@ -351,16 +351,19 @@ Java_com_cgfay_media_recorder_MiniVideoRecorder_recordAudioFrame(JNIEnv *env, jo
                                                                  jbyteArray data_, jint length) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
-        uint8_t *pcmData = (uint8_t *) malloc((size_t) length);
+        short* pcmData = (short*) malloc((size_t) length );
         if (pcmData == nullptr) {
             LOGE("Could not allocate memory");
             return -1;
         }
-        jbyte *data = env->GetByteArrayElements(data_, nullptr);
-        memcpy(pcmData, data, (size_t) length);
-        env->ReleaseByteArrayElements(data_, data, 0);
+        jbyte* samples = env->GetByteArrayElements(data_, nullptr);
+        memcpy(pcmData, samples, (size_t) length);
+        env->ReleaseByteArrayElements(data_, samples, 0);
 
-        free(pcmData);
+        int result = recorder->pushAudioBufferToQueue(pcmData, length / sizeof(short));
+        if (pcmData != nullptr) {
+            free(pcmData);
+        }
     }
     return -1;
 }
