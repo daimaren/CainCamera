@@ -3,6 +3,7 @@ package com.cgfay.caincamera.fragment;
 import android.app.Activity;
 import android.content.Context;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,6 +22,7 @@ import android.widget.LinearLayout;
 import com.cgfay.caincamera.R;
 import com.cgfay.camera.utils.PathConstraints;
 import com.cgfay.camera.widget.RecordProgressView;
+import com.cgfay.media.NativeMp3Player;
 import com.cgfay.media.recorder.AVFormatter;
 import com.cgfay.media.recorder.AudioRecorder;
 import com.cgfay.media.recorder.MiniVideoRecorder;
@@ -47,6 +49,7 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
 
     private MiniVideoRecorder mMiniRecorder;
     private AudioRecorder mAudioRecorder;
+    public NativeMp3Player mediaPlayer;
 
     private boolean mIsRecording = false;
 
@@ -76,11 +79,24 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
         initView();
         bindListener();
         initAudioRecorder();
+        initMusicPlayer();
         mMiniRecorder = new MiniVideoRecorder.RecordBuilder("/storage/emulated/0/a_songstudio/test.flv") //generateOutputPath()
                 .setVideoParams(720, 1280,  0, 900)
                 .setAudioParams(mAudioRecorder.getSampleRate(), AVFormatter.getSampleFormat(mAudioRecorder.getSampleFormat()), mAudioRecorder.getChannels())
                 .create();
         mMiniRecorder.setRecordListener(this);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        try {
+            if (mediaPlayer != null) {
+                mediaPlayer.stop();
+            }
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     private void initView() {
@@ -129,6 +145,24 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
         mAudioRecorder = new AudioRecorder();
         mAudioRecorder.setOnRecordCallback(this);
         mAudioRecorder.setSampleFormat(AudioFormat.ENCODING_PCM_16BIT);
+    }
+
+    private void initMusicPlayer() {
+        try {
+            if (mediaPlayer == null) {
+                mediaPlayer = new NativeMp3Player();
+                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void startMusicPlayer() {
+        if (mediaPlayer != null) {
+            mediaPlayer.prepare(44100);
+        }
+        mediaPlayer.startAccompany("xx");
     }
 
     private void bindListener() {

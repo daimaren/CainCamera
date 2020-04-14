@@ -20,6 +20,10 @@ add_library( mini_recorder
              live_audio_packet_queue.cpp
              live_video_packet_queue.cpp
              # 录制器
+             Resampler.cpp
+             aac_accompany_decoder.cpp
+             song_decoder_controller.cpp
+             MusicDecoder.cpp
              MiniRecorder.cpp
              RecordParams.cpp
              com_cgfay_media_recorder_MiniRecorder.cpp)
