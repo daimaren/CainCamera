@@ -5,7 +5,7 @@ import android.media.AudioTrack;
 import android.util.Log;
 
 public class NativeMp3Player {
-	public static final String TAG = "NativeMp3Player";
+	public static final String TAG = "CainMedia";
 
 	private static final int BITS_PER_BYTE = 8;
 	private static final int BITS_PER_CHANNEL = 16;

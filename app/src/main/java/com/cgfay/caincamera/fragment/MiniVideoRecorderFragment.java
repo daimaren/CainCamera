@@ -111,12 +111,14 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
             //mRecordButton.setEnabled(false);
             if (!mIsRecording) {
                 //mMiniRecorder.prepare();
-                mMiniRecorder.startRecord();
-                mAudioRecorder.start();
+                //mAudioRecorder.start();
+                //mMiniRecorder.startRecord();
+                startMusicPlayer();
                 mIsRecording = true;
                 mRecordButton.setText(R.string.btn_record_cancel);
             } else {
-                mMiniRecorder.stopRecord();
+                //mMiniRecorder.stopRecord();
+                stopMusicPlayer();
                 mAudioRecorder.stop();
                 mIsRecording = false;
                 mRecordButton.setText(R.string.btn_record_start);
@@ -161,8 +163,14 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
     private void startMusicPlayer() {
         if (mediaPlayer != null) {
             mediaPlayer.prepare(44100);
+            mediaPlayer.startAccompany("/storage/emulated/0/a_songstudio/101.mp3");
         }
-        mediaPlayer.startAccompany("xx");
+    }
+
+    private void stopMusicPlayer() {
+        if (mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
     }
 
     private void bindListener() {

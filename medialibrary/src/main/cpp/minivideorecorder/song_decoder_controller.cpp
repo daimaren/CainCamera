@@ -157,7 +157,7 @@ void LiveSongDecoderController::decodeSongPacket() {
 			}
 			float transfer_ratio = (float) accompanySampleRate / (float) vocalSampleRate;
 			int accompanySampleSize = (int) ((float) (monoSampleSize) / transfer_ratio);
-//			ALOGI("monoSampleSize is %d accompanySampleSize is %d", monoSampleSize, accompanySampleSize);
+			ALOGI("monoSampleSize is %d accompanySampleSize is %d", monoSampleSize, accompanySampleSize);
 			uint8_t out_data[accompanySampleSize * 2 * 2];
 			int out_nb_bytes = 0;
 			resampler->process(samples, out_data, monoSampleSize, &out_nb_bytes);
@@ -165,7 +165,7 @@ void LiveSongDecoderController::decodeSongPacket() {
 			delete[] samples[1];
 			delete[] stereoSamples;
 			if (out_nb_bytes > 0) {
-				//			ALOGI("out_nb_bytes is %d accompanySampleSize is %d", out_nb_bytes, accompanySampleSize);
+				ALOGI("out_nb_bytes is %d accompanySampleSize is %d", out_nb_bytes, accompanySampleSize);
 				accompanySampleSize = out_nb_bytes / 2;
 				short* accompanySamples = new short[accompanySampleSize];
 				convertShortArrayFromByteArray(out_data, out_nb_bytes, accompanySamples, 1.0);
