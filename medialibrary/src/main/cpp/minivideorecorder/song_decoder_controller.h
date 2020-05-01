@@ -7,14 +7,15 @@
 #include "live_common_packet_pool.h"
 #include "Resampler.h"
 
+#define	ENABLE_DUMP_PCM		1
 #define CHANNEL_PER_FRAME	2
-#define BITS_PER_CHANNEL		16
+#define BITS_PER_CHANNEL	16
 #define BITS_PER_BYTE		8
 /** decode data to queue and queue size **/
 #define QUEUE_SIZE_MAX_THRESHOLD 	45
 #define QUEUE_SIZE_MIN_THRESHOLD 	30
 
-#define ACCOMPANY_TYPE_SILENT_SAMPLE			0
+#define ACCOMPANY_TYPE_SILENT_SAMPLE		0
 #define ACCOMPANY_TYPE_SONG_SAMPLE			1
 /**
  * 这是伴奏单独的控制类，原唱的控制类继承自这个类
@@ -66,6 +67,7 @@ protected:
 
 	int buildSlientSamples(short* samples);
 public:
+	FILE* mDumpPcmFile;
 	/** 由于在解码线程中要用到以下几个值，所以访问控制符是public的 **/
 	bool isRunning;
 	pthread_mutex_t mLock;

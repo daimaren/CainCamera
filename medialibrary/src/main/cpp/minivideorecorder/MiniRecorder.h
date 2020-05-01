@@ -253,7 +253,7 @@ private:
     GLuint loadProgram(char* pVertexSource, char* pFragmentSource);
     GLuint loadShader(GLenum shaderType, const char* pSource);
     bool   checkGlError(const char* op);
-    int initDecodeTexture();
+    int initOESTexture();
     void renderToView(GLuint texID, int screenWidth, int screenHeight);
     void renderToAutoFitTexture(GLuint inputTexId, int width, int height, GLuint outputTexId);
     void renderToViewWithAutofit(GLuint texId, int screenWidth, int screenHeight, int texWidth, int texHeight);

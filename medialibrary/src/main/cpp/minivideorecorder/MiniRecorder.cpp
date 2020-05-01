@@ -100,7 +100,7 @@ bool MiniRecorder::initialize() {
         return false;
     }
     initRenderer();
-    int ret = initDecodeTexture();
+    int ret = initOESTexture();
     if (ret < 0) {
         ALOGI("init texture failed");
         if (mDecodeTexId) {
@@ -1443,7 +1443,7 @@ bool MiniRecorder::checkGlError(const char *op) {
     return false;
 }
 
-int MiniRecorder::initDecodeTexture() {
+int MiniRecorder::initOESTexture() {
     mDecodeTexId = 0;
     glGenTextures(1, &mDecodeTexId);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, mDecodeTexId);

@@ -1,0 +1,19 @@
+1. viewDidLoad()<--ELPushStreamViewController
+  2. pushButton
+  2. frontBackSwitchButton
+  2. initVideoFilterEffectView
+  2. 
+
+1.ÓÃ»§µã»÷pushButton
+  2. OnStartStop
+    3. start()
+      4. start()<--ELVideoRecordingStudio
+        5. new VideoConsumerThread()
+        5. initRecordingVideoPacketQueue()
+        5. initAudioPacketQueue()
+        5. initAudioPacketQueue()
+        5. init()<--VideoConsumerThread
+        5. startAsync()<--VideoConsumerThread
+          6. handleRun()
+            7. videoPublisher->encode()
+

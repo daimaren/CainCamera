@@ -56,6 +56,12 @@ void LiveSongDecoderController::init(float packetBufferTimePercent, int vocalSam
 	packetPool->initDecoderAccompanyPacketQueue();
 	packetPool->initAccompanyPacketQueue(vocalSampleRate, CHANNEL_PER_FRAME);
 	initDecoderThread();
+#if ENABLE_DUMP_PCM
+	mDumpPcmFile = fopen("/storage/emulated/0/dump_song.pcm", "wb");
+        if (!mDumpPcmFile) {
+			ALOGE("dump song file open error");
+        }
+#endif
 	ALOGI("after init Decoder thread...");
 }
 
@@ -171,6 +177,11 @@ void LiveSongDecoderController::decodeSongPacket() {
 				convertShortArrayFromByteArray(out_data, out_nb_bytes, accompanySamples, 1.0);
 				accompanyPacket->buffer = accompanySamples;
 				accompanyPacket->size = accompanySampleSize;
+#ifdef ENABLE_DUMP_PCM
+				//dump pcm to file
+            	int count = fwrite(out_data, out_nb_bytes, 1, mDumpPcmFile);
+            	ALOGD("write pcm size %d len %d", count, out_nb_bytes);
+#endif
 			}
 		}
 	}
@@ -283,6 +294,11 @@ void LiveSongDecoderController::destroy() {
 	if (NULL != silentSamples) {
 		delete[] silentSamples;
 	}
+#if ENABLE_DUMP_PCM
+		if (mDumpPcmFile) {
+            fclose(mDumpPcmFile);
+        }
+#endif
 	ALOGI("leave LiveSongDecoderController::destroy");
 }
 
