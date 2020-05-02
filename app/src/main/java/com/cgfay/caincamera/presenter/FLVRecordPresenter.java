@@ -180,6 +180,11 @@ public class FLVRecordPresenter implements Camera.PreviewCallback, AudioRecorder
         }
     }
 
+    @Override
+    public void onRecordSample(short[] audioSamples, int audioSampleSize) {
+
+    }
+
     /**
      * 是否正在录制
      * @return

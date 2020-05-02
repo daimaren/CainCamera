@@ -419,4 +419,9 @@ public class MediaRecordPresenter implements Camera.PreviewCallback, AudioRecord
             return fileName;
         }
     }
+
+    @Override
+    public void onRecordSample(short[] audioSamples, int audioSampleSize) {
+
+    }
 }

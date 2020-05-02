@@ -10,6 +10,10 @@
 MiniRecorder::MiniRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true),mCopyIsInitialized(false),
                                     mIsGLInitialized(false), mIsSurfaceRenderInit(false){
+    packetBuffer = NULL;//不同的类相同的变量名要区分开，单实例的本质上是同一个对象
+    packetBufferSize = 0;
+    packetBufferCursor = 0;
+
     mRecordParams = new RecordParams();
     mGLVertexShader = OUTPUT_VIEW_VERTEX_SHADER;
     mGLFragmentShader = OUTPUT_VIEW_FRAG_SHADER;
@@ -299,12 +303,6 @@ void MiniRecorder::renderFrame() {
 void MiniRecorder::startRecord() {
     // 初始化编码器
     if (mUseHardWareEncoding) {
-        //packetPool是生产者消费者的桥梁
-        packetPool = LiveCommonPacketPool::GetInstance(); //H264队列
-        aacPacketPool = LiveAudioPacketPool::GetInstance();
-        LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
-        LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(mRecordParams->sampleRate);
-        LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
     } else {
         //todo 软编码
     }
@@ -325,6 +323,22 @@ int MiniRecorder::prepare() {
  * 开始录制
  */
 void MiniRecorder::startRecording() {
+    //如下是用于录音的变量
+    audioSamplesCursor = 0;
+    float percent = 0.2f;
+    audioBufferSize = 44100 * percent; //8820
+    audioSamples = new short[audioBufferSize];
+    audioBufferTimeMills = (float)audioBufferSize * 1000.0f / (float)mRecordParams->sampleRate;
+
+    packetPool = LiveCommonPacketPool::GetInstance();
+    accompanyPacketPool = LiveCommonPacketPool::GetInstance();
+    pcmPacketPool = LiveCommonPacketPool::GetInstance();
+    aacPacketPool = LiveAudioPacketPool::GetInstance();
+
+    LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
+    LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(mRecordParams->sampleRate);
+    LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
+
     initFFmepg();
     pthread_create(&mWriterThreadId, 0, startWriteThread, this);
     createVideoEncoder();
@@ -444,14 +458,6 @@ RecordParams* MiniRecorder::getRecordParams() {
 }
 
 int MiniRecorder::createAudioEncoder() {
-    audioSamplesCursor = 0;
-    float percent = 0.2f;
-    audioBufferSize = 44100 * percent;
-    audioSamples = new short[audioBufferSize];
-    audioBufferTimeMills = (float)audioBufferSize * 1000.0f / (float)mRecordParams->sampleRate;
-
-    accompanyPacketPool = LiveCommonPacketPool::GetInstance();
-    pcmPacketPool = LiveCommonPacketPool::GetInstance();
     alloc_audio_stream("libfdk_aac");
     alloc_avframe();
     pthread_create(&mAudioEncoderThreadId, NULL, startAudioEncodeThread, this);

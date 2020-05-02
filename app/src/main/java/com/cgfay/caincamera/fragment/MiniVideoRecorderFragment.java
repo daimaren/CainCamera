@@ -109,15 +109,15 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
         mRecordButton = (Button) mContentView.findViewById(R.id.record_button);
         mRecordButton.setOnClickListener(v -> {
             if (!mIsRecording) {
-                mAudioRecorder.start();
                 mMiniRecorder.startRecord();
+                mAudioRecorder.start();
                 startMusicPlayer();
                 mIsRecording = true;
                 mRecordButton.setText(R.string.btn_record_cancel);
             } else {
-                mMiniRecorder.stopRecord();
                 stopMusicPlayer();
                 mAudioRecorder.stop();
+                mMiniRecorder.stopRecord();
                 mIsRecording = false;
                 mRecordButton.setText(R.string.btn_record_start);
             }
@@ -178,13 +178,14 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
 
     /**
      * 录制一帧音频帧数据
-     * @param data
+     * @param audioSamples
+     * @param audioSampleSize
      */
     @Override
-    public void onRecordSample(byte[] data) {
+    public void onRecordSample(short[] audioSamples, int audioSampleSize) {
         if (mIsRecording) {
             if (mMiniRecorder != null) {
-                mMiniRecorder.recordAudioFrame(data, data.length);
+                mMiniRecorder.recordAudioFrame(audioSamples, audioSampleSize);
             }
         }
     }
@@ -248,5 +249,10 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
      */
     public String generateOutputPath() {
         return PathConstraints.getVideoCachePath(mActivity);
+    }
+
+    @Override
+    public void onRecordSample(byte[] data) {
+
     }
 }

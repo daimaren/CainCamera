@@ -7,7 +7,7 @@
 #include "live_common_packet_pool.h"
 #include "Resampler.h"
 
-#define	ENABLE_DUMP_PCM		1
+#define	ENABLE_DUMP_PCM		0
 #define CHANNEL_PER_FRAME	2
 #define BITS_PER_CHANNEL	16
 #define BITS_PER_BYTE		8

@@ -348,22 +348,12 @@ Java_com_cgfay_media_recorder_MiniVideoRecorder_recordVideoFrame(JNIEnv *env, jo
  */
 extern "C" JNIEXPORT jint JNICALL
 Java_com_cgfay_media_recorder_MiniVideoRecorder_recordAudioFrame(JNIEnv *env, jobject thiz, jlong handle,
-                                                                 jbyteArray data_, jint length) {
+        jshortArray audioSamples,jint audioSampleSize) {
     MiniRecorder *recorder = (MiniRecorder *) handle;
     if (recorder != nullptr && recorder->isRecording()) {
-        short* pcmData = (short*) malloc((size_t) length );
-        if (pcmData == nullptr) {
-            LOGE("Could not allocate memory");
-            return -1;
-        }
-        jbyte* samples = env->GetByteArrayElements(data_, nullptr);
-        memcpy(pcmData, samples, (size_t) length);
-        env->ReleaseByteArrayElements(data_, samples, 0);
-
-        int result = recorder->pushAudioBufferToQueue(pcmData, length / sizeof(short));
-        if (pcmData != nullptr) {
-            free(pcmData);
-        }
+        jshort* samples = env->GetShortArrayElements(audioSamples, 0);
+        int result = recorder->pushAudioBufferToQueue(samples, audioSampleSize);
+        env->ReleaseShortArrayElements(audioSamples, samples, 0);
     }
     return -1;
 }

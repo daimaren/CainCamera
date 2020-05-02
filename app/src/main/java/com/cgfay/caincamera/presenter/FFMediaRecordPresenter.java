@@ -28,8 +28,8 @@ import java.util.List;
 /**
  * 使用FFmpeg进行录制的Presenter
  */
-public class FFMediaRecordPresenter implements Camera.PreviewCallback, AudioRecorder.OnRecordCallback,
-        SurfaceTexture.OnFrameAvailableListener, FFMediaRecorder.OnRecordListener {
+public class FFMediaRecordPresenter implements Camera.PreviewCallback,
+        SurfaceTexture.OnFrameAvailableListener, FFMediaRecorder.OnRecordListener,AudioRecorder.OnRecordCallback {
 
     private static final String TAG = "FFMediaRecordPresenter";
     private static final boolean VERBOSE = true;
@@ -178,6 +178,11 @@ public class FFMediaRecordPresenter implements Camera.PreviewCallback, AudioReco
                 mMediaRecorder.recordAudioFrame(data, data.length);
             }
         }
+    }
+
+    @Override
+    public void onRecordSample(short[] audioSamples, int audioSampleSize) {
+
     }
 
     /**

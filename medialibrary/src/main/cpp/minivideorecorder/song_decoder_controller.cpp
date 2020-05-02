@@ -177,14 +177,16 @@ void LiveSongDecoderController::decodeSongPacket() {
 				convertShortArrayFromByteArray(out_data, out_nb_bytes, accompanySamples, 1.0);
 				accompanyPacket->buffer = accompanySamples;
 				accompanyPacket->size = accompanySampleSize;
-#ifdef ENABLE_DUMP_PCM
-				//dump pcm to file
-            	int count = fwrite(out_data, out_nb_bytes, 1, mDumpPcmFile);
-            	ALOGD("write pcm size %d len %d", count, out_nb_bytes);
-#endif
 			}
 		}
 	}
+#if ENABLE_DUMP_PCM
+	//dump pcm to file
+	if(mDumpPcmFile && (accompanyPacket->buffer != NULL)) {
+		int count = fwrite((uint8_t*)accompanyPacket->buffer, accompanyPacket->size * sizeof(short), 1, mDumpPcmFile);
+		ALOGD("write pcm size %d len %d", count, accompanyPacket->size * sizeof(short));
+	}
+#endif
 	packetPool->pushDecoderAccompanyPacketToQueue(accompanyPacket);
 }
 
@@ -220,6 +222,7 @@ int LiveSongDecoderController::buildSlientSamples(short* samples) {
 }
 
 int LiveSongDecoderController::readSamplesAndProducePacket(short* samples, int size, int* slientSizeArr, int * extraAccompanyTypeArr) {
+	ALOGD("readSamplesAndProducePacket size %d type %d", size, accompanyType);
 	int result = -1;
 	if(accompanyType == ACCOMPANY_TYPE_SILENT_SAMPLE){
 		extraAccompanyTypeArr[0] = ACCOMPANY_TYPE_SILENT_SAMPLE;

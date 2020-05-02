@@ -28,6 +28,7 @@ public class AudioRecorder {
     private int mSampleRate = SAMPLE_RATE;
     private int mSampleFormat = AudioFormat.ENCODING_PCM_16BIT;
     private int mChannels = 1;
+    private int bufferSizeInBytes = 0;
 
     private OnRecordCallback mRecordCallback;
 
@@ -41,9 +42,10 @@ public class AudioRecorder {
     public boolean start() {
         try {
             int channelLayout = (mChannels == 1) ? AudioFormat.CHANNEL_IN_MONO : AudioFormat.CHANNEL_OUT_STEREO;
-            mBufferSize = getBufferSize(channelLayout, mSampleFormat);
+            bufferSizeInBytes = AudioRecord.getMinBufferSize(mSampleRate,
+                    channelLayout, mSampleFormat);
             mAudioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRate,
-                    channelLayout, mSampleFormat, mBufferSize);
+                    channelLayout, mSampleFormat, bufferSizeInBytes);
         } catch (Exception e) {
             Log.e(TAG, "AudioRecord allocator exception: " + e.getLocalizedMessage());
             return false;
@@ -68,22 +70,19 @@ public class AudioRecorder {
             return;
         }
 
-        ByteBuffer audioBuffer = ByteBuffer.allocate(mBufferSize);
         mAudioRecord.startRecording();
         if (mRecordCallback != null) {
             mHandler.post(() -> mRecordCallback.onRecordStart());
         }
         Log.d(TAG, "mAudioRecord is started");
 
-        int readResult;
+        int scoringBufferMaxSize = bufferSizeInBytes / 2;
+        short[] audioSamples = new short[scoringBufferMaxSize];
         while (mIsRecording) {
-            readResult = mAudioRecord.read(audioBuffer.array(), 0, mBufferSize);
-            if (readResult > 0 && mRecordCallback != null) {
-                byte[] data = new byte[readResult];
-                audioBuffer.position(0);
-                audioBuffer.limit(readResult);
-                audioBuffer.get(data, 0, readResult);
-                mHandler.post(() -> mRecordCallback.onRecordSample(data));
+            int audioSampleSize = mAudioRecord.read(audioSamples, 0,
+                    scoringBufferMaxSize);
+            if (audioSampleSize > 0 && mRecordCallback != null) {
+                mHandler.post(() -> mRecordCallback.onRecordSample(audioSamples, audioSampleSize));
             }
         }
 
@@ -205,8 +204,8 @@ public class AudioRecorder {
         void onRecordStart();
 
         // 录制PCM采样回调
+        void onRecordSample(short[] audioSamples, int audioSampleSize);
         void onRecordSample(byte[] data);
-
         // 录制结束
         void onRecordFinish();
         

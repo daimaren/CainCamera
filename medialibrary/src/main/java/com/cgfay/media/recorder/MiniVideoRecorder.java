@@ -71,7 +71,7 @@ public final class MiniVideoRecorder {
     private native int recordVideoFrame(long handle, byte[] data, int length, int width, int height,
                                         int pixelFormat);
     // 录制一帧音频帧
-    private native int recordAudioFrame(long handle, byte[] data, int length);
+    private native int recordAudioFrame(long handle, short[] audioSamples, int audioSampleSize);
     // 准备录制
     private native void prepare(long handle);
     // 开始录制
@@ -355,8 +355,8 @@ public final class MiniVideoRecorder {
      * @param data
      * @param length
      */
-    public void recordAudioFrame(byte[] data, int length) {
-        recordAudioFrame(handle, data, length);
+    public void recordAudioFrame(short[] audioSamples, int audioSampleSize) {
+        recordAudioFrame(handle, audioSamples, audioSampleSize);
     }
 
     /**

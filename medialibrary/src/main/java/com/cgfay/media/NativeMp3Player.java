@@ -185,21 +185,21 @@ public class NativeMp3Player {
 					if(ACCOMPANY_SAMPLE_TYPE == lastSampleType && SILIENT_SAMPLE_TYPE == sampleType){
 						if(pauseRequest){
 							//点击了暂停按钮
-							Log.i("problem", "点击了暂停按钮");
+							Log.i(TAG, "点击了暂停按钮");
 							long playedHeadPosition = audioTrack.getPlaybackHeadPosition() - audioTrackStartPlayBaseHeadPosition;
 							hasPlayedTimeMills += (int)((float)playedHeadPosition * 1000 / sampleRateInHz);
 							isInPauseState = true;
 							pauseRequest = false;
 						} else if(isInSwitching){
 							//正在切换到一个新的伴奏
-							Log.i("problem", "正在切换到一个新的伴奏");
+							Log.i(TAG, "正在切换到一个新的伴奏");
 						} else if(isInStopping){
 							//正在关闭一个伴奏
 							isInStopping = false;
-							Log.i("problem", "正在关闭一个伴奏");
+							Log.i(TAG, "正在关闭一个伴奏");
 						} else{
 							//播放结束了这个伴奏了
-							Log.i("problem", "播放结束了这个伴奏了");
+							Log.i(TAG, "播放结束了这个伴奏了");
 						}
 					}
 					

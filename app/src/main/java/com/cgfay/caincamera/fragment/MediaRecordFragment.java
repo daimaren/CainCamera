@@ -213,4 +213,9 @@ public class MediaRecordFragment extends Fragment implements View.OnClickListene
     public String generateOutputPath() {
         return PathConstraints.getVideoCachePath(mActivity);
     }
+
+    @Override
+    public void onRecordSample(short[] audioSamples, int audioSampleSize) {
+
+    }
 }

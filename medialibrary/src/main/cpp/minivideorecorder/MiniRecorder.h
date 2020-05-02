@@ -291,24 +291,25 @@ private:
     bool mExit;         // 完成退出标志
     bool mIsVideoEncoding = false;
     //HW Encode变量
-    LiveCommonPacketPool *packetPool;
+    LiveCommonPacketPool *packetPool = NULL;
     jbyteArray mEncoderOutputBuf = NULL;
     EGLSurface mEncoderSurface;
-    ANativeWindow *mEncoderWindow;
+    ANativeWindow *mEncoderWindow = NULL;
     bool mUseHardWareEncoding = true;
     bool mIsSPSUnWriteFlag = false;
     //Audio变量
-    LivePacketPool* 	  pcmPacketPool;
-    LiveCommonPacketPool* accompanyPacketPool;
-    LiveAudioPacketPool *aacPacketPool;
+    LivePacketPool* 	  pcmPacketPool = NULL;
+    LiveCommonPacketPool* accompanyPacketPool = NULL;
+    LiveAudioPacketPool *aacPacketPool = NULL;
+    //如下是用于录音的变量
     int audioSamplesCursor = 0;
-    int audioBufferSize;
-    short* audioSamples;
-    int audioBufferTimeMills;
-
-    int packetBufferSize;
+    int audioBufferSize= 0;
+    short* audioSamples = NULL;
+    int audioBufferTimeMills = 0;
+    ////如下是用于编码的变量
+    int packetBufferSize = 0;
     short* packetBuffer = NULL;
-    int packetBufferCursor;
+    int packetBufferCursor = 0;
     double  packetBufferPresentationTimeMills;
     //Audio Encode变量
     bool mIsAudioEncoding = false;
