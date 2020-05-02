@@ -58,7 +58,7 @@ extern "C" {
 
 #define DUMP_YUV_BUFFER    0
 #define DUMP_SW_ENCODER_H264_BUFFER    0
-#define DUMP_HW_ENCODER_H264_BUFFER    1
+#define DUMP_HW_ENCODER_H264_BUFFER    0
 
 #define H264_NALU_TYPE_NON_IDR_PICTURE                                  1
 #define H264_NALU_TYPE_IDR_PICTURE                                      5
@@ -275,6 +275,7 @@ private:
     void writerLoop();
     static void *startAudioEncodeThread(void *myself);
     void audioEncodeLoop();
+    int get_sr_index(unsigned int sampling_frequency);
 private:
     FILE* mflvFile;
     FILE* mDumpYuvFile;
@@ -317,7 +318,7 @@ private:
     AVFrame         *encode_frame;
     int64_t         audio_next_pts;
     uint8_t         **audio_samples_data;
-    int       		audio_nb_samples; //todo 还没初始化
+    int       		audio_nb_samples;
     int 			audio_samples_size;
     //Media Writer变量
     AVOutputFormat *fmt;
@@ -326,8 +327,8 @@ private:
     AVStream *audio_st;
     AVBitStreamFilterContext *bsfc;
     bool mIsWriting = false;
-    int lastPresentationTimeMs;
-    double lastAudioPacketPresentationTimeMills;
+    int lastPresentationTimeMs = -1;
+    double lastAudioPacketPresentationTimeMills = 0;
     bool isWriteHeaderSuccess = false;
     long sendLatestFrameTimemills;
     uint8_t *headerData;

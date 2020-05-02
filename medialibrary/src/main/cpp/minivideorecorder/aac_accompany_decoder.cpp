@@ -152,9 +152,9 @@ bool AACAccompanyDecoder::audioCodecIsSupported() {
 }
 
 LiveAudioPacket* AACAccompanyDecoder::decodePacket(){
-	ALOGI("MadDecoder::decodePacket packetBufferSize is %d", packetBufferSize);
+	//ALOGI("MadDecoder::decodePacket packetBufferSize is %d", packetBufferSize);
 	short* samples = new short[packetBufferSize];
-	ALOGI("accompanyPacket buffer's addr is %x", samples);
+	//ALOGI("accompanyPacket buffer's addr is %x", samples);
 	int stereoSampleSize = readSamples(samples, packetBufferSize);
 	LiveAudioPacket* samplePacket = new LiveAudioPacket();
 	if (stereoSampleSize > 0) {

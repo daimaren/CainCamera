@@ -610,7 +610,7 @@ void MiniRecorder::drainEncodedData() {
                     videoPacket->size = size;
                     videoPacket->timeMills = timeMills;
                     if (videoPacket->size > 0) {
-                        ALOGI("write sps");
+                        ALOGI("push sps");
                         packetPool->pushRecordingVideoPacketToQueue(videoPacket); //生产者
                     }
                     mIsSPSUnWriteFlag = false;
@@ -622,7 +622,6 @@ void MiniRecorder::drainEncodedData() {
                 videoPacket->size = size;
                 videoPacket->timeMills = timeMills;
                 if (videoPacket->size > 0) {
-                    ALOGI("write video");
                     packetPool->pushRecordingVideoPacketToQueue(videoPacket); //生产者
                 }
             }
@@ -683,9 +682,18 @@ int MiniRecorder::initFFmepg() {
     if (video_st && video_codec) {
         ALOGI("add video stream success");
     }
-    audio_st = add_stream(oc, &audio_codec, AV_CODEC_ID_AAC, NULL);
+    audio_st = add_stream(oc, &audio_codec, AV_CODEC_ID_NONE, "libfdk_aac");
     if (audio_st && audio_codec) {
         ALOGI("add audio stream success");
+        AVCodecContext *c = audio_st->codec;
+        c->extradata = (uint8_t *) av_malloc(2);
+        c->extradata_size = 2;
+        unsigned int object_type = 2; // AAC LC by default
+        char dsi[2];
+        dsi[0] = (object_type << 3) | (get_sr_index(c->sample_rate) >> 1);
+        dsi[1] = ((get_sr_index(c->sample_rate) & 1) << 7) | (c->channels << 3);
+        memcpy(c->extradata, dsi, 2);
+        bsfc = av_bitstream_filter_init("aac_adtstoasc");
     }
     if (!(fmt->flags & AVFMT_NOFILE)) {
         int ret = avio_open2(&oc->pb, mRecordParams->dstFile, AVIO_FLAG_WRITE, &oc->interrupt_callback, NULL);
@@ -782,7 +790,7 @@ int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
             newpacket.dts = pkt.dts;
             newpacket.duration = pkt.duration;
             newpacket.stream_index = pkt.stream_index;
-            ret = av_interleaved_write_frame(oc, &newpacket);
+            ret = av_interleaved_write_frame(oc, &newpacket); //crash in here
             if (ret != 0) {
                 ALOGI("Error while writing audio frame: %s\n", av_err2str(ret));
             }
@@ -1760,7 +1768,7 @@ int MiniRecorder::getAudioFrame(int16_t * samples, int frame_size, int nb_channe
 }
 
 int MiniRecorder::cpyToSamples(int16_t * samples, int samplesInShortCursor, int cpyPacketBufferSize, double* presentationTimeMills) {
-    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));//todo why crash in here
+    memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));
     return 1;
 }
 
@@ -1820,11 +1828,43 @@ int MiniRecorder::mixtureMusicBuffer(long frameNum, short* accompanySamples, int
         audioSamples[i] = audioSamples[i / 2];
     }
     int actualSize = MIN(accompanySampleSize, audioSampleSize);
-    ALOGI("accompanySampleSize is %d audioSampleSize is %d", accompanySampleSize, audioSampleSize);
+    //ALOGI("accompanySampleSize is %d audioSampleSize is %d", accompanySampleSize, audioSampleSize);
     mixtureAccompanyAudio(accompanySamples, audioSamples, actualSize, audioSamples);
     return actualSize;
 }
 
+int MiniRecorder::get_sr_index(unsigned int sampling_frequency) {
+    switch (sampling_frequency) {
+        case 96000:
+            return 0;
+        case 88200:
+            return 1;
+        case 64000:
+            return 2;
+        case 48000:
+            return 3;
+        case 44100:
+            return 4;
+        case 32000:
+            return 5;
+        case 24000:
+            return 6;
+        case 22050:
+            return 7;
+        case 16000:
+            return 8;
+        case 12000:
+            return 9;
+        case 11025:
+            return 10;
+        case 8000:
+            return 11;
+        case 7350:
+            return 12;
+        default:
+            return 0;
+    }
+}
 
 
 

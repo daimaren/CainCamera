@@ -222,7 +222,7 @@ int LiveSongDecoderController::buildSlientSamples(short* samples) {
 }
 
 int LiveSongDecoderController::readSamplesAndProducePacket(short* samples, int size, int* slientSizeArr, int * extraAccompanyTypeArr) {
-	ALOGD("readSamplesAndProducePacket size %d type %d", size, accompanyType);
+	//ALOGD("readSamplesAndProducePacket size %d type %d", size, accompanyType);
 	int result = -1;
 	if(accompanyType == ACCOMPANY_TYPE_SILENT_SAMPLE){
 		extraAccompanyTypeArr[0] = ACCOMPANY_TYPE_SILENT_SAMPLE;
