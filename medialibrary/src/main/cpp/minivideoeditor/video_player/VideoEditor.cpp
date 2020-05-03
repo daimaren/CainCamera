@@ -138,6 +138,7 @@ bool VideoEditor::prepare_l() {
 }
 
 void VideoEditor::start() {
+    LOGI("VideoEditor::start");
     if (NULL != audioOutput) {
         audioOutput->start();
     }
@@ -145,7 +146,13 @@ void VideoEditor::start() {
 }
 
 void VideoEditor::pause() {
-
+    LOGI("VideoEditor::pause");
+    if (!mIsPlaying)
+        return;
+    mIsPlaying = false;
+    if (NULL != audioOutput) {
+        audioOutput->pause();
+    }
 }
 
 void VideoEditor::resume() {
@@ -158,19 +165,26 @@ void VideoEditor::resume() {
 }
 
 void VideoEditor::seekTo(float position) {
-
+    //todo
+    //moviePosition = position;
 }
 
 bool VideoEditor::isPlaying() {
-
+    return mIsPlaying;
 }
 
 float VideoEditor::getCurrentPosition() {
-
+    return moviePosition;
 }
 
 float VideoEditor::getDuration() {
-
+    if(!mFormatCtx){
+        return 0;
+    }
+    if (mFormatCtx->duration == AV_NOPTS_VALUE){
+        return -1;
+    }
+    return (float)mFormatCtx->duration / AV_TIME_BASE;
 }
 
 void VideoEditor::initCopier() {
@@ -328,12 +342,11 @@ bool VideoEditor::initFFmpeg() {
 }
 
 void VideoEditor::initVideoOutput(ANativeWindow *window) {
-    videoOutput = new VideoOutput();
-    if (mEGLContext != EGL_NO_CONTEXT && window != NULL) {
-        videoOutput->initOutput(window, mScreenWidth, mScreenHeight, videoCallbackGetTex, this);
-    } else {
-        LOGE("initVideoOutput failed");
+    if (window == NULL || mIsUserCancelled){
+        return;
     }
+    videoOutput = new VideoOutput();
+    videoOutput->initOutput(window, mScreenWidth, mScreenHeight, videoCallbackGetTex, this);
 }
 
 void VideoEditor::avStreamFPSTimeBase(AVStream *st, float defaultTimeBase, float *pFPS, float *pTimeBase) {
@@ -518,7 +531,7 @@ std::list<MovieFrame*>* VideoEditor::decodeFrames(float minDuration, int *decode
     if (is_eof) {
         //todo
     }
-    return NULL;
+    return result;
 }
 
 bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) {
@@ -988,7 +1001,7 @@ int VideoEditor::fillAudioData(byte* outData, int bufferSize) {
         if (NULL == currentAudioFrame) {
             pthread_mutex_lock(&audioFrameQueueMutex);
             int count = audioFrameQueue->size();
-//			LOGI("audioFrameQueue->size() is %d", count);
+			//LOGI("audioFrameQueue->size() is %d", count);
             if (count > 0) {
                 AudioFrame *frame = audioFrameQueue->front();
                 bufferedDuration -= frame->duration;
@@ -1212,7 +1225,7 @@ GLuint VideoEditor::loadProgram(char *pVertexSource, char *pFragmentSource) {
 }
 
 GLuint VideoEditor::loadShader(GLenum shaderType, const char *pSource) {
-    LOGE("%s", pSource);
+    //LOGE("%s", pSource);
     GLuint shader = glCreateShader(shaderType);
     if (shader) {
         glShaderSource(shader, 1, &pSource, NULL);

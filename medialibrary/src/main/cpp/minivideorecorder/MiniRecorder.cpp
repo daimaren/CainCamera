@@ -1153,7 +1153,7 @@ int MiniRecorder::encodeAudio(LiveAudioPacket **audioPacket) {
         memcpy((*audioPacket)->data, pkt.data, pkt.size);
         (*audioPacket)->size = pkt.size;
         (*audioPacket)->position = (float)(pkt.pts * av_q2d(time_base) * 1000.0f);
-		//ALOGI("size and position is {%f, %d}", (*audioPacket)->position, (*audioPacket)->size);
+		ALOGI("size and position is {%f, %d}", (*audioPacket)->position, (*audioPacket)->size);
     }
     av_free_packet(&pkt);
     return ret;

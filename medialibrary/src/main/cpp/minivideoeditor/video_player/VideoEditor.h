@@ -190,7 +190,7 @@ private:
     float maxBufferedDuration;
     CircleFrameTextureQueue* circleFrameTextureQueue;
     AudioFrame* currentAudioFrame;
-
+    //封装格式上下文
     AVFormatContext *mFormatCtx;
     /** 视频流变量 **/
     AVCodecContext *mVideoCodecCtx;

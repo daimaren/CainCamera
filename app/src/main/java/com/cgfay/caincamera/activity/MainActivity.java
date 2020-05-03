@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void miniTTMplayer() {
         Intent intent = new Intent(MainActivity.this, MiniVideoEditActivity.class);
-        intent.putExtra(MiniVideoEditActivity.VIDEO_PATH, "/mnt/sdcard/a_songstudio/recording.flv");
+        intent.putExtra(MiniVideoEditActivity.VIDEO_PATH, "/mnt/sdcard/a_songstudio/test_player.flv");
         startActivity(intent);
     }
 
