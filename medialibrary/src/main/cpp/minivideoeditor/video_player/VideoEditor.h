@@ -104,6 +104,7 @@ public:
 private:
     bool initFFmpeg();
     bool initEGL();
+    bool releaseEGL();
     EGLSurface createWindowSurface(ANativeWindow *pWindow);
     EGLSurface createOffscreenSurface(int width, int height);
 
@@ -136,8 +137,8 @@ private:
     void initConverter();
     void uploadTexture();
     void drawFrame();
-    void updateTexImage();
-    void updateYUVTexImage();
+    float updateTexImage();
+    void updateYUVTexImage(VideoFrame* yuvFrame);
     VideoFrame* handleVideoFrame();
     void copyFrameData(uint8_t * dst, uint8_t * src, int width, int height, int linesize);
     void pushToVideoQueue(GLuint inputTexId, int width, int height, float position);
@@ -213,7 +214,6 @@ private:
     void *swrBuffer;
     int swrBufferSize;
 
-    VideoFrame* yuvFrame;
     float position;
     double moviePosition;
     float bufferedDuration;

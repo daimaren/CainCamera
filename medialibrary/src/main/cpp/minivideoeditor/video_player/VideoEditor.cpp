@@ -113,15 +113,6 @@ bool VideoEditor::prepare_l() {
         LOGE("initFFmpeg failed");
         return false;
     }
-    ret = initEGL();
-    if (false == ret) {
-        LOGE("initEGL failed");
-        return false;
-    }
-    initConverter();
-    initCopier();
-    initPassRender();
-    initCircleQueue(mWidth, mHeight);
 
     if (mIsHWDecode) {
 
@@ -240,6 +231,7 @@ void VideoEditor::initCircleQueue(int videoWidth, int videoHeight) {
     circleFrameTextureQueue->init(videoWidth, videoHeight, queueSize);
     audioFrameQueue = new std::queue<AudioFrame*>();
     pthread_mutex_init(&audioFrameQueueMutex, NULL);
+    circleFrameTextureQueue->setIsFirstFrame(true);
 }
 
 bool VideoEditor::initFFmpeg() {
@@ -434,27 +426,6 @@ void VideoEditor::destroy() {
         pthread_mutex_destroy(&audioFrameQueueMutex);
     }
 
-    if (textures[0]) {
-        glDeleteTextures(3, textures);
-    }
-    if(-1 != outputTexId){
-        glDeleteTextures(1, &outputTexId);
-    }
-    if (mFBO) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(1, &mFBO);
-    }
-    eglDestroySurface(mEGLDisplay, copyTexSurface);
-    copyTexSurface = EGL_NO_SURFACE;
-    if(EGL_NO_DISPLAY != mEGLDisplay && EGL_NO_CONTEXT != mEGLContext){
-        eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-        LOGI("after eglMakeCurrent...");
-        eglDestroyContext(mEGLDisplay, mEGLContext);
-        LOGI("after eglDestroyContext...");
-    }
-    mEGLDisplay = EGL_NO_DISPLAY;
-    mEGLContext = EGL_NO_CONTEXT;
-
     closeFile();
 }
 
@@ -546,7 +517,7 @@ bool VideoEditor::decodeVideoFrame(AVPacket packet, int *decodeVideoErrorState) 
         }
         if (gotFrame) {
             if (videoFrame->interlaced_frame) {
-                //todo avpicture_deinterlace
+                //avpicture_deinterlace((AVPicture*) videoFrame, (AVPicture*) videoFrame, videoCodecCtx->pix_fmt, videoCodecCtx->width, videoCodecCtx->height);
             }
             uploadTexture();
         }
@@ -691,7 +662,6 @@ bool VideoEditor::canDecode() {
 
 void VideoEditor::initDecoderThread() {
     isInitializeDecodeThread = true;
-    circleFrameTextureQueue->setIsFirstFrame(true);
     isDecodingFrames = false;
     isOnDecoding = true;
     pthread_mutex_init(&videoDecoderLock, NULL);
@@ -829,29 +799,31 @@ void VideoEditor::initTexture() {
     }
 }
 void VideoEditor::uploadTexture() {
-    //直接上传纹理，不做多线程同步
+    //直接上传纹理，不做多线程同步，注意当前是在解码线程里
     eglMakeCurrent(mEGLDisplay, copyTexSurface, copyTexSurface, mEGLContext);
     drawFrame();
 }
 
 void VideoEditor::drawFrame() {
-    updateTexImage();
-    glBindFramebuffer(GL_FRAMEBUFFER,mFBO);
+    float position = updateTexImage();
+    glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
     renderWithCoords(outputTexId, vertexCoords, textureCoords);
     pushToVideoQueue(outputTexId, mWidth, mHeight, position);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void VideoEditor::updateTexImage() {
-    yuvFrame = handleVideoFrame();
+float VideoEditor::updateTexImage() {
+    float position = -1;
+    VideoFrame* yuvFrame = handleVideoFrame();
     if (yuvFrame) {
-        updateYUVTexImage();
+        updateYUVTexImage(yuvFrame);
         position = yuvFrame->position;
         delete yuvFrame;
     }
+    return position;
 }
 
-void VideoEditor::updateYUVTexImage() {
+void VideoEditor::updateYUVTexImage(VideoFrame* yuvFrame) {
     if (yuvFrame) {
         int frameWidth = yuvFrame->width;
         int frameHeight = yuvFrame->height;
@@ -861,10 +833,11 @@ void VideoEditor::updateYUVTexImage() {
         uint8_t *pixels[3] = {yuvFrame->luma, yuvFrame->chromaB, yuvFrame->chromaR};
         int widths[3] = {frameWidth, frameWidth >> 1, frameWidth >> 1};
         int heights[3] = {frameHeight, frameHeight >> 1, frameHeight >> 1};
+        LOGI("updateYUVTexImage()...");
         for (int i = 0; i < 3; ++i) {
             glActiveTexture(GL_TEXTURE0 + i);
             glBindTexture(GL_TEXTURE_2D, textures[i]);
-            if (checkGlError("glBindTexture")) {
+            if (checkGlError("glBindTexture1")) { //error in here
                 return;
             }
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, widths[i], heights[i], 0, GL_LUMINANCE,
@@ -874,6 +847,7 @@ void VideoEditor::updateYUVTexImage() {
 }
 
 VideoFrame* VideoEditor::handleVideoFrame() {
+    LOGI("enter VideoEditor::handleVideoFrame()...");
     if(!videoFrame->data[0]) {
         LOGE("videoFrame->data[0] is null");
         return NULL;
@@ -911,8 +885,9 @@ VideoFrame* VideoEditor::handleVideoFrame() {
     } else {
         yuvFrame->duration = 1.0 / fps;
     }
-//	LOGI("VFD: %.4f %.4f | %lld ", yuvFrame->position, yuvFrame->duration, av_frame_get_pkt_pos(videoFrame));
-//	LOGI("leave VideoDecoder::handleVideoFrame()...");
+	LOGI("VFD: %.4f %.4f | %lld ", yuvFrame->position, yuvFrame->duration, av_frame_get_pkt_pos(videoFrame));
+	LOGI("leave VideoEditor::handleVideoFrame()...");
+	//todo dump yuv data
     return yuvFrame;
 }
 
@@ -931,7 +906,7 @@ void VideoEditor::pushToVideoQueue(GLuint inputTexId, int width, int height, flo
     FrameTexture* frameTexture = circleFrameTextureQueue->lockPushCursorFrameTexture();
     if (NULL != frameTexture) {
         frameTexture->position = position;
-//		LOGI("Render To TextureQueue texture Position is %.3f ", position);
+		LOGI("Render To TextureQueue texture Position is %.3f ", position);
        renderToTexture(inputTexId, frameTexture->texId);
         circleFrameTextureQueue->unLockPushCursorFrameTexture();
         // backup the first frame
@@ -939,7 +914,8 @@ void VideoEditor::pushToVideoQueue(GLuint inputTexId, int width, int height, flo
             FrameTexture* firstFrameTexture = circleFrameTextureQueue->getFirstFrameFrameTexture();
             if (firstFrameTexture) {
                 //cpy input texId to target texId
-                renderToTexture(inputTexId, firstFrameTexture->texId);
+                //todo
+                //renderToTexture(inputTexId, firstFrameTexture->texId);
             }
         }
     }
@@ -1148,6 +1124,29 @@ bool VideoEditor::initEGL() {
     return true;
 }
 
+bool VideoEditor::releaseEGL() {
+    if (textures[0]) {
+        glDeleteTextures(3, textures);
+    }
+    if(-1 != outputTexId){
+        glDeleteTextures(1, &outputTexId);
+    }
+    if (mFBO) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &mFBO);
+    }
+    eglDestroySurface(mEGLDisplay, copyTexSurface);
+    copyTexSurface = EGL_NO_SURFACE;
+    if(EGL_NO_DISPLAY != mEGLDisplay && EGL_NO_CONTEXT != mEGLContext){
+        eglMakeCurrent(mEGLDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+        LOGI("after eglMakeCurrent...");
+        eglDestroyContext(mEGLDisplay, mEGLContext);
+        LOGI("after eglDestroyContext...");
+    }
+    mEGLDisplay = EGL_NO_DISPLAY;
+    mEGLContext = EGL_NO_CONTEXT;
+}
+
 EGLSurface VideoEditor::createWindowSurface(ANativeWindow *pWindow) {
     EGLSurface surface = NULL;
     EGLint format;
@@ -1276,7 +1275,7 @@ void VideoEditor::matrixSetIdentityM(float *m)
 
 void VideoEditor::renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat* textureCoords) {
     glBindTexture(GL_TEXTURE_2D, texId);
-    checkGlError("glBindTexture");
+    checkGlError("glBindTexture2");
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            texId, 0);
@@ -1284,6 +1283,7 @@ void VideoEditor::renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat*
 
     glUseProgram(mCopierProgId);
     if (!mIsCopierInitialized) {
+        LOGE("mIsCopierInitialized false");
         return;
     }
     glVertexAttribPointer(mCopierVertexCoords, 2, GL_FLOAT, GL_FALSE, 0, vertexCoords);
@@ -1295,7 +1295,7 @@ void VideoEditor::renderWithCoords(GLuint texId, GLfloat* vertexCoords, GLfloat*
     for (int i = 0; i < 3; ++i) {
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, textures[i]);
-        if (checkGlError("glBindTexture")) {
+        if (checkGlError("glBindTexture3")) {
             return;
         }
         glUniform1i(_uniformSamplers[i], i);
@@ -1341,9 +1341,20 @@ void* VideoEditor::threadStartCallback(void *self) {
 
 void* VideoEditor::startDecoderThread(void *ptr) {
     VideoEditor* videoEditor = (VideoEditor*)ptr;
+    videoEditor->initCircleQueue(videoEditor->mWidth, videoEditor->mHeight);
+    int ret = videoEditor->initEGL();
+    if (false == ret) {
+        LOGE("initEGL failed");
+        return 0;
+    }
+    videoEditor->initConverter();
+    videoEditor->initCopier();
+    videoEditor->initPassRender();
+
     while (videoEditor->isOnDecoding) {
         videoEditor->decode();
     }
+    videoEditor->releaseEGL();
     return 0;
 }
 
