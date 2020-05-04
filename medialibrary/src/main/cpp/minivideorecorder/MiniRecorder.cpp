@@ -744,7 +744,7 @@ int MiniRecorder::deinitFFmpeg() {
 int MiniRecorder::writeFrame() {
     int ret = 0;
     /* Compute current audio and video time. */
-    double video_time = lastPresentationTimeMs / 1000.0f;
+    double video_time = lastPresentationTimeMs / 1000.0f - 21190;
     double audio_time = lastAudioPacketPresentationTimeMills / 1000.0f;
 
     ALOGI("video_time is %lf, audio_time is %f", video_time, audio_time);
@@ -790,7 +790,7 @@ int MiniRecorder::write_audio_frame(AVFormatContext *oc, AVStream *st) {
             newpacket.dts = pkt.dts;
             newpacket.duration = pkt.duration;
             newpacket.stream_index = pkt.stream_index;
-            ret = av_interleaved_write_frame(oc, &newpacket); //crash in here
+            ret = av_interleaved_write_frame(oc, &newpacket);
             if (ret != 0) {
                 ALOGI("Error while writing audio frame: %s\n", av_err2str(ret));
             }
@@ -1124,6 +1124,7 @@ int MiniRecorder::encodeAudio(LiveAudioPacket **audioPacket) {
     if (actualFillSampleSize == 0) {
         return -1;
     }
+    //ALOGI("sampleRate %d channels %d", mRecordParams->sampleRate, mRecordParams->channels);
     int actualFillFrameNum = actualFillSampleSize / mRecordParams->channels;
     int audioSamplesSize = actualFillFrameNum * mRecordParams->channels * sizeof(short);
     AVRational time_base = {1, mRecordParams->sampleRate};
@@ -1137,8 +1138,8 @@ int MiniRecorder::encodeAudio(LiveAudioPacket **audioPacket) {
     avcodec_fill_audio_frame(encode_frame, avCodecContext->channels, avCodecContext->sample_fmt, audio_samples_data[0], audioSamplesSize, 0);
     encode_frame->pts = audio_next_pts;
     audio_next_pts += encode_frame->nb_samples;
-//	int64_t calcuPTS = presentationTimeMills / 1000 / av_q2d(time_base) / audioChannels;
-//	LOGI("encode_frame pts is %llu, calcuPTS is %llu", encode_frame->pts, calcuPTS);
+	int64_t calcuPTS = presentationTimeMills / 1000 / av_q2d(time_base) / mRecordParams->channels;
+	//ALOGI("encode_frame pts is %llu, calcuPTS is %llu", encode_frame->pts, calcuPTS);
     ret = avcodec_encode_audio2(avCodecContext, &pkt, encode_frame, &got_packet);
     if (ret < 0 || !got_packet) {
         ALOGI("Error encoding audio frame: %s\n", av_err2str(ret));
@@ -1153,7 +1154,7 @@ int MiniRecorder::encodeAudio(LiveAudioPacket **audioPacket) {
         memcpy((*audioPacket)->data, pkt.data, pkt.size);
         (*audioPacket)->size = pkt.size;
         (*audioPacket)->position = (float)(pkt.pts * av_q2d(time_base) * 1000.0f);
-		ALOGI("size and position is {%f, %d}", (*audioPacket)->position, (*audioPacket)->size);
+		//ALOGI("size and position is {%f, %d}", (*audioPacket)->position, (*audioPacket)->size);
     }
     av_free_packet(&pkt);
     return ret;
@@ -1768,6 +1769,10 @@ int MiniRecorder::getAudioFrame(int16_t * samples, int frame_size, int nb_channe
 }
 
 int MiniRecorder::cpyToSamples(int16_t * samples, int samplesInShortCursor, int cpyPacketBufferSize, double* presentationTimeMills) {
+    if(0 == samplesInShortCursor){
+        double packetBufferCursorDuration = (double)packetBufferCursor * 1000.0f / (double)(mRecordParams->sampleRate * 1.0f);
+        (*presentationTimeMills) = packetBufferPresentationTimeMills + packetBufferCursorDuration;
+    }
     memcpy(samples + samplesInShortCursor, packetBuffer + packetBufferCursor, cpyPacketBufferSize * sizeof(short));
     return 1;
 }
@@ -1788,7 +1793,6 @@ int MiniRecorder::getAudioPacket() {
     }
     packetBufferCursor = 0;
     packetBufferPresentationTimeMills = audioPacket->position;
-
     packetBufferSize = audioPacket->size * 1.0f;
     if (NULL == packetBuffer) {
         packetBuffer = new short[packetBufferSize];

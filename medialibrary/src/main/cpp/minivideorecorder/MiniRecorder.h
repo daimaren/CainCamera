@@ -285,7 +285,7 @@ private:
 
     OnRecordListener *mRecordListener;
 
-    int64_t duration;
+    int64_t duration = 0;
     //for status
     bool mAbortRequest; // 停止请求
     bool mStartRequest; // 开始录制请求
@@ -308,18 +308,19 @@ private:
     short* audioSamples = NULL;
     int audioBufferTimeMills = 0;
     ////如下是用于编码的变量
+    ////如下是用于编码的变量
     int packetBufferSize = 0;
     short* packetBuffer = NULL;
     int packetBufferCursor = 0;
-    double  packetBufferPresentationTimeMills;
+    double  packetBufferPresentationTimeMills = 0;
     //Audio Encode变量
     bool mIsAudioEncoding = false;
     AVCodecContext *avCodecContext;
     AVFrame         *encode_frame;
-    int64_t         audio_next_pts;
+    int64_t         audio_next_pts = 0.0;
     uint8_t         **audio_samples_data;
-    int       		audio_nb_samples;
-    int 			audio_samples_size;
+    int       		audio_nb_samples = 0;
+    int 			audio_samples_size = 0;
     //Media Writer变量
     AVOutputFormat *fmt;
     AVFormatContext *oc;
@@ -332,7 +333,7 @@ private:
     bool isWriteHeaderSuccess = false;
     long sendLatestFrameTimemills;
     uint8_t *headerData;
-    int headerSize;
+    int headerSize = 0;
     //预览视窗
     ANativeWindow *mNativeWindow;
     //反射调用变量

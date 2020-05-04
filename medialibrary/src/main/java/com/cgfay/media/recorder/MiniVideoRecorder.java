@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
  * 基于FFmpeg的音频/视频录制器
  */
 public final class MiniVideoRecorder {
-    private static final String TAG = "MiniRecorder";
+    private static final String TAG = "CainMedia";
     private int defaultCameraFacingId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     public static final String MIME_TYPE = "video/avc"; // H.264 Advanced Video
     private static final int IFRAME_INTERVAL = 1; // sync frame every second
