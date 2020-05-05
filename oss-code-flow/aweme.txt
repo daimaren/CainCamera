@@ -1,0 +1,5 @@
+1. clickCamera()<--ViewController.m
+  2. viewDidLoad()<--HPCameraCaptureViewController.m
+    3. initView()<--
+    3. new HPCameraCaptureViewModel()<--
+  2. 
