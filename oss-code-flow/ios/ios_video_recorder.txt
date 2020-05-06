@@ -1,13 +1,13 @@
-1. viewDidLoad()<--ELPushStreamViewController
-  2. pushButton
+1. viewDidLoad()<--ELPushStreamViewController.m
+  2. pushButton //初始化button点击事件
   2. frontBackSwitchButton
   2. initVideoFilterEffectView
   2. 
 
 1.用户点击pushButton
   2. OnStartStop
-    3. start()
-      4. start()<--ELVideoRecordingStudio
+    3. start()<--ELPushStreamViewController.m
+      4. start()<--ELVideoRecordingStudio.m
         5. new VideoConsumerThread()
         5. initRecordingVideoPacketQueue()
         5. initAudioPacketQueue()
@@ -17,3 +17,24 @@
           6. handleRun()
             7. videoPublisher->encode()
 
+1. onConnectSuccess()<--ELPushStreamViewController.m
+  2. startAudioRecord()<--ELPushStreamViewController.m
+    3. startRecord()<--KTVAUGraphRecorder.m
+    3. new AudioEncoderAdapter()
+    3. audioEncoder->init()
+      4. pthread_create(startEncodeThread)
+        5. startEncode()
+          6. new AudioEncoder()
+          6. audioEncoder->init()
+          6. audioEncoder->encode() //while循环
+            7. fillPCMFrameCallback()
+              8. audioEncoderAdapter->getAudioFrame()
+                9. getAudioPacket()
+                  10. pcmPacketPool->getAudioPacket() //pcm出队列，伴奏和人声mix后在哪里入队列的
+                  10. processAudio()
+            7. avcodec_encode_audio2()
+          6. aacPacketPool->pushAudioPacketToQueue() //aac入队列
+  2. _videoScheduler->startEncodeWithFPS()<--
+    3. new ELImageVideoEncoder()
+    3. initWithFPS()
+    3. _videoFilter addTarget:_videoEncoder
