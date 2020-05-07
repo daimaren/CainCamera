@@ -30,11 +30,16 @@
             7. fillPCMFrameCallback()
               8. audioEncoderAdapter->getAudioFrame()
                 9. getAudioPacket()
-                  10. pcmPacketPool->getAudioPacket() //pcm出队列，伴奏和人声mix后在哪里入队列的
+                  10. pcmPacketPool->getAudioPacket() //伴奏和人声mix数据出队列
                   10. processAudio()
             7. avcodec_encode_audio2()
-          6. aacPacketPool->pushAudioPacketToQueue() //aac入队列
+          6. aacPacketPool->pushAudioPacketToQueue() //aac入队列，write线程去出队列
   2. _videoScheduler->startEncodeWithFPS()<--
     3. new ELImageVideoEncoder()
     3. initWithFPS()
     3. _videoFilter addTarget:_videoEncoder
+
+addMixerRenderNofity()
+  mixerRenderNotify()
+    recordDidReceiveBuffer() //Audio callback
+      LivePacketPool::GetInstance()->pushAudioPacketToQueue() //伴奏和人声mix数据入队列
