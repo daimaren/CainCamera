@@ -1,5 +1,5 @@
 //
-// Created by Glen on 2020/1/08.
+// Created by Glen on 2020/05/08.
 //
 #include "MiniRecorder.h"
 
@@ -195,6 +195,7 @@ void *MiniRecorder::startHardWareEncodeThread(void *myself) {
 }
 
 void MiniRecorder::videoEncodeLoop() {
+    mIsVideoEncoding = true;
     while (mIsVideoEncoding) {
         Msg *msg = NULL;
         if (mEncodeMsgQueue->dequeueMessage(&msg, true) > 0) {
@@ -461,7 +462,14 @@ int MiniRecorder::createAudioEncoder() {
     alloc_audio_stream("libfdk_aac");
     alloc_avframe();
     pthread_create(&mAudioEncoderThreadId, NULL, startAudioEncodeThread, this);
-    return 0;
+#if DUMP_AUDIO_ENCODER_OUTPUT_BUFFER
+    mDumpAACFile = fopen("/storage/emulated/0/a_songstudio/dump.aac", "wb");
+    if (!mDumpAACFile) {
+        ALOGI("dump AAC file open error");
+        return RET_FAIL;
+    }
+#endif
+    return RET_OK;
 }
 
 int MiniRecorder::destoryAudioEncoder() {
@@ -492,7 +500,12 @@ int MiniRecorder::destoryAudioEncoder() {
 
     accompanyPacketPool->abortAccompanyPacketQueue();
     accompanyPacketPool->destoryAccompanyPacketQueue();
-    return 0;
+#if DUMP_AUDIO_ENCODER_OUTPUT_BUFFER
+    if (mDumpAACFile) {
+        fclose(mDumpAACFile);
+    }
+#endif
+    return RET_OK;
 }
 
 /**
@@ -506,7 +519,6 @@ int MiniRecorder::createVideoEncoder() {
         createSurfaceRender();
         pthread_create(&mVideoEncoderThreadId, 0, startHardWareEncodeThread, this);
         mIsSPSUnWriteFlag = true;
-        mIsVideoEncoding = true;
 #if DUMP_HW_ENCODER_H264_BUFFER
         mDumpH264File = fopen("/storage/emulated/0/a_songstudio/dump.h264", "wb");
         if (!mDumpH264File) {
@@ -1155,6 +1167,11 @@ int MiniRecorder::encodeAudio(LiveAudioPacket **audioPacket) {
         (*audioPacket)->size = pkt.size;
         (*audioPacket)->position = (float)(pkt.pts * av_q2d(time_base) * 1000.0f);
 		//ALOGI("size and position is {%f, %d}", (*audioPacket)->position, (*audioPacket)->size);
+#if DUMP_AUDIO_ENCODER_OUTPUT_BUFFER
+        //dump AAC data to file
+        fwrite(pkt.data, pkt.size, 1, mDumpAACFile);
+        ALOGI("write aac size %d", pkt.size);
+#endif
     }
     av_free_packet(&pkt);
     return ret;

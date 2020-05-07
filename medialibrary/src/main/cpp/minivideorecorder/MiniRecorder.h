@@ -59,6 +59,7 @@ extern "C" {
 #define DUMP_YUV_BUFFER    0
 #define DUMP_SW_ENCODER_H264_BUFFER    0
 #define DUMP_HW_ENCODER_H264_BUFFER    0
+#define DUMP_AUDIO_ENCODER_OUTPUT_BUFFER    1
 
 #define H264_NALU_TYPE_NON_IDR_PICTURE                                  1
 #define H264_NALU_TYPE_IDR_PICTURE                                      5
@@ -70,6 +71,7 @@ extern "C" {
 #define VIDEO_QUEUE_ABORT_ERR_CODE               -100201
 
 #define is_start_code(code)	(((code) & 0x0ffffff) == 0x01)
+
 
 enum RenderThreadMessage {
     MSG_RENDER_FRAME = 0,
@@ -280,6 +282,7 @@ private:
     FILE* mflvFile;
     FILE* mDumpYuvFile;
     FILE* mDumpH264File;
+    FILE* mDumpAACFile;
     Mutex mMutex;
     Condition mCondition;
 

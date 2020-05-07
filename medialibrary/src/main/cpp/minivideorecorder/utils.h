@@ -14,6 +14,8 @@ typedef unsigned char byte;
 #define ARRAY_LEN(a) (sizeof(a) / sizeof(a[0]))
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#define RET_OK  0
+#define RET_FAIL -1
 
 #define TAG "CainMedia"
 #define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)

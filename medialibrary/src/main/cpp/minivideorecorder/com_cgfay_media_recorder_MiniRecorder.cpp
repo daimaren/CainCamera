@@ -1,5 +1,5 @@
 //
-// Created by CainHuang on 2019/8/17.
+// Created by Glen on 2020/05/07.
 //
 #if defined(__ANDROID__)
 
@@ -159,7 +159,7 @@ Java_com_cgfay_media_recorder_MiniVideoRecorder_nativeInit(JNIEnv *env, jobject 
 }
 
 /**
- * prepareEGLContext
+ * 创建EGL上下文
  */
 extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MiniVideoRecorder_prepareEGLContext(JNIEnv *env, jobject thiz, jlong handle, jobject surface, jint screenWidth, jint screenHeight,
@@ -177,7 +177,7 @@ Java_com_cgfay_media_recorder_MiniVideoRecorder_prepareEGLContext(JNIEnv *env, j
 }
 
 /**
- * prepareEGLContext
+ * 释放EGL上下文
  */
 extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MiniVideoRecorder_destroyEGLContext(JNIEnv *env, jobject thiz, jlong handle) {
@@ -188,7 +188,7 @@ Java_com_cgfay_media_recorder_MiniVideoRecorder_destroyEGLContext(JNIEnv *env, j
 }
 
 /**
- * notifyFrameAvailable
+ * 通知帧可用
  */
 extern "C" JNIEXPORT void JNICALL
 Java_com_cgfay_media_recorder_MiniVideoRecorder_notifyFrameAvailable(JNIEnv *env, jobject thiz, jlong handle) {
