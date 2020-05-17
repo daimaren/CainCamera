@@ -807,58 +807,28 @@ void AVSynchronizer::onSeek(float seek_seconds){
 
 void AVSynchronizer::viewStreamMetaCallback(int videoWidth, int videoHeight,
 		float duration) {
-	jniCallbackWithArguments("viewStreamMetaCallback", "(IIF)V", videoWidth, videoHeight, duration);
+	//viewStreamMetaCallback
 }
 
 int AVSynchronizer::videoDecodeException() {
-    return jniCallbackWithNoArguments("videoDecodeException", "()V");
+	//viewStreamMetaCallback
+    return 1;
 }
 
 int AVSynchronizer::hideLoadingDialog() {
-    return jniCallbackWithNoArguments("hideLoadingDialog", "()V");
+	//hideLoadingDialog
+    return 1;
 }
 
 int AVSynchronizer::showLoadingDialog() {
-    return jniCallbackWithNoArguments("showLoadingDialog", "()V");
+	//showLoadingDialog
+    return 1;
 }
 
 int AVSynchronizer::onCompletion() {
 	//播放完成，回调给app
 	if (messageQueue) {
 		messageQueue->postMessage(MSG_COMPLETED);
-	}
-	return 1;
-}
-
-int AVSynchronizer::jniCallbackWithNoArguments(char* signature, char* params){
-    return jniCallbackWithArguments(signature, params);
-}
-
-int AVSynchronizer::jniCallbackWithArguments(const char* signature, const char* params, ...){
-	//tmp solution
-	return 1;
-	JNIEnv *env;
-	if (g_jvm->AttachCurrentThread(&env, NULL) != JNI_OK) {
-		LOGE("%s: AttachCurrentThread() failed", __FUNCTION__);
-		return -1;
-	}
-	if (env == NULL) {
-		LOGI("getJNIEnv failed");
-		return -1;
-	}
-	jclass jcls = env->GetObjectClass(obj);
-	if (NULL != jcls) {
-		jmethodID jniCallback = env->GetMethodID(jcls, signature, params);
-		if (NULL != jniCallback) {
-			va_list arg_ptr;
-			va_start(arg_ptr,params);
-			env->CallVoidMethodV(obj, jniCallback, arg_ptr);
-			va_end(arg_ptr);
-		}
-	}
-	if (g_jvm->DetachCurrentThread() != JNI_OK) {
-		LOGE("%s: DetachCurrentThread() failed", __FUNCTION__);
-		return -1;
 	}
 	return 1;
 }

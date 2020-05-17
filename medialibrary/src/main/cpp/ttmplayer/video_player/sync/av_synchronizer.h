@@ -137,7 +137,6 @@ public:
 
 	void clearCircleFrameTextureQueue();
 
-
 	bool isPlayCompleted() {
 		return isCompleted;
 	}
@@ -221,7 +220,5 @@ protected:
 	int onCompletion();
 	int videoDecodeException();
 	int hideLoadingDialog();
-	int jniCallbackWithNoArguments(char* signature, char* params);
-	int jniCallbackWithArguments(const char* signature, const char* params, ...);
 };
 #endif // VIDEO_PLAYER_AV_SYNCHRONIZER_
