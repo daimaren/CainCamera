@@ -10,6 +10,8 @@
 #include <queue>
 #include <list>
 #include <string>
+#include <android/AVMessageQueue.h>
+
 using namespace std;
 
 // 以下是解码本地文件的时候的缓冲区的最小和最大值
@@ -68,8 +70,8 @@ public:
 	AVSynchronizer();
 	virtual ~AVSynchronizer();
 
-	bool init(DecoderRequestHeader *requestHeader, JavaVM *g_jvm, jobject obj,
-			float minBufferedDuration, float maxBufferedDuration);
+	bool init(DecoderRequestHeader *requestHeader, JavaVM *g_jvm, jobject obj, AVMessageQueue *messageQueue,
+			  float minBufferedDuration, float maxBufferedDuration);
 	bool validAudio();
 	bool isValid();
 	int getVideoFrameHeight();
@@ -165,6 +167,7 @@ protected:
 	//回调客户端的方法比如书显示或者隐藏progressbar
 	JavaVM *g_jvm;
 	jobject obj;
+	AVMessageQueue* messageQueue;
 	//表示客户端界面上是否显示loading progressbar
 	bool isLoading;
 	float syncMaxTimeDiff;

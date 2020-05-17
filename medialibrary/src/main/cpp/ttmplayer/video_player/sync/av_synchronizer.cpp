@@ -233,7 +233,8 @@ void AVSynchronizer::initCircleQueue(int videoWidth, int videoHeight) {
 	pthread_mutex_init(&audioFrameQueueMutex, NULL);
 }
 
-bool AVSynchronizer::init(DecoderRequestHeader *requestHeader, JavaVM *g_jvm, jobject obj,float minBufferedDuration, float maxBufferedDuration) {
+bool AVSynchronizer::init(DecoderRequestHeader *requestHeader, JavaVM *g_jvm, jobject obj,
+		AVMessageQueue *messageQueue, float minBufferedDuration, float maxBufferedDuration) {
 	LOGI("Enter AVSynchronizer::init");
 	currentAudioFrame = NULL;
 	currentAudioFramePos = 0;
@@ -249,6 +250,7 @@ bool AVSynchronizer::init(DecoderRequestHeader *requestHeader, JavaVM *g_jvm, jo
 	this->maxBufferedDuration = maxBufferedDuration;
 	this->g_jvm = g_jvm;
 	this->obj = obj;
+	this->messageQueue = messageQueue;
 	isOnDecoding = false;
 	isDestroyed = false;
 
@@ -579,7 +581,7 @@ bool AVSynchronizer::checkPlayState() {
 			usleep(0.2 * 1000000);
 			isCompleted = true;
 			onCompletion();
-//			LOGI("onCompletion...");
+			LOGI("onCompletion...");
 			return true;
 		}
 	} else {
@@ -821,7 +823,11 @@ int AVSynchronizer::showLoadingDialog() {
 }
 
 int AVSynchronizer::onCompletion() {
-    return jniCallbackWithNoArguments("onCompletion", "()V");
+	//播放完成，回调给app
+	if (messageQueue) {
+		messageQueue->postMessage(MSG_COMPLETED);
+	}
+	return 1;
 }
 
 int AVSynchronizer::jniCallbackWithNoArguments(char* signature, char* params){

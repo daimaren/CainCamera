@@ -713,7 +713,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         mMediaPlayer.setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(IMediaPlayer mp) {
-
+                mMediaPlayer.seekTo(0);
             }
         });
 

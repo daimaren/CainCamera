@@ -41,7 +41,7 @@ void MediaPlayer::signalOutputFrameAvailable() {
 
 bool MediaPlayer::initAVSynchronizer() {
     synchronizer = new AVSynchronizer();
-    return synchronizer->init(requestHeader, g_jvm, obj, minBufferedDuration, maxBufferedDuration);
+    return synchronizer->init(requestHeader, g_jvm, obj, messageQueue, minBufferedDuration, maxBufferedDuration);
 }
 
 void  MediaPlayer::initVideoOutput(ANativeWindow* window){

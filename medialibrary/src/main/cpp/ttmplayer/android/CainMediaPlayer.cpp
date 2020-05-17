@@ -195,7 +195,6 @@ status_t CainMediaPlayer::seekTo(float msec) {
         if (mSeeking) {
             mediaPlayer->getMessageQueue()->postMessage(MSG_REQUEST_SEEK, msec);
         } else {
-            //mediaPlayer->seekTo(msec);
             mediaPlayer->seekTo(msec * 1000);
             mSeekingPosition = (long)msec;
             mSeeking = true;
@@ -330,7 +329,7 @@ void CainMediaPlayer::postEvent(int what, int arg1, int arg2, void *obj) {
 }
 
 void CainMediaPlayer::run() {
-    ////LOGI("CainMediaPlayer::run msg thread");
+    LOGD("CainMediaPlayer::run msg thread");
     int retval;
     while (true) {
 
