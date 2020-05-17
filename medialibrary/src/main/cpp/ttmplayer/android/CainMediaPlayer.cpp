@@ -106,7 +106,7 @@ status_t CainMediaPlayer::setListener(MediaPlayerListener *listener) {
 }
 
 status_t CainMediaPlayer::prepare() {
-    LOGI("CainMediaPlayer::prepare");
+    //////LOGI("CainMediaPlayer::prepare");
     if (mediaPlayer == nullptr) {
         return NO_INIT;
     }
@@ -296,11 +296,17 @@ void CainMediaPlayer::changeFilter(int type, const int id) {
 }
 
 void CainMediaPlayer::beginFilter(int type, const char *name) {
-
+    LOGD("beginFilter");
+    if (mediaPlayer) {
+        mediaPlayer->beginFilter(type, name);
+    }
 }
 
 void CainMediaPlayer::endFilter(int type, const char *name) {
-
+    LOGD("endFilter");
+    if (mediaPlayer) {
+        mediaPlayer->endFilter(type, name);
+    }
 }
 
 void CainMediaPlayer::setOption(int category, const char *type, const char *option) {
@@ -324,7 +330,7 @@ void CainMediaPlayer::postEvent(int what, int arg1, int arg2, void *obj) {
 }
 
 void CainMediaPlayer::run() {
-    LOGI("CainMediaPlayer::run msg thread");
+    ////LOGI("CainMediaPlayer::run msg thread");
     int retval;
     while (true) {
 
@@ -341,7 +347,7 @@ void CainMediaPlayer::run() {
         AVMessage msg;
         retval = mediaPlayer->getMessageQueue()->getMessage(&msg);
         if (retval < 0) {
-            LOGE("getMessage error");
+            LOGD("getMessage error");
             break;
         }
 
@@ -507,7 +513,7 @@ void CainMediaPlayer::run() {
             }
 
             default: {
-                LOGE("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);
+                LOGD("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);
                 break;
             }
         }

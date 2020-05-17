@@ -294,11 +294,11 @@ void CainMediaPlayer::changeFilter(int type, const int id) {
 }
 
 void CainMediaPlayer::beginFilter(int type, const char *name) {
-
+    LOGD("beginFilter");
 }
 
 void CainMediaPlayer::endFilter(int type, const char *name) {
-
+    LOGD("endFilter");
 }
 
 void CainMediaPlayer::setOption(int category, const char *type, const char *option) {

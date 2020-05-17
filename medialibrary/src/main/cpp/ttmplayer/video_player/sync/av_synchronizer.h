@@ -6,6 +6,7 @@
 #include "../decoder/ffmpeg_video_decoder.h"
 #include "opengl_media/render/video_gl_surface_render.h"
 #include "../decoder/mediacodec_video_decoder.h"
+#include "video_effect_processor.h"
 #include <queue>
 #include <list>
 #include <string>
@@ -42,7 +43,6 @@ public:
 	void destroyFromUploaderGLContext();
 
 	void createEncoderOutputRender() { };
-
 protected:
 	AVSynchronizer * mParent;
 };
@@ -94,6 +94,14 @@ public:
 
 	void initCircleQueue(int videoWidth, int videoHeight);
 
+	void changeFilter(int type, const char *name);
+
+	void changeFilter(int type, const int id);
+
+	void beginFilter(int type, const char *name);
+
+	void endFilter(int type, const char *name);
+
 	/** 当客户端调用destroy方法之后 只为true **/
 	bool isDestroyed;
 	bool isOnDecoding;
@@ -138,6 +146,9 @@ public:
 protected:
 	EGLContext loadTextureContext;
 protected:
+	GLuint mOutputTexId;
+	OpenglVideoFrame* 		targetVideoFrame;
+	VideoEffectProcessor* videoEffectProcessor;
 	VideoGLSurfaceRender* passThorughRender;
 	void processDecodingFrame(bool& good, float duration);
 	void decode();

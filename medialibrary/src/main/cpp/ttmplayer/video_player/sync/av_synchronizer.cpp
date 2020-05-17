@@ -44,6 +44,33 @@ void UploaderCallbackImpl::destroyFromUploaderGLContext() {
 }
 
 void AVSynchronizer::OnInitFromUploaderGLContext(EGLCore* eglCore, int videoFrameWidth, int videoFrameHeight) {
+	// 初始化特效处理器
+	videoEffectProcessor = new VideoEffectProcessor();
+	if (videoEffectProcessor) {
+		videoEffectProcessor->init();
+		int filterId = videoEffectProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, 0, 1000000 * 10 * 60 * 60,PLAYER_CONTRAST_FILTER_NAME);
+		if (filterId > 0) {
+			videoEffectProcessor->invokeFilterOnReady(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, filterId);
+		}
+		//create output tex id
+		glGenTextures(1, &mOutputTexId);
+		checkGlError("glGenTextures mOutputTexId");
+		glBindTexture(GL_TEXTURE_2D, mOutputTexId);
+		checkGlError("glBindTexture mOutputTexId");
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei) videoFrameWidth, (GLsizei) videoFrameHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		ImagePosition imagePosition(0, 0, GLsizei(videoFrameWidth), GLsizei(videoFrameHeight));
+		targetVideoFrame = new OpenglVideoFrame(mOutputTexId, imagePosition);
+	} else {
+		LOGE("create videoEffectProcessor failed");
+	}
+	// 创建passThorughRender
 	if (NULL == passThorughRender) {
 		passThorughRender = new VideoGLSurfaceRender();
 		bool isGLViewInitialized = passThorughRender->init(videoFrameWidth,videoFrameHeight);
@@ -635,10 +662,11 @@ void AVSynchronizer::renderToVideoQueue(GLuint inputTexId, int width, int height
 	if (NULL != frameTexture) {
 		frameTexture->position = position;
 //		LOGI("Render To TextureQueue texture Position is %.3f ", position);
+		//videoEffectProcessor in here
+
 		//cpy input texId to target texId
 		passThorughRender->renderToTexture(inputTexId, frameTexture->texId);
 		circleFrameTextureQueue->unLockPushCursorFrameTexture();
-
 
 		frameAvailable();
 
@@ -723,6 +751,20 @@ EGLContext AVSynchronizer::getUploaderEGLContext() {
 }
 
 void AVSynchronizer::onDestroyFromUploaderGLContext(){
+	//destroy video effect processor
+	if (NULL != videoEffectProcessor) {
+		videoEffectProcessor->dealloc();
+		delete videoEffectProcessor;
+		videoEffectProcessor = NULL;
+	}
+	if (-1 != mOutputTexId) {
+		glDeleteTextures(1, &mOutputTexId);
+	}
+	if (NULL != targetVideoFrame) {
+		delete targetVideoFrame;
+		targetVideoFrame = NULL;
+	}
+	//destroy PassThorughRender
 	destroyPassThorughRender();
 	//清空并且销毁视频帧队列
 	if (NULL != circleFrameTextureQueue) {
@@ -736,8 +778,18 @@ void AVSynchronizer::onDestroyFromUploaderGLContext(){
 }
 
 void AVSynchronizer::processVideoFrame(GLuint inputTexId, int width, int height, float position){
-	//注意:这里已经在EGL Thread中，并且已经绑定了一个FBO 只要在里面进行切换FBO的attachment就可以了
-	renderToVideoQueue(inputTexId, width, height, position);
+	ImagePosition imagePosition(0, 0, GLsizei(width), GLsizei(height));
+	if (videoEffectProcessor) {
+		OpenglVideoFrame* sourceVideoFrame = new OpenglVideoFrame(inputTexId, imagePosition);
+		videoEffectProcessor->process(sourceVideoFrame, position, targetVideoFrame);
+		delete sourceVideoFrame;
+
+		//注意:这里已经在EGL Thread中，并且已经绑定了一个FBO 只要在里面进行切换FBO的attachment就可以了
+		renderToVideoQueue(mOutputTexId, width, height, position);
+	} else {
+		//注意:这里已经在EGL Thread中，并且已经绑定了一个FBO 只要在里面进行切换FBO的attachment就可以了
+		renderToVideoQueue(inputTexId, width, height, position);
+	}
 }
 
 int AVSynchronizer::processAudioData(short *sample, int size, float position, byte** buffer) {
@@ -804,3 +856,20 @@ int AVSynchronizer::jniCallbackWithArguments(const char* signature, const char* 
 	}
 	return 1;
 }
+
+void AVSynchronizer::changeFilter(int type, const int id) {
+
+}
+
+void AVSynchronizer::changeFilter(int type, const char *name) {
+
+}
+
+void AVSynchronizer::beginFilter(int type, const char *name) {
+	//todo
+}
+
+void AVSynchronizer::endFilter(int type, const char *name) {
+	//todo
+}
+

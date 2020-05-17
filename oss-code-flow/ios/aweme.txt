@@ -1,0 +1,96 @@
+录制部分：
+1. camera()<--ViewController.m
+  2. viewDidLoad()<--HPCameraCaptureViewController.m
+    3. initView()<--
+    3. new HPCameraCaptureViewModel()<--
+    3. setupFilter()
+      4. new GPUImageView()
+      4. new GPUImageFaceCamera()
+      4. addAudioInputsAndOutputs()
+        5. deviceInputWithDevice()
+      4. new GPUImageBeautyFaceFilter()
+      4. new GPUImageThinFaceFilter()
+      4. startCameraCapture()<--GPUImageFaceCamera.m
+    3. resetView()
+    3. resetBeauty()
+  2. viewWillAppear()
+    3. startCameraCapture()
+      4. startCameraCapture()<--GPUImageVideoCamera.m
+        5. startRunning()<--captureSession
+  2. viewDidAppear()
+    3. setupFacepp()
+  2. viewDidDisappear()
+    3. stopCameraCapture()
+
+//点击录制按钮
+1. recordClick()
+  2. resetView()
+  2. startRecording()
+    3. resetMovieWriter()
+      4. new GPUImageMovieWriter()
+      4. [lastFilter addTarget:movieWriter];
+      4. videoCamera.audioEncodingTarget = movieWriter;
+    3. startRecording()
+      4. startRecording()<--GPUImageMovieWriter.m
+  2. stopRecording() //if else
+
+//点击保存
+saveClick()
+  saveMovie()
+    compositionMovies()
+      //todo
+  pushToEditVideo()<--HPCameraCaptureViewController.m
+    launch HPVideoEditViewController()
+
+编辑部分：
+1. viewWillAppear()<--HPVideoEditViewController.m
+  2. play()<--HPCameraEditViewModel.m
+    3. play()<--HPPlayer.m
+
+//点击特效按钮
+1. effectClick()
+  2. new HPVideoEffectChooseViewModel()
+    3. 
+
+//点击特效界面的视频画面
+1. playClick()
+  2. play or pause
+
+//点击特效界面的滤镜、识别、分屏等
+1. effectTypeClick()
+  2. switchEffectDataTo(index)
+
+//按住使用效果 collection view
+1. cellForItemAtIndexPath()
+  2. beginLongPressAtIndex()
+    3. new HPModelRangeEffect()
+    3. 
+  2. endLongPress()
+
+2D资源包内容看懂了，疑问是代码里怎么去解析
+
+//点击特效界面的保存
+1. saveClick()<--HPVideoEffectChooseViewController.m
+  2. 
+
+//点击特效界面的取消
+1. cancelClick()
+
+播放部分：
+1. play()<--ViewController.m
+  2. new HPPlayerViewController()<--HPPlayerViewController.m
+    3. viewDidLoad()
+      4. new HPPlayer()<--HPPlayer.m
+      4. initWithFilePath()<--HPPlayer.m
+        5. initializePlayer()
+          6. new HPPlayerSynchronizer()
+          6. openFile()<--HPPlayerSynchronizer.m
+            7. new HPVideoDecoder()
+            7. initWithURL()<--HPVideoDecoder.m
+            7. openFile()<--HPVideoDecoder.m
+              8. createAsset()<--HPVideoDecoder.m
+                9. createAssetReader()<--HPVideoDecoder.m
+                  10. assetReaderWithAsset()<--AVAssetReader.m
+                  10. assetReaderTrackOutputWithTrack()<--AVAssetReader.m
+            7.startReading()<--AVAssetReader.m
+        5. addNotification()

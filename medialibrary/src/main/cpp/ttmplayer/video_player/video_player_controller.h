@@ -46,6 +46,14 @@ public:
 
 	virtual void destroy();
 
+	void changeFilter(int type, const char *name);
+
+	void changeFilter(int type, const int id);
+
+	void beginFilter(int type, const char *name);
+
+	void endFilter(int type, const char *name);
+
 	/** 重置播放区域的大小,比如横屏或者根据视频的ratio来调整 **/
 	void resetRenderSize(int left, int top, int width, int height);
 	/** 关键的回调方法 **/

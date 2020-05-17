@@ -38,6 +38,9 @@ set_target_properties( yuv
         PROPERTIES IMPORTED_LOCATION
         ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libyuv.so )
 
+# ttcommon库
+add_subdirectory(${CMAKE_SOURCE_DIR}/ttcommon)
+
 # FFmpeg命令行库
 add_subdirectory(${CMAKE_SOURCE_DIR}/FFCommand)
 
@@ -80,10 +83,13 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/minivideorecorder)
 #add_subdirectory(${CMAKE_SOURCE_DIR}/AudioEffect)
 
 # VideoEffect
-#add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
+add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
 
 # ttmplayer
-#add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
+add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
+
+# ttmplayer2 base on sap
+#add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer2)
 
 # ttvideoeditor
 add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideoeditor)

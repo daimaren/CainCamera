@@ -344,6 +344,26 @@ void MediaPlayer::destroy() {
     LOGI("leave MediaPlayer::destroy...");
 }
 
+void MediaPlayer::changeFilter(int type, const int id) {
+
+}
+
+void MediaPlayer::changeFilter(int type, const char *name) {
+
+}
+
+void MediaPlayer::beginFilter(int type, const char *name) {
+    if (synchronizer) {
+        synchronizer->beginFilter(type, name);
+    }
+}
+
+void MediaPlayer::endFilter(int type, const char *name) {
+    if (synchronizer) {
+        synchronizer->endFilter(type, name);
+    }
+}
+
 void* MediaPlayer::initThreadCallback(void *myself){
     MediaPlayer *controller = (MediaPlayer*) myself;
     controller->startAVSynchronizer();

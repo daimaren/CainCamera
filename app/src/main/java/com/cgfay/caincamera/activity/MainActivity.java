@@ -182,8 +182,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             intent.putExtra(ImageEditActivity.DELETE_INPUT_FILE, true);
                             startActivity(intent);
                         } else if (type == GalleryType.VIDEO) {
-                            Intent intent = new Intent(MainActivity.this, VideoEditActivity.class);
-                            intent.putExtra(VideoEditActivity.VIDEO_PATH, path);
+                            //Intent intent = new Intent(MainActivity.this, VideoEditActivity.class);
+                            //intent.putExtra(VideoEditActivity.VIDEO_PATH, path);
+                            Intent intent = new Intent(MainActivity.this, GlenVideoEditActivity.class);
+                            intent.putExtra(GlenVideoEditActivity.VIDEO_PATH, path);
                             startActivity(intent);
                         }
                     }
