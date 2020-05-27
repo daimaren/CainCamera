@@ -139,3 +139,20 @@ VideoCropActivity.java
   VideoCropFragment.java
 点击下一步，进入编辑界面
 VideoEditActivity.java
+
+//切换动态贴纸滤镜
+1. 点击贴纸()
+  2. changeResource()
+    3. decodeStickerData()
+      4. parse json
+    3. changeDynamicResource()
+      4. changeDynamicResource()<--RenderThread.java
+        5. mDisplaySurface.makeCurrent()
+        5. changeDynamicResource()<--RenderManager.java
+          6. new GLImageDynamicStickerFilter()
+            7. initProgramHandle()
+            7. mFilters.add(new DynamicStickerNormalFilter(context, sticker))
+              8. mStickerLoaderList.add(new DynamicStickerLoader())
+            7. mFilters.add(new DynamicStickerFrameFilter(context, sticker))
+            7. mFilters.add(new StaticStickerNormalFilter(context, sticker))
+          6. mFilterArrays.put(RenderIndex.ResourceIndex, filter)
