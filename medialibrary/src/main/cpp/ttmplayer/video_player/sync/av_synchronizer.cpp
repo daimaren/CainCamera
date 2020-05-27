@@ -45,12 +45,12 @@ void UploaderCallbackImpl::destroyFromUploaderGLContext() {
 
 void AVSynchronizer::OnInitFromUploaderGLContext(EGLCore* eglCore, int videoFrameWidth, int videoFrameHeight) {
 	// 初始化特效处理器
-	videoEffectProcessor = new VideoEffectProcessor();
-	if (videoEffectProcessor) {
-		videoEffectProcessor->init();
-		int filterId = videoEffectProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, 0, 1000000 * 10 * 60 * 60,PLAYER_CONTRAST_FILTER_NAME);
+	mProcessor = new VideoEffectProcessor();
+	if (mProcessor) {
+		mProcessor->init();
+		int filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, 0, 1000000 * 10 * 60 * 60, PLAYER_CONTRAST_FILTER_NAME);
 		if (filterId > 0) {
-			videoEffectProcessor->invokeFilterOnReady(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, filterId);
+			mProcessor->invokeFilterOnReady(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, filterId);
 		}
 		//create output tex id
 		glGenTextures(1, &mOutputTexId);
@@ -68,7 +68,7 @@ void AVSynchronizer::OnInitFromUploaderGLContext(EGLCore* eglCore, int videoFram
 		ImagePosition imagePosition(0, 0, GLsizei(videoFrameWidth), GLsizei(videoFrameHeight));
 		targetVideoFrame = new OpenglVideoFrame(mOutputTexId, imagePosition);
 	} else {
-		LOGE("create videoEffectProcessor failed");
+		LOGE("create mProcessor failed");
 	}
 	// 创建passThorughRender
 	if (NULL == passThorughRender) {
@@ -664,7 +664,7 @@ void AVSynchronizer::renderToVideoQueue(GLuint inputTexId, int width, int height
 	if (NULL != frameTexture) {
 		frameTexture->position = position;
 //		LOGI("Render To TextureQueue texture Position is %.3f ", position);
-		//videoEffectProcessor in here
+		//mProcessor in here
 
 		//cpy input texId to target texId
 		passThorughRender->renderToTexture(inputTexId, frameTexture->texId);
@@ -754,10 +754,10 @@ EGLContext AVSynchronizer::getUploaderEGLContext() {
 
 void AVSynchronizer::onDestroyFromUploaderGLContext(){
 	//destroy video effect processor
-	if (NULL != videoEffectProcessor) {
-		videoEffectProcessor->dealloc();
-		delete videoEffectProcessor;
-		videoEffectProcessor = NULL;
+	if (NULL != mProcessor) {
+		mProcessor->dealloc();
+		delete mProcessor;
+        mProcessor = NULL;
 	}
 	if (-1 != mOutputTexId) {
 		glDeleteTextures(1, &mOutputTexId);
@@ -781,11 +781,11 @@ void AVSynchronizer::onDestroyFromUploaderGLContext(){
 
 void AVSynchronizer::processVideoFrame(GLuint inputTexId, int width, int height, float position){
 	ImagePosition imagePosition(0, 0, GLsizei(width), GLsizei(height));
-	if (videoEffectProcessor) {
+	if (mProcessor) {
 		OpenglVideoFrame* sourceVideoFrame = new OpenglVideoFrame(inputTexId, imagePosition);
-		videoEffectProcessor->process(sourceVideoFrame, position, targetVideoFrame);
+		//实时特效处理，预览画面看效果
+		mProcessor->process(sourceVideoFrame, position, targetVideoFrame);
 		delete sourceVideoFrame;
-
 		//注意:这里已经在EGL Thread中，并且已经绑定了一个FBO 只要在里面进行切换FBO的attachment就可以了
 		renderToVideoQueue(mOutputTexId, width, height, position);
 	} else {
@@ -842,10 +842,34 @@ void AVSynchronizer::changeFilter(int type, const char *name) {
 }
 
 void AVSynchronizer::beginFilter(int type, const char *name) {
-	//todo
+    bool ret = true;
+    mProcessor->removeAllFilters();
+    int filterId = this->addFilter(type, NULL, 0);
+    LOGI("add Filter %d", filterId);
+    if(filterId >= 0){
+        ret = mProcessor->invokeFilterOnReady(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, filterId);
+        if (ret != true) {
+            LOGE("invokeFilterOnReady failed");
+        }
+    }
 }
 
 void AVSynchronizer::endFilter(int type, const char *name) {
 	//todo
 }
 
+int AVSynchronizer::addFilter(int filterType, byte* mACVBuffer, int mACVBufferSize) {
+    LOGI("MVRecordingPreviewController::getFilter type is %d", filterType);
+    int filterId = -1;
+    int ret = false;
+    switch (filterType) {
+        case 10000:
+            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
+            		PREVIEW_FILTER_SEQUENCE_OUT, BEAUTIFY_FACE_COOL_FILTER_NAME);
+            break;
+        default:
+			ret = mProcessor->addVideoTransition(getPlayProgress(), 500, TRANSITION_TYPE_FADE_IN, "/sdcard/source.mp4");
+            break;
+    }
+    return filterId;
+}
