@@ -67,7 +67,7 @@ void PngSequenceFilter::onRenderPre(float pos) {
 		char indexBuffer[8];
 		sprintf(indexBuffer, "%d.png", currentIndex%imageCount);
 		string pngName = baseName;
-		pngName.append(imageName).append(string(indexBuffer));
+		pngName.append("/").append(imageName).append(string(indexBuffer));
 		LOGI("png name is %s width is %d height %d", pngName.c_str(), width, height);
 		if (decoder->openFile((char*) pngName.c_str()) > 0) {
 			RGBAFrame* frame = decoder->getRGBAFrame();

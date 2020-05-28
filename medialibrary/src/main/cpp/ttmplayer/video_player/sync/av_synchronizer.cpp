@@ -859,17 +859,17 @@ void AVSynchronizer::endFilter(int type, const char *name) {
 }
 
 int AVSynchronizer::addFilter(int filterType, const char *name) {
-    LOGI("AVSynchronizer::getFilter type is %d name is %s", filterType, name);
+    LOGI("AVSynchronizer::filter type is %d name is %s position is %lf", filterType, name, getPlayProgress());
     int filterId = -1;
     int ret = false;
     switch (filterType) {
         case FILTER:
-            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress(),
-            		PREVIEW_FILTER_SEQUENCE_OUT, BEAUTIFY_FACE_COOL_FILTER_NAME);
+            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress() * 1000000,
+            		PREVIEW_FILTER_SEQUENCE_OUT, BEAUTIFY_FACE_COOL_FILTER_NAME);//us
             break;
 		case TRANSITION:
-			filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
-											 PREVIEW_FILTER_SEQUENCE_OUT, PNG_SEQUENCE_FILTER_NAME);
+			filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress() * 1000000,
+											 getPlayProgress() * 1000000 + 5000000, PNG_SEQUENCE_FILTER_NAME);//us
 			this->setPngSequenceFilterValue(filterId, "/sdcard/countdown");
 			break;
 		case MULTIFRAME:
