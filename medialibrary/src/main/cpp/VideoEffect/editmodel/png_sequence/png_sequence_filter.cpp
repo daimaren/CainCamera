@@ -68,10 +68,10 @@ void PngSequenceFilter::onRenderPre(float pos) {
 		sprintf(indexBuffer, "%d.png", currentIndex%imageCount);
 		string pngName = baseName;
 		pngName.append(imageName).append(string(indexBuffer));
-//		LOGI("png name is %s width is %d height %d", pngName.c_str(), width, height);
+		LOGI("png name is %s width is %d height %d", pngName.c_str(), width, height);
 		if (decoder->openFile((char*) pngName.c_str()) > 0) {
 			RGBAFrame* frame = decoder->getRGBAFrame();
-//			LOGI("frame width is %d", frame->width);
+			LOGI("frame width is %d", frame->width);
 			glBindTexture(GL_TEXTURE_2D, texId);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei) width, (GLsizei) height, 0, GL_RGBA, GL_UNSIGNED_BYTE, frame->pixels);
 			delete frame;

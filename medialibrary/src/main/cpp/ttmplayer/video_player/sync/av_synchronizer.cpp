@@ -844,8 +844,8 @@ void AVSynchronizer::changeFilter(int type, const char *name) {
 void AVSynchronizer::beginFilter(int type, const char *name) {
     bool ret = true;
     mProcessor->removeAllFilters();
-    int filterId = this->addFilter(type, NULL, 0);
-    LOGI("add Filter %d", filterId);
+    int filterId = this->addFilter(type, name);
+    LOGD("add Filter %d", filterId);
     if(filterId >= 0){
         ret = mProcessor->invokeFilterOnReady(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, filterId);
         if (ret != true) {
@@ -858,18 +858,32 @@ void AVSynchronizer::endFilter(int type, const char *name) {
 	//todo
 }
 
-int AVSynchronizer::addFilter(int filterType, byte* mACVBuffer, int mACVBufferSize) {
-    LOGI("MVRecordingPreviewController::getFilter type is %d", filterType);
+int AVSynchronizer::addFilter(int filterType, const char *name) {
+    LOGI("AVSynchronizer::getFilter type is %d name is %s", filterType, name);
     int filterId = -1;
     int ret = false;
     switch (filterType) {
-        case 10000:
-            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
+        case FILTER:
+            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress(),
             		PREVIEW_FILTER_SEQUENCE_OUT, BEAUTIFY_FACE_COOL_FILTER_NAME);
             break;
+		case TRANSITION:
+			filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
+											 PREVIEW_FILTER_SEQUENCE_OUT, PNG_SEQUENCE_FILTER_NAME);
+			this->setPngSequenceFilterValue(filterId, "/sdcard/countdown");
+			break;
+		case MULTIFRAME:
+		case TIME:
         default:
-			ret = mProcessor->addVideoTransition(getPlayProgress(), 500, TRANSITION_TYPE_FADE_IN, "/sdcard/source.mp4");
+			//ret = mProcessor->addVideoTransition(getPlayProgress(), 500, TRANSITION_TYPE_FADE_IN, "/sdcard/source.mp4");
             break;
     }
     return filterId;
+}
+
+void AVSynchronizer::setPngSequenceFilterValue(int filterId, string dirPath) {
+	ParamVal dirPathValue;
+	dirPathValue.strVal = dirPath;
+	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
+			filterId, PNG_SEQUENCE_PARAM_ID_DIR_PATH, dirPathValue);
 }

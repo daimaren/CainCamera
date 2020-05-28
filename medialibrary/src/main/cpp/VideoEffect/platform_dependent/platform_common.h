@@ -28,8 +28,9 @@ static inline long getCurrentTime()
 // log
 #ifdef __ANDROID__
 #include <android/log.h>
-#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, "CainPlayer", __VA_ARGS__)
+#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, "CainPlayer", __VA_ARGS__)
+#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, "CainPlayer", __VA_ARGS__)
 #elif defined(__APPLE__)	// IOS or OSX
 #define LOGI(...)  printf("  ");printf(__VA_ARGS__); printf("\t -  <%s> \n", LOG_TAG);
 #define LOGE(...)  printf(" Error: ");printf(__VA_ARGS__); printf("\t -  <%s> \n", LOG_TAG);

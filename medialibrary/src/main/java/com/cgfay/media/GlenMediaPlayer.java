@@ -858,8 +858,8 @@ public class GlenMediaPlayer implements IMediaPlayer {
      * begin effect
      * @param name effect name
      */
-    public void beginEffect(String name) {
-        _beginFilter(NODE_EFFECT, name);
+    public void beginEffect(int type, String name) {
+        _beginFilter(type, name);
     }
 
     /**

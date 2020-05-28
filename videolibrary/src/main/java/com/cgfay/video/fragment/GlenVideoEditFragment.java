@@ -849,7 +849,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         @Override
         public void beginEffect(EffectType effectType) {
             if (mMediaPlayer != null) {
-                mMediaPlayer.beginEffect(effectType.getName());
+                mMediaPlayer.beginEffect(effectType.getMimeType().getMimeType(), effectType.getName());
             }
         }
 

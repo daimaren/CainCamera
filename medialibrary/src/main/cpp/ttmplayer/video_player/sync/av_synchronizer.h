@@ -17,13 +17,24 @@ using namespace std;
 // 以下是解码本地文件的时候的缓冲区的最小和最大值
 #define LOCAL_MIN_BUFFERED_DURATION   			0.5
 #define LOCAL_MAX_BUFFERED_DURATION   			0.8
-#define LOCAL_AV_SYNC_MAX_TIME_DIFF         		0.05
+#define LOCAL_AV_SYNC_MAX_TIME_DIFF         	0.05
 
 #define FIRST_BUFFER_DURATION         			0.5
 #define DEFAULT_AUDIO_BUFFER_DURATION_IN_SECS	0.03
 //#define DEFAULT_AUDIO_BUFFER_DURATION_IN_SECS	0.05
 
 #define SEEK_REQUEST_LIST_MAX_SIZE  			2	// max size of seek request list
+
+#define PREVIEW_FILTER_SEQUENCE_IN				0
+#define PREVIEW_FILTER_SEQUENCE_OUT				10 * 60 * 60 * 1000000
+#define PREVIEW_FILTER_POSITION					0.5
+
+enum {
+	FILTER,
+	TRANSITION,
+	MULTIFRAME,
+	TIME
+}EffectMimeType;
 
 class AVSynchronizer;
 
@@ -104,6 +115,8 @@ public:
 
 	void endFilter(int type, const char *name);
 
+	int addFilter(int filterType, const char *name);
+	void setPngSequenceFilterValue(int filterId, string dirPath);
 	/** 当客户端调用destroy方法之后 只为true **/
 	bool isDestroyed;
 	bool isOnDecoding;
@@ -149,7 +162,7 @@ protected:
 protected:
 	GLuint mOutputTexId;
 	OpenglVideoFrame* 		targetVideoFrame;
-	VideoEffectProcessor* videoEffectProcessor;
+	VideoEffectProcessor* mProcessor;
 	VideoGLSurfaceRender* passThorughRender;
 	void processDecodingFrame(bool& good, float duration);
 	void decode();

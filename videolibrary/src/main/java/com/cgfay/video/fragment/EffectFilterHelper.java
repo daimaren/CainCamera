@@ -51,6 +51,11 @@ public class EffectFilterHelper {
         mEffectMultiList.add(new EffectType(EffectMimeType.MULTIFRAME, "四屏", 0x204, "assets://thumbs/effect/icon_frame_four.png"));
         mEffectMultiList.add(new EffectType(EffectMimeType.MULTIFRAME, "六屏", 0x205, "assets://thumbs/effect/icon_frame_six.png"));
         mEffectMultiList.add(new EffectType(EffectMimeType.MULTIFRAME, "九屏", 0x206, "assets://thumbs/effect/icon_frame_nine.png"));
+
+        //转场特效
+        mEffectTransitionList.add(new EffectType(EffectMimeType.TRANSITION, "倒计时", 0x300, "assets://thumbs/effect/icon_frame_nine.png"));
+
+        //识别特效
     }
 
     /**
