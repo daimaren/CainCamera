@@ -17,6 +17,7 @@ include_directories(${PATH_TO_AV_ENGINE}/)
 include_directories(${PATH_TO_AV_ENGINE}/common/)
 include_directories(${PATH_TO_AV_ENGINE}/video_player/)
 include_directories(../VideoEffect)
+include_directories(../ttvideosave)
 
 file(GLOB FILES_LIB_COMMON "${PATH_TO_AV_ENGINE}/common/*.cpp")
 file(GLOB FILES_LIB_COMMON_EGL_CORE "${PATH_TO_AV_ENGINE}/common/egl_core/*.cpp")
@@ -65,11 +66,12 @@ target_link_libraries(ttmplayer
                        z
                        OpenSLES
 					   # 引入第三方库
-					   # ttcommon
 					   ffmpeg
                        video_effect
+					   ttvideosave
                        # 引入静态库
                        ${PATH_TO_PRE_BUILT}/libfdk-aac.a
                        ${PATH_TO_PRE_BUILT}/libvo-aacenc.a
                        ${PATH_TO_PRE_BUILT}/libx264.a
+					   ${PATH_TO_PRE_BUILT}/libsox.a
                        )

@@ -101,4 +101,4 @@ add_library(libaudioeffect STATIC
                  )
 
 target_link_libraries(libaudioeffect
-            sox)
+            ${PATH_TO_PRE_BUILT}/libsox.a)
