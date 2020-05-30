@@ -1,3 +1,4 @@
+#include <common/video_effect_def.h>
 #include "av_synchronizer.h"
 
 #define LOG_TAG "AVSynchronizer"
@@ -886,4 +887,22 @@ void AVSynchronizer::setPngSequenceFilterValue(int filterId, string dirPath) {
 	dirPathValue.strVal = dirPath;
 	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
 			filterId, PNG_SEQUENCE_PARAM_ID_DIR_PATH, dirPathValue);
+	//为什么参数怎么调都不完美，原因可能是对于一组序列图，参数是要动态调整的，不是一套参数通用
+	ParamVal angleValue;
+	angleValue.u.fltVal = 0.0f;
+	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
+									filterId, PNG_SEQUENCE_PARAM_ID_ANGLE, angleValue);
+	ParamVal widthValue;
+	widthValue.u.fltVal = 0.5f;
+	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
+									filterId, PNG_SEQUENCE_PARAM_ID_WIDTH, widthValue);
+
+	ParamVal xValue;
+	xValue.u.fltVal = -0.25f;
+	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
+									filterId, PNG_SEQUENCE_PARAM_ID_X, xValue);
+	ParamVal yValue;
+	yValue.u.fltVal = -0.25f;
+	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
+									filterId, PNG_SEQUENCE_PARAM_ID_Y, yValue);
 }
