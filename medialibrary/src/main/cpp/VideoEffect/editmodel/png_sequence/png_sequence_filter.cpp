@@ -7,6 +7,7 @@ PngSequenceFilter::PngSequenceFilter() {
 	texCache = NULL;
 	texId = -1;
 	decoder = NULL;
+	isFirst = true;
 }
 
 PngSequenceFilter::PngSequenceFilter(int index, int64_t sequenceIn, int64_t sequenceOut, char* filterName) :
@@ -26,6 +27,7 @@ bool PngSequenceFilter::onInit() {
 	curPosition = sequenceIn/1000000.0f;
 	currentIndex = 0;
 	LOGI("PngSequenceFilter::onInit");
+
 	ParamVal val;
 	bool suc = this->getFilterParamValue(string(PNG_SEQUENCE_PARAM_ID_DIR_PATH), val);
 	if (suc) {
@@ -63,6 +65,14 @@ void PngSequenceFilter::onRenderPre(float pos) {
 		paramValue.u.intVal = texId;
 		this->setFilterParamValue(PNG_SEQUENCE_PARAM_ID_TEXTURE_ID, paramValue);
 	}
+	if (isFirst) {
+		isFirst = false;
+		sequenceIn = pos * 1000000.0f;
+		sequenceOut = sequenceIn + imageCount * intervalInSec * 1000000.0f;
+		curPosition = sequenceIn/1000000.0f;
+		LOGI("PngSequenceFilter:: sequenceIn is %f sequenceOut is %f", sequenceIn/1000000.0f, sequenceOut/1000000.0f);
+	}
+	LOGI("PngSequenceFilter:: play pos is %f filter pos is %f", pos, curPosition);
 	if (pos >= curPosition) {
 		char indexBuffer[8];
 		sprintf(indexBuffer, "%d.png", currentIndex%imageCount);

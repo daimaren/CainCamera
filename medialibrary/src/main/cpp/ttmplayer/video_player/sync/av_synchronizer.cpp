@@ -864,12 +864,12 @@ int AVSynchronizer::addFilter(int filterType, const char *name) {
     int ret = false;
     switch (filterType) {
         case FILTER:
-            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress() * 1000000,
+            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress() * 1000000.0f,
             		PREVIEW_FILTER_SEQUENCE_OUT, BEAUTIFY_FACE_COOL_FILTER_NAME);//us
             break;
 		case TRANSITION:
-			filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress() * 1000000,
-											 getPlayProgress() * 1000000 + 5000000, PNG_SEQUENCE_FILTER_NAME);//us
+			filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
+                                             PREVIEW_FILTER_SEQUENCE_OUT, PNG_SEQUENCE_FILTER_NAME);//us
 			this->setPngSequenceFilterValue(filterId, "/sdcard/countdown");
 			break;
 		case MULTIFRAME:

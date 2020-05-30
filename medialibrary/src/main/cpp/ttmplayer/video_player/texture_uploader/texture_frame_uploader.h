@@ -122,7 +122,9 @@ protected:
 	void* updateTexImageContext;
 
 	enum RenderThreadMessage {
-		MSG_NONE = 0, MSG_WINDOW_SET, MSG_RENDER_LOOP_EXIT
+		MSG_NONE = 0,
+		MSG_WINDOW_SET,
+		MSG_RENDER_LOOP_EXIT
 	};
 
 	pthread_t _threadId;

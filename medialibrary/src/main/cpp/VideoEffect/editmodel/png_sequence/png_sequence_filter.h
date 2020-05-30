@@ -22,6 +22,7 @@ protected:
 	float curPosition;
 	int width;
 	int height;
+	bool isFirst;
 
 	bool parseScene(char* sceneDirPath);
 	string readInputTestFile(const char* path);

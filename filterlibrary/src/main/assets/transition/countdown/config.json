@@ -1,8 +1,8 @@
 {
 	"width": 500,
 	"height": 889,
-	"durationInSec": 1.5,
+	"durationInSec": 2.0,
 	"imageName": "clipname",
 	"imageCount": 23,
-	"imageIntervalInSec": 0.0625
+	"imageIntervalInSec": 0.0869
 }
