@@ -539,6 +539,25 @@ void CainMediaPlayer_changeFilterById(JNIEnv *env, jobject thiz, int node_type, 
     mp->changeFilter(node_type, filterId);
 }
 
+void CainMediaPlayer_startEncoding(JNIEnv *env, jobject thiz, jint width, jint height, jint videoBitRate,
+                                   jint frameRate, jint useHardWareEncoding, jint strategy) {
+    CainMediaPlayer *mp = getMediaPlayer(env, thiz);
+    if (mp == NULL) {
+        jniThrowException(env, "java/lang/IllegalStateException");
+        return;
+    }
+    mp->startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
+}
+
+void CainMediaPlayer_stopEncoding(JNIEnv *env, jobject thiz) {
+    CainMediaPlayer *mp = getMediaPlayer(env, thiz);
+    if (mp == NULL) {
+        jniThrowException(env, "java/lang/IllegalStateException");
+        return;
+    }
+    mp->stopEncoding();
+}
+
 void CainMediaPlayer_setOption(JNIEnv *env, jobject thiz,
         int category, jstring type_, jstring option_) {
     CainMediaPlayer *mp = getMediaPlayer(env, thiz);
@@ -612,6 +631,8 @@ static const JNINativeMethod gMethods[] = {
         {"_changeFilter", "(II)V", (void *)CainMediaPlayer_changeFilterById},
         {"_beginFilter", "(ILjava/lang/String;)V", (void *)CainMediaPlayer_beginFilter},
         {"_endFilter", "(ILjava/lang/String;)V", (void *)CainMediaPlayer_endFilter},
+        {"_startEncoding", "(IIIIII)V", (void *)CainMediaPlayer_startEncoding},
+        {"_stopEncoding", "()V", (void *)CainMediaPlayer_stopEncoding},
         {"_setOption", "(ILjava/lang/String;Ljava/lang/String;)V", (void *)CainMediaPlayer_setOption},
         {"_setOption", "(ILjava/lang/String;J)V", (void *)CainMediaPlayer_setOptionLong}
 };

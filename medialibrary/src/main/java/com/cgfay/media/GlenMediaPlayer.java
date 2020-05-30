@@ -878,6 +878,19 @@ public class GlenMediaPlayer implements IMediaPlayer {
         _changeFilter(NODE_EFFECT, id);
     }
 
+    /**
+     * startEncoding
+     */
+    public void startEncoding(int width, int height, int videoBitRate, int frameRate,
+                              int useHardWareEncoding,int strategy) {
+        _startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding,strategy);
+    }
+    /**
+     * stopEncoding
+     */
+    public void stopEncoding() {
+        _stopEncoding();
+    }
     // 渲染结点类型，跟Native层的RenderNodeType数值保持一致。
     private static final int NODE_NONE = -1;
     private static final int NODE_INPUT = 0;
@@ -892,7 +905,9 @@ public class GlenMediaPlayer implements IMediaPlayer {
     private native void _changeFilter(int type, int id);
     private native void _beginFilter(int type, String name);
     private native void _endFilter(int type, String name);
-
+    private native void _startEncoding(int width, int height, int videoBitRate, int frameRate,
+                                       int useHardWareEncoding,int strategy);
+    private native void _stopEncoding();
     // ---------------------------------------------------------------------------------------------
     // Options
     public static final int OPT_CATEGORY_FORMAT = 1;    // 解封装参数

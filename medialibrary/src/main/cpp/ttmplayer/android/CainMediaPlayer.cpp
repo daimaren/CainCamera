@@ -308,6 +308,21 @@ void CainMediaPlayer::endFilter(int type, const char *name) {
     }
 }
 
+void CainMediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
+                                    int useHardWareEncoding, int strategy) {
+    LOGD("startEncoding");
+    if (mediaPlayer) {
+        mediaPlayer->startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
+    }
+}
+
+void CainMediaPlayer::stopEncoding() {
+    LOGD("stopEncoding");
+    if (mediaPlayer) {
+        mediaPlayer->stopEncoding();
+    }
+}
+
 void CainMediaPlayer::setOption(int category, const char *type, const char *option) {
 
 }

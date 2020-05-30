@@ -364,6 +364,15 @@ void MediaPlayer::endFilter(int type, const char *name) {
     }
 }
 
+void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
+                                int useHardWareEncoding, int strategy) {
+
+}
+
+void MediaPlayer::stopEncoding() {
+
+}
+
 void* MediaPlayer::initThreadCallback(void *myself){
     MediaPlayer *controller = (MediaPlayer*) myself;
     controller->startAVSynchronizer();

@@ -865,8 +865,8 @@ int AVSynchronizer::addFilter(int filterType, const char *name) {
     int ret = false;
     switch (filterType) {
         case FILTER:
-            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, getPlayProgress() * 1000000.0f,
-            		PREVIEW_FILTER_SEQUENCE_OUT, BEAUTIFY_FACE_COOL_FILTER_NAME);//us
+            filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
+            		PREVIEW_FILTER_SEQUENCE_OUT, IMAGE_SOUL_STUFF_FILTER_NAME);
             break;
 		case TRANSITION:
 			filterId = mProcessor->addFilter(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX, PREVIEW_FILTER_SEQUENCE_IN,
@@ -874,6 +874,7 @@ int AVSynchronizer::addFilter(int filterType, const char *name) {
 			this->setPngSequenceFilterValue(filterId, "/sdcard/countdown");
 			break;
 		case MULTIFRAME:
+			//分屏特效需要自己参考别的项目实现
 		case TIME:
         default:
 			//ret = mProcessor->addVideoTransition(getPlayProgress(), 500, TRANSITION_TYPE_FADE_IN, "/sdcard/source.mp4");

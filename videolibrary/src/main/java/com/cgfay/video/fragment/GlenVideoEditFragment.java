@@ -426,6 +426,9 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         if (mEffectShowing) {
             showChangeEffectLayout(false);
         }
+        if (mMediaPlayer != null) {
+            //mMediaPlayer.startEncoding();
+        }
     }
 
     /**

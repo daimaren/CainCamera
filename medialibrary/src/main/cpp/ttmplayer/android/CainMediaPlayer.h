@@ -160,6 +160,10 @@ public:
 
     void endFilter(int type, const char *name);
 
+    void startEncoding(int width, int height, int videoBitRate, int frameRate,
+                       int useHardWareEncoding,int strategy);
+    void stopEncoding();
+
     void setOption(int category, const char *type, const char *option);
 
     void setOption(int category, const char *type, int64_t option);
