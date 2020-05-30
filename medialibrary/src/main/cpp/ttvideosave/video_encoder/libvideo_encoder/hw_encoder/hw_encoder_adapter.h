@@ -8,7 +8,7 @@
 #include "../video_encoder_adapter.h"
 #include "message_queue/handler.h"
 #include "message_queue/message_queue.h"
-#include "common/publisher_rate_feed_back.h"
+#include "liblivecore/common/publisher_rate_feed_back.h"
 
 typedef enum {
     FRAME_AVAILIBLE

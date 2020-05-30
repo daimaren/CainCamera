@@ -12,6 +12,7 @@ set(CMAKE_CPP_FLAGS "${CMAKE_CPP_FLAGS} -D__STDC_CONSTANT_MACROS")
 
 include_directories(
             ${CMAKE_SOURCE_DIR}/ttcommon
+			${CMAKE_SOURCE_DIR}/ttvideosave
             ${CMAKE_SOURCE_DIR}/ttvideosave/video_encoder
             ${CMAKE_SOURCE_DIR}/ttvideosave/audio_effect
             ${CMAKE_SOURCE_DIR}/ttvideosave/video_consumer

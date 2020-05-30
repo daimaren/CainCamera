@@ -17,7 +17,11 @@ public:
 
     void createEncoder(EGLCore *eglCore, int inputTexId);
 
+    void createEncoder(EGLCore *eglCore);
+
     void encode();
+
+    void encode(int inputTexId);
 
     void renderLoop();
 

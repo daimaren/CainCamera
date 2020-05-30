@@ -366,11 +366,17 @@ void MediaPlayer::endFilter(int type, const char *name) {
 
 void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
                                 int useHardWareEncoding, int strategy) {
-
+    LOGI("MediaPlayer::startEncoding");
+    if (NULL != videoOutput) {
+        videoOutput->startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
+    }
 }
 
 void MediaPlayer::stopEncoding() {
-
+    LOGI("MediaPlayer::stopEncoding");
+    if (NULL != videoOutput) {
+        videoOutput->stopEncoding();
+    }
 }
 
 void* MediaPlayer::initThreadCallback(void *myself){

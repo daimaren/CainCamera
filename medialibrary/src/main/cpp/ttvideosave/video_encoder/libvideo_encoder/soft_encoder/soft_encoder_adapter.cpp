@@ -44,6 +44,26 @@ void SoftEncoderAdapter::createEncoder(EGLCore *eglCore, int inputTexId) {
     LOGI("leave createEncoder");
 }
 
+void SoftEncoderAdapter::createEncoder(EGLCore *eglCore) {
+    LOGI("enter createEncoder");
+    this->loadTextureContext = eglCore->getContext();
+    pixelSize = videoWidth * videoHeight * PIXEL_BYTE_SIZE;
+    hostGPUCopier = new HostGPUCopier();
+
+    startTime = -1;
+    fpsChangeTime = -1;
+
+    encoder = new VideoX264Encoder(strategy);
+    encoder->init(videoWidth, videoHeight, videoBitRate, frameRate, packetPool);
+    yuy2PacketPool = LiveYUY2PacketPool::GetInstance();
+    yuy2PacketPool->initYUY2PacketQueue();
+    pthread_create(&x264EncoderThread, NULL, startEncodeThread, this);
+    _msg = MSG_WINDOW_SET;
+    pthread_create(&imageDownloadThread, NULL, startDownloadThread, this);
+
+    LOGI("leave createEncoder");
+}
+
 void SoftEncoderAdapter::reConfigure(int maxBitRate, int avgBitRate, int fps) {
     if (encoder) {
         encoder->reConfigure(avgBitRate);
@@ -70,6 +90,35 @@ void SoftEncoderAdapter::encode() {
     }
 
     int64_t curTime = getCurrentTime() - startTime;
+    // need drop frames
+    int expectedFrameCount = (int) ((getCurrentTime() - fpsChangeTime) / 1000.0f * frameRate + 0.5f);
+    if (expectedFrameCount < encodedFrameCount) {
+        LOGI("expectedFrameCount is %d while encodedFrameCount is %d", expectedFrameCount,
+             encodedFrameCount);
+        return;
+    }
+    encodedFrameCount++;
+    pthread_mutex_lock(&previewThreadLock);
+    pthread_mutex_lock(&mLock);
+    pthread_cond_signal(&mCondition);
+    pthread_mutex_unlock(&mLock);
+    pthread_cond_wait(&previewThreadCondition, &previewThreadLock);
+    pthread_mutex_unlock(&previewThreadLock);
+}
+
+void SoftEncoderAdapter::encode(int inputTexId) {
+    while (_msg == MSG_WINDOW_SET || NULL == eglCore) {
+        usleep(100 * 1000);
+    }
+    if (startTime == -1)
+        startTime = getCurrentTime();
+
+    if (fpsChangeTime == -1){
+        fpsChangeTime = getCurrentTime();
+    }
+
+    int64_t curTime = getCurrentTime() - startTime;
+    this->texId = inputTexId;
     // need drop frames
     int expectedFrameCount = (int) ((getCurrentTime() - fpsChangeTime) / 1000.0f * frameRate + 0.5f);
     if (expectedFrameCount < encodedFrameCount) {

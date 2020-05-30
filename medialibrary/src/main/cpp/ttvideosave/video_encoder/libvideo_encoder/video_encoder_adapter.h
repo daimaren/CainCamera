@@ -4,7 +4,7 @@
 #include "CommonTools.h"
 #include "opengl_media/render/video_gl_surface_render.h"
 #include "egl_core/egl_core.h"
-#include "libvideo_consumer/live_common_packet_pool.h"
+#include "../../video_consumer/libvideo_consumer/live_common_packet_pool.h"
 
 class VideoEncoderAdapter {
 public:
@@ -16,7 +16,11 @@ public:
 
     virtual void createEncoder(EGLCore *eglCore, int inputTexId) = 0;
 
+    virtual void createEncoder(EGLCore *eglCore) = 0;
+
     virtual void encode() = 0;
+
+    virtual void encode(int inputTexId) = 0;
 
     virtual void destroyEncoder() = 0;
 

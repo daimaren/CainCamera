@@ -5,6 +5,7 @@
 #include <android/native_window.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <video_encoder/libvideo_encoder/video_encoder_adapter.h>
 #include "opengl_media/render/video_gl_surface_render.h"
 #include "./common/circle_texture_queue.h"
 #include "egl_core/egl_core.h"
@@ -16,7 +17,9 @@ typedef enum {
 	VIDEO_OUTPUT_MESSAGE_CREATE_WINDOW_SURFACE,
 	VIDEO_OUTPUT_MESSAGE_DESTROY_WINDOW_SURFACE,
 	VIDEO_OUTPUT_MESSAGE_DESTROY_EGL_CONTEXT,
-	VIDEO_OUTPUT_MESSAGE_RENDER_FRAME
+	VIDEO_OUTPUT_MESSAGE_RENDER_FRAME,
+	VIDEO_OUTPUT_MESSAGE_START_ENCODEING,
+	VIDEO_OUTPUT_MESSAGE_STOP_ENCODEING
 } VideoOutputMSGType;
 
 typedef int (*getTextureCallback)(FrameTexture** texture, void* ctx, bool forceGetFrame);
@@ -46,6 +49,13 @@ public:
 	bool renderVideo();
 	void destroyWindowSurface();
 	void destroyEGLContext();
+
+	void startEncoding(int width, int height, int videoBitRate, int frameRate,
+					   int useHardWareEncoding,int strategy);
+	void stopEncoding();
+
+	void startEncode();
+	void stopEncode();
 
 	int getScreenWidth(){
 		return screenWidth;
@@ -80,7 +90,8 @@ private:
 	bool isANativeWindowValid;
 	bool forceGetFrame;
 
-
+	bool isEncoding;
+	VideoEncoderAdapter *encoder;
 };
 
 class VideoOuputHandler: public Handler {
@@ -130,6 +141,12 @@ class VideoOuputHandler: public Handler {
 				break;
 			case VIDEO_OUTPUT_MESSAGE_DESTROY_EGL_CONTEXT:
 				videoOutput->destroyEGLContext();
+				break;
+			case VIDEO_OUTPUT_MESSAGE_START_ENCODEING:
+				videoOutput->startEncode();
+				break;
+			case VIDEO_OUTPUT_MESSAGE_STOP_ENCODEING:
+				videoOutput->stopEncode();
 				break;
 			}
 		}

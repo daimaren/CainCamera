@@ -1,7 +1,7 @@
 #ifndef SONGSTUDIO_LIVE_COMMON_PACKET_POOL_H
 #define SONGSTUDIO_LIVE_COMMON_PACKET_POOL_H
-#include "../liblivecore/common/live_audio_packet_queue.h"
-#include "../liblivecore/common/live_packet_pool.h"
+#include "../../liblivecore/common/live_audio_packet_queue.h"
+#include "../../liblivecore/common/live_packet_pool.h"
 #include "CommonTools.h"
 
 class LiveCommonPacketPool : public LivePacketPool {

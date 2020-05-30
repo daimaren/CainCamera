@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.4.1)
 include_directories(
             ${CMAKE_SOURCE_DIR}/ttcommon
             ${CMAKE_SOURCE_DIR}/ttvideosave/liblivecore
+			${CMAKE_SOURCE_DIR}/ttvideosave/video_consumer
             ${CMAKE_SOURCE_DIR}/ttvideosave/audio_effect)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_CONFIG_H -DFPM_ARM -ffast-math -O3")

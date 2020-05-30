@@ -2,7 +2,7 @@
 #define VIDEO_ENCODER_X264_ENCODER_H
 
 #include "CommonTools.h"
-#include "libvideo_consumer/live_common_packet_pool.h"
+#include "video_consumer/libvideo_consumer/live_common_packet_pool.h"
 #include "../../../liblivecore/common/live_video_packet_queue.h"
 #include "./color_conversion/color_conversion.h"
 #include "./h264_util.h"

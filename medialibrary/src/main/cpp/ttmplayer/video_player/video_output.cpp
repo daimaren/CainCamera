@@ -1,8 +1,11 @@
+#include <video_encoder/libvideo_encoder/hw_encoder/hw_encoder_adapter.h>
+#include <video_encoder/libvideo_encoder/soft_encoder/soft_encoder_adapter.h>
 #include "video_output.h"
 
 #define LOG_TAG "VideoOutput"
 
 VideoOutput::VideoOutput() {
+	encoder = NULL;
 	renderer = NULL;
 	handler = NULL;
 	queue = NULL;
@@ -131,6 +134,10 @@ bool VideoOutput::renderVideo() {
 		if (!eglCore->swapBuffers(renderTexSurface)) {
 			LOGE("eglSwapBuffers(renderTexSurface) returned error %d", eglGetError());
 		}
+		//encode 要不要把特效处理也一起加进来
+		if (isEncoding) {
+			encoder->encode(texture->texId);
+		}
 	}
 	if(forceGetFrame){
 		forceGetFrame = false;
@@ -204,4 +211,43 @@ void VideoOutput::destroyEGLContext() {
 	eglHasDestroyed = true;
 
 	LOGI("leave VideoOutput::destroyEGLContext");
+}
+
+void VideoOutput::startEncoding(int width, int height, int videoBitRate, int frameRate,
+								int useHardWareEncoding, int strategy) {
+	if (NULL != encoder) {
+		delete encoder;
+		encoder = NULL;
+	}
+	if (useHardWareEncoding) {
+		//encoder = new HWEncoderAdapter(g_jvm, obj);
+		encoder = new SoftEncoderAdapter(strategy);
+	} else {
+		encoder = new SoftEncoderAdapter(strategy);
+	}
+
+	encoder->init(width, height, videoBitRate, frameRate);
+	if (handler)
+		handler->postMessage(new Message(VIDEO_OUTPUT_MESSAGE_START_ENCODEING));
+}
+
+void VideoOutput::stopEncoding() {
+	LOGI("stopEncoding");
+	if (handler)
+		handler->postMessage(new Message(VIDEO_OUTPUT_MESSAGE_STOP_ENCODEING));
+}
+
+void VideoOutput::startEncode() {
+	encoder->createEncoder(eglCore);
+	isEncoding = true;
+}
+
+void VideoOutput::stopEncode() {
+	LOGI("stopEncode....");
+	isEncoding = false;
+	if (encoder) {
+		encoder->destroyEncoder();
+		delete encoder;
+		encoder = NULL;
+	}
 }
