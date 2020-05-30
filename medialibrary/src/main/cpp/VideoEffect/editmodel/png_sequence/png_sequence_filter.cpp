@@ -15,10 +15,12 @@ PngSequenceFilter::PngSequenceFilter(int index, int64_t sequenceIn, int64_t sequ
 	texCache = NULL;
 	texId = -1;
 	decoder = NULL;
+	isFirst = true;
 }
 
 PngSequenceFilter::~PngSequenceFilter() {
 	clear();
+	isFirst = false;
 }
 
 bool PngSequenceFilter::onInit() {
@@ -72,7 +74,7 @@ void PngSequenceFilter::onRenderPre(float pos) {
 		curPosition = sequenceIn/1000000.0f;
 		LOGI("PngSequenceFilter:: sequenceIn is %f sequenceOut is %f", sequenceIn/1000000.0f, sequenceOut/1000000.0f);
 	}
-	LOGI("PngSequenceFilter:: play pos is %f filter pos is %f", pos, curPosition);
+	LOGI("PngSequenceFilter:: playing pos is %f filter pos is %f", pos, curPosition);
 	if (pos >= curPosition) {
 		char indexBuffer[8];
 		sprintf(indexBuffer, "%d.png", currentIndex%imageCount);
