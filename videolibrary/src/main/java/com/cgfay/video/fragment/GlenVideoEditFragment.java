@@ -33,6 +33,7 @@ import com.cgfay.media.CainMediaEditor;
 import com.cgfay.media.CainMediaPlayer;
 import com.cgfay.media.GlenMediaPlayer;
 import com.cgfay.media.IMediaPlayer;
+import com.cgfay.media.NativeMp3Player;
 import com.cgfay.uitls.fragment.BackPressedDialogFragment;
 import com.cgfay.uitls.utils.DensityUtils;
 import com.cgfay.uitls.utils.FileUtils;
@@ -108,7 +109,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
 
 
     // 播放器
-    private MediaPlayer mAudioPlayer;
+    public NativeMp3Player mAudioPlayer;
     private GlenMediaPlayer mMediaPlayer;
     private AudioManager mAudioManager;
     private CainMediaEditor mMediaEditor;
@@ -224,8 +225,9 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mMediaPlayer.resume();
             mIvVideoPlay.setVisibility(View.GONE);
         }
+
         if (mAudioPlayer != null) {
-            mAudioPlayer.start();
+            mAudioPlayer.resumeAccompany();
         }
     }
 
@@ -237,7 +239,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mIvVideoPlay.setVisibility(View.VISIBLE);
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.pause();
+            mAudioPlayer.pauseAccompany();
         }
     }
 
@@ -274,7 +276,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mSurfaceTexture = null;
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.reset();
+            mAudioPlayer.stop();
             mAudioPlayer = null;
         }
         FileUtils.deleteFile(mVideoPath);
@@ -343,7 +345,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mIvVideoPlay.setVisibility(View.VISIBLE);
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.pause();
+            mAudioPlayer.pauseAccompany();
         }
     }
 
@@ -574,7 +576,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mMediaPlayer.resume();
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.start();
+            mAudioPlayer.resumeAccompany();
         }
         mIvVideoPlay.setVisibility(View.GONE);
     }
@@ -585,8 +587,8 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mMediaPlayer.seekTo(timeMs);
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.start();
-            mAudioPlayer.seekTo((int)timeMs);
+            mAudioPlayer.resumeAccompany();
+            //mAudioPlayer.seekTo((int)timeMs);
         }
         mIvVideoPlay.setVisibility(View.GONE);
     }
@@ -596,7 +598,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mMediaPlayer.pause();
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.pause();
+            mAudioPlayer.pauseAccompany();
         }
         mIvVideoPlay.setVisibility(View.VISIBLE);
     }
@@ -622,19 +624,19 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             mIvVideoPlay.setVisibility(View.GONE);
         }
         if (mAudioPlayer == null) {
-            mAudioPlayer = new MediaPlayer();
+            mAudioPlayer = new NativeMp3Player();
+            mAudioPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            //mAudioPlayer.setOnCompletionListener(this);
         } else {
-            mAudioPlayer.reset();
+            //reset or not
         }
-        try {
-            mAudioPlayer.setDataSource(mMusicPath);
-            mAudioPlayer.setLooping(true);
-            mAudioPlayer.prepare();
+        if (mAudioPlayer != null) {
+            mAudioPlayer.prepare(44100);
+            mAudioPlayer.startAccompany("/storage/emulated/0/a_songstudio/101.mp3");//mMusicPath
             mAudioPlayer.start();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        mAudioPlayer.setVolume(mBackgroundVolumePercent, mBackgroundVolumePercent);
+
+        //mAudioPlayer.setVolume(mBackgroundVolumePercent, mBackgroundVolumePercent);
         if (mSbBackgroundVolume != null) {
             mSbBackgroundVolume.setMax(100);
             mSbBackgroundVolume.setProgress((int)(mBackgroundVolumePercent * 100));
@@ -717,6 +719,10 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             @Override
             public void onCompletion(IMediaPlayer mp) {
                 mMediaPlayer.seekTo(0);
+                mMediaPlayer.pause();
+                if (mAudioPlayer != null) {
+                    //mAudioPlayer.seek(0);
+                }
             }
         });
 
@@ -800,7 +806,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         public void onStopTrackingTouch(SeekBar seekBar) {
             if (seekBar.getId() == R.id.sb_volume_background) {
                 if (mAudioPlayer != null) {
-                    mAudioPlayer.setVolume(mBackgroundVolumePercent, mBackgroundVolumePercent);
+                    //mAudioPlayer.setVolume(mBackgroundVolumePercent, mBackgroundVolumePercent);
                 }
             } else if (seekBar.getId() == R.id.sb_volume_source) {
                 if (mMediaPlayer != null) {
@@ -823,7 +829,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         @Override
         public void onDragFinish(float position) {
             if (mAudioPlayer != null) {
-                mAudioPlayer.seekTo((int)position);
+                //mAudioPlayer.seekTo((int)position);
             }
         }
     };
@@ -928,3 +934,5 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
 
     private OnEditPreviewListener mOnEditPreviewListener;
 }
+
+

@@ -1,0 +1,12 @@
+ModelTimeline包含成员变量list<ModelTrack *> videoTracks
+ModelTrack包含成员变量list<ModelFilter *> filters;  list<ModelFilter *>	transitions;
+ModelFilter包含成员int64_t sequenceIn; int64_t sequenceOut; onRenderPre()
+json的时长根本不起作用
+
+1. process()<--video_effect_processor.cpp
+  2. filter->isAvailable()
+    3. position >= sequenceIn && position <= sequenceOut
+  2. filter->onRenderPre()<--PngSequenceFilter.cpp //渲染本帧之前根据当前时间戳计算当前效果器进度
+    3. 
+  2. effect->renderEffect()
+

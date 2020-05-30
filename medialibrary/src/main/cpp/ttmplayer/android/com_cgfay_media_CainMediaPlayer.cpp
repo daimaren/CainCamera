@@ -558,6 +558,33 @@ void CainMediaPlayer_stopEncoding(JNIEnv *env, jobject thiz) {
     mp->stopEncoding();
 }
 
+void CainMediaPlayer_startWriter(JNIEnv *env, jobject thiz, jstring outputPath,
+                                 jint videoWidth, jint videoheight, jint videoFrameRate, jint videoBitRate,
+                                 jint audioSampleRate, jint audioChannels,
+                                 jint audioBitRate,
+                                 jint qualityStrategy,
+                                 jint adaptiveBitrateWindowSizeInSecs,
+                                 jint adaptiveBitrateEncoderReconfigInterval,
+                                 jint adaptiveBitrateWarCntThreshold,
+                                 jint adaptiveMinimumBitrate,
+                                 jint adaptiveMaximumBitrate) {
+    CainMediaPlayer *mp = getMediaPlayer(env, thiz);
+    if (mp == NULL) {
+        jniThrowException(env, "java/lang/IllegalStateException");
+        return;
+    }
+    //mp->startWriter();
+}
+
+void CainMediaPlayer_stopWriter(JNIEnv *env, jobject thiz) {
+    CainMediaPlayer *mp = getMediaPlayer(env, thiz);
+    if (mp == NULL) {
+        jniThrowException(env, "java/lang/IllegalStateException");
+        return;
+    }
+    //mp->stopWriter();
+}
+
 void CainMediaPlayer_setOption(JNIEnv *env, jobject thiz,
         int category, jstring type_, jstring option_) {
     CainMediaPlayer *mp = getMediaPlayer(env, thiz);

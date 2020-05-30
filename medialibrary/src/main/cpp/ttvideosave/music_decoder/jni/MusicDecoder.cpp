@@ -1,14 +1,15 @@
-#include "com_timeapp_shawn_recorder_pro_decoder_MusicDecoder.h"
+#include <music_decoder/libmusic_decoder/song_decoder_controller.h>
+#include "com_cgfay_media_MusicDecoder.h"
 
 #define LOG_TAG "SongDecoderService"
 LiveSongDecoderController* decoderController = NULL;
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_init(JNIEnv * env, jobject obj, jfloat packetBufferTimePercent, jint vocalSamplerate) {
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_init(JNIEnv * env, jobject obj, jfloat packetBufferTimePercent, jint vocalSamplerate) {
 	decoderController = new LiveSongDecoderController();
 	decoderController->init(packetBufferTimePercent, vocalSamplerate);
 }
 
-JNIEXPORT jint JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_readSamples(JNIEnv * env, jobject obj, jshortArray array, jint size, jintArray extraSlientSampleSize, jintArray extraAccompanyType){
+JNIEXPORT jint JNICALL Java_com_cgfay_media_MusicDecoder_readSamples(JNIEnv * env, jobject obj, jshortArray array, jint size, jintArray extraSlientSampleSize, jintArray extraAccompanyType){
 	if(NULL != decoderController) {
 		jshort* target = env->GetShortArrayElements(array, 0);
 		jint* slientSizeArr = env->GetIntArrayElements(extraSlientSampleSize, 0);
@@ -22,20 +23,13 @@ JNIEXPORT jint JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_
 	return -1;
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_setAudioEffect(JNIEnv * env, jobject obj, jobject audioEffectParam){
-	if (decoderController != NULL) {
-		AudioEffect* cbAudioEffect = AudioEffectAdapter::GetInstance()->buildAudioEffect(audioEffectParam, env);
-		decoderController->setAudioEffect(cbAudioEffect);
-	}
-}
-
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_setAccompanyVolume(JNIEnv * env, jobject obj, jfloat volume, jfloat accompanyMax){
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_setAccompanyVolume(JNIEnv * env, jobject obj, jfloat volume, jfloat accompanyMax){
 	if(NULL != decoderController) {
 		decoderController->setVolume(volume, accompanyMax);
 	}
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_startAccompany(JNIEnv * env, jobject obj, jstring accompanyFilePathParam){
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_startAccompany(JNIEnv * env, jobject obj, jstring accompanyFilePathParam){
 	if(NULL != decoderController){
 		const char* accompanyFilePath = env->GetStringUTFChars(accompanyFilePathParam, NULL);
 		decoderController->startAccompany(accompanyFilePath);
@@ -43,26 +37,26 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_
 	}
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_pauseAccompany(JNIEnv * env, jobject obj){
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_pauseAccompany(JNIEnv * env, jobject obj){
 	if(NULL != decoderController){
 		decoderController->pauseAccompany();
 	}
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_resumeAccompany(JNIEnv * env, jobject obj){
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_resumeAccompany(JNIEnv * env, jobject obj){
 	if(NULL != decoderController){
 		decoderController->resumeAccompany();
 	}
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_stopAccompany(JNIEnv * env, jobject obj){
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_stopAccompany(JNIEnv * env, jobject obj){
 	if(NULL != decoderController){
 		decoderController->stopAccompany();
 	}
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_destory(JNIEnv * env, jobject obj) {
-	LOGI("enter Java_com_timeapp_shawn_recorder_pro_decoder_MusicDecoder_destory()");
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_destory(JNIEnv * env, jobject obj) {
+	LOGI("enter Java_com_cgfay_media_MusicDecoder_destory()");
 	if(NULL != decoderController) {
 		decoderController->destroy();
 		delete decoderController;

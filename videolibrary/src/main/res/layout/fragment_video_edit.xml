@@ -192,7 +192,8 @@
             android:layout_marginEnd="@dimen/dp10"
             android:layout_toStartOf="@id/btn_change_voice"
             android:orientation="vertical"
-            android:gravity="center">
+            android:gravity="center"
+            android:visibility="gone">
             <ImageView
                 android:layout_width="@dimen/dp40"
                 android:layout_height="@dimen/dp40"
