@@ -1,4 +1,4 @@
-#include "com_timeapp_shawn_recorder_pro_recorder_NativeRecordProcessor.h"
+#include "com_cgfay_media_NativeRecordProcessor.h"
 
 #define LOG_TAG "NativeRecordProcessor"
 /** static WaveFileHandle array **/
@@ -14,7 +14,7 @@ static int findFreeHandle() {
 	return -1;
 }
 
-JNIEXPORT jint JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecordProcessor_init(JNIEnv * env, jobject obj,
+JNIEXPORT jint JNICALL Java_com_cgfay_media_NativeRecordProcessor_init(JNIEnv * env, jobject obj,
 		jint sampleRate, jint audioBufferSize, jobject audioEffect) {
 	int index = findFreeHandle();
 	if (index == -1)
@@ -26,7 +26,7 @@ JNIEXPORT jint JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecord
 	return index;
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecordProcessor_setAudioEffect(JNIEnv * env, jobject obj, jint index, jobject audioEffect){
+JNIEXPORT void JNICALL Java_com_cgfay_media_NativeRecordProcessor_setAudioEffect(JNIEnv * env, jobject obj, jint index, jobject audioEffect){
 	if (handles[index] != 0) {
 		RecordProcessor* recorder = handles[index];
 		AudioEffect* cbAudioEffect = AudioEffectAdapter::GetInstance()->buildAudioEffect(audioEffect, env);
@@ -34,7 +34,7 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecord
 	}
 }
 
-JNIEXPORT jint JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecordProcessor_pushAudioBufferToQueue(JNIEnv * env, jobject obj, jint index, jshortArray audioSamples,
+JNIEXPORT jint JNICALL Java_com_cgfay_media_NativeRecordProcessor_pushAudioBufferToQueue(JNIEnv * env, jobject obj, jint index, jshortArray audioSamples,
 		jint audioSampleSize) {
 	if (handles[index] != 0) {
 		RecordProcessor* recorder = handles[index];
@@ -46,7 +46,7 @@ JNIEXPORT jint JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecord
 	return -1;
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecordProcessor_flushAudioBufferToQueue(JNIEnv * env, jobject obj, jint index) {
+JNIEXPORT void JNICALL Java_com_cgfay_media_NativeRecordProcessor_flushAudioBufferToQueue(JNIEnv * env, jobject obj, jint index) {
 	if(handles[index] != 0 ) {
 		RecordProcessor* recorder = handles[index];
 		recorder->flushAudioBufferToQueue();
@@ -56,7 +56,7 @@ JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecord
 	}
 }
 
-JNIEXPORT void JNICALL Java_com_timeapp_shawn_recorder_pro_recorder_NativeRecordProcessor_destroy(JNIEnv * env, jobject obj, jint index) {
+JNIEXPORT void JNICALL Java_com_cgfay_media_NativeRecordProcessor_destroy(JNIEnv * env, jobject obj, jint index) {
 	if(handles[index] != 0 ) {
 		RecordProcessor* recorder = handles[index];
 		recorder->destroy();

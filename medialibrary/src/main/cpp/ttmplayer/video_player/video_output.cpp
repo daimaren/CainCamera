@@ -134,7 +134,7 @@ bool VideoOutput::renderVideo() {
 		if (!eglCore->swapBuffers(renderTexSurface)) {
 			LOGE("eglSwapBuffers(renderTexSurface) returned error %d", eglGetError());
 		}
-		//encode 要不要把特效处理也一起加进来
+		//encode 要不要把特效处理也一起加进来 离线保存不需要显示
 		if (isEncoding) {
 			encoder->encode(texture->texId);
 		}
