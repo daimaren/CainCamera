@@ -22,6 +22,8 @@ void AudioOutput::producePacket() {
 	if (playingState == PLAYING_STATE_PLAYING) {
 		int actualSize = produceDataCallback(buffer, bufferSize, ctx);
 		if (actualSize > 0 && playingState == PLAYING_STATE_PLAYING) {
+			//无缝切换audio输出对象
+
 			//将提供的数据加入到播放的buffer中去
 			(*audioPlayerBufferQueue)->Enqueue(audioPlayerBufferQueue, buffer, actualSize);
 		}

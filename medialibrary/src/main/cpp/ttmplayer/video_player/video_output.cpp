@@ -129,14 +129,18 @@ bool VideoOutput::renderVideo() {
 	produceDataCallback(&texture, ctx, forceGetFrame);
 	if (NULL != texture && NULL != renderer) {
 //		LOGI("VideoOutput::renderVideo() ");
-		eglCore->makeCurrent(renderTexSurface);
-		renderer->renderToViewWithAutoFill(texture->texId, screenWidth, screenHeight, texture->width, texture->height);
-		if (!eglCore->swapBuffers(renderTexSurface)) {
-			LOGE("eglSwapBuffers(renderTexSurface) returned error %d", eglGetError());
-		}
-		//encode 要不要把特效处理也一起加进来 离线保存不需要显示
+		//无缝切换video输出对象，输出对象是耳机、屏幕或者输出于编码器。其中的解码部分与处理部分则完全一致。
+		//encode 要不要把特效处理也一起加进来
 		if (isEncoding) {
+			//离线状态
 			encoder->encode(texture->texId);
+		} else {
+			//在线状态
+			eglCore->makeCurrent(renderTexSurface);
+			renderer->renderToViewWithAutoFill(texture->texId, screenWidth, screenHeight, texture->width, texture->height);
+			if (!eglCore->swapBuffers(renderTexSurface)) {
+				LOGE("eglSwapBuffers(renderTexSurface) returned error %d", eglGetError());
+			}
 		}
 	}
 	if(forceGetFrame){
