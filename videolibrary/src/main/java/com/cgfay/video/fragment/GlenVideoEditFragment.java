@@ -431,6 +431,9 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         if (mMediaPlayer != null) {
             //mMediaPlayer.startEncoding();
         }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.saveAccompany();
+        }
     }
 
     /**

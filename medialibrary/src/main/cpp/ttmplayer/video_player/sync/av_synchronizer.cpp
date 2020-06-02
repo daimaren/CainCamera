@@ -417,7 +417,12 @@ bool AVSynchronizer::addFrames(float thresholdDuration, std::list<MovieFrame*>* 
 			MovieFrame* frame = *i;
 			if (frame->getType() == MovieFrameTypeAudio) {
 				AudioFrame* audioFrame = (AudioFrame*) frame;
-				audioFrameQueue->push(audioFrame);
+				//如果为离线状态时调用pushAudioBufferToQueue new RecordProcessor()
+				if (1) {
+
+				} else {
+                    audioFrameQueue->push(audioFrame);
+				}
 //				LOGI("audioFrameQueue->push(audioFrame) position is %.4f", audioFrame->position);
 				bufferedDuration += audioFrame->duration;
 			}

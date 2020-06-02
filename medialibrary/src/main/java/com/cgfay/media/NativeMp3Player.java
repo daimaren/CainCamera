@@ -149,6 +149,7 @@ public class NativeMp3Player {
 				while (!isStop) {
 					extraSlientSampleSize[0] = 0;
 					extraSampleType[0] = SILIENT_SAMPLE_TYPE;
+					//离线状态时，数据不要写给audioTrack，全部丢帧处理
 					sample_count = decoder.readSamples(samples, extraSlientSampleSize, extraSampleType);
 					if (sample_count == ACCOMPANY_QUEUE_USING_UP) {
 						try {
@@ -203,7 +204,8 @@ public class NativeMp3Player {
 						}
 					}
 					
-					if (null != audioTrack && audioTrack.getState() != AudioTrack.STATE_UNINITIALIZED) {
+					if (null != audioTrack && audioTrack.getState() != AudioTrack.STATE_UNINITIALIZED &&
+						!saveRequest) {
 						if (extraSlientSampleSize[0] > 0) {
 							int totalSize = extraSlientSampleSize[0] + sample_count;
 							short[] playSamples = new short[totalSize];
@@ -252,6 +254,7 @@ public class NativeMp3Player {
 	private boolean pauseRequest = false;
 	private boolean isInSwitching = false;
 	private boolean isInStopping = false;
+	private boolean saveRequest = false;
 	
 	public void startAccompany(String path) {
 		pauseRequest = false;
@@ -277,7 +280,11 @@ public class NativeMp3Player {
 		isInStopping = true;
 		decoder.stopAccompany();
 	}
-	
+
+	public void saveAccompany() {
+		saveRequest = true;
+	}
+
 	public int getPlayedAccompanyTimeMills() {
 		int playedAccompanyTimeMills = 0;
 		try{
