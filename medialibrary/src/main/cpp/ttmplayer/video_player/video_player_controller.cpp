@@ -368,12 +368,13 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
                                 int useHardWareEncoding, int strategy) {
     LOGI("MediaPlayer::startEncoding");
     seekTo(0);
-    if (audioOutput != NULL) {
-        audioOutput->pause();
-    }
-    pthread_create(&consumeAudioThreadId, NULL, consumeAudioThread, this);
+    //start consumer
+
     if (NULL != videoOutput) {
         videoOutput->startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
+    }
+    if (NULL != synchronizer) {
+        synchronizer->startEncoding();
     }
 }
 
@@ -382,6 +383,9 @@ void MediaPlayer::stopEncoding() {
     if (NULL != videoOutput) {
         videoOutput->stopEncoding();
     }
+    if (NULL != synchronizer) {
+        synchronizer->stopEncoding();
+    }
 }
 
 void* MediaPlayer::initThreadCallback(void *myself){
@@ -389,21 +393,6 @@ void* MediaPlayer::initThreadCallback(void *myself){
     controller->startAVSynchronizer();
     pthread_exit(0);
     return 0;
-}
-
-void *MediaPlayer::consumeAudioThread(void *myself) {
-    MediaPlayer *player = (MediaPlayer *) myself;
-    player->consumeAudioLoop();
-    pthread_exit(0);
-    return 0;
-}
-
-void MediaPlayer::consumeAudioLoop() {
-    isConsumingAudio = true;
-    while(isConsumingAudio){
-        //固定分配一块内存，每次拿到新数据后push进队列
-        //consumeAudioFrames();
-    }
 }
 
 EGLContext MediaPlayer::getUploaderEGLContext() {

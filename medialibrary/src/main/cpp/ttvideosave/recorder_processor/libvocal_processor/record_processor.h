@@ -2,8 +2,8 @@
 #define SONGSTUDIO_RECORDER_H
 #include "CommonTools.h"
 #include "../../video_consumer/libaudio_encoder/audio_process_encoder_adapter.h"
-#include "libvideo_consumer/live_common_packet_pool.h"
-#include "libaudio_effect/audio_effect/audio_effect_adapter.h"
+#include "video_consumer/libvideo_consumer/live_common_packet_pool.h"
+#include "audio_effect/libaudio_effect/audio_effect/audio_effect_adapter.h"
 #include "record_corrector.h"
 
 class RecordProcessor {

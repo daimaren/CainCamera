@@ -104,14 +104,9 @@ protected:
 	virtual bool initAVSynchronizer();
 
 	bool userCancelled; //用户取消拉流
-	bool isConsumingAudio = false;
 	pthread_t initThreadThreadId;
 
 	static void* initThreadCallback(void *myself);
 	void initVideoOutput(ANativeWindow* window);
-
-	pthread_t consumeAudioThreadId;
-	static void *consumeAudioThread(void *myself);
-	void consumeAudioLoop();
 };
 #endif //VIDEO_PLAYER_CONTROLLER_H

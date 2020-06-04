@@ -11,6 +11,7 @@
 #include <list>
 #include <string>
 #include <android/AVMessageQueue.h>
+#include <recorder_processor/libvocal_processor/record_processor.h>
 
 using namespace std;
 
@@ -59,7 +60,6 @@ public:
 protected:
 	AVSynchronizer * mParent;
 };
-
 
 class AVSynchronizer {
 public:
@@ -116,7 +116,17 @@ public:
 	void endFilter(int type, const char *name);
 
 	int addFilter(int filterType, const char *name);
+
 	void setPngSequenceFilterValue(int filterId, string dirPath);
+
+	void startEncoding();
+
+	void stopEncoding();
+
+	bool isEncoding;
+	short* samples;
+	int sampleSize;
+	RecordProcessor* recordProcessor;
 	/** 当客户端调用destroy方法之后 只为true **/
 	bool isDestroyed;
 	bool isOnDecoding;

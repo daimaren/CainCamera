@@ -89,6 +89,8 @@ AVSynchronizer::AVSynchronizer() {
 	currentAudioFrame = NULL;
 	decoder = NULL;
 	passThorughRender = NULL;
+	recordProcessor = NULL;
+	isEncoding = false;
 
 	mUploaderCallback.setParent(this);
 }
@@ -418,13 +420,19 @@ bool AVSynchronizer::addFrames(float thresholdDuration, std::list<MovieFrame*>* 
 			if (frame->getType() == MovieFrameTypeAudio) {
 				AudioFrame* audioFrame = (AudioFrame*) frame;
 				//如果为离线状态时调用pushAudioBufferToQueue new RecordProcessor()
-				if (1) {
-
+				if (isEncoding) {
+					if (recordProcessor) {
+						int ret = recordProcessor->pushAudioBufferToQueue((short*)audioFrame->samples, audioFrame->size *
+								sizeof(short));
+						delete audioFrame;
+					} else {
+						delete audioFrame;
+					}
 				} else {
                     audioFrameQueue->push(audioFrame);
+					//				LOGI("audioFrameQueue->push(audioFrame) position is %.4f", audioFrame->position);
+					bufferedDuration += audioFrame->duration;
 				}
-//				LOGI("audioFrameQueue->push(audioFrame) position is %.4f", audioFrame->position);
-				bufferedDuration += audioFrame->duration;
 			}
 		}
 		pthread_mutex_unlock(&audioFrameQueueMutex);
@@ -911,4 +919,17 @@ void AVSynchronizer::setPngSequenceFilterValue(int filterId, string dirPath) {
 	yValue.u.fltVal = -0.25f;
 	mProcessor->setFilterParamValue(EFFECT_PROCESSOR_VIDEO_TRACK_INDEX,
 									filterId, PNG_SEQUENCE_PARAM_ID_Y, yValue);
+}
+
+void AVSynchronizer::startEncoding() {
+	recordProcessor = new RecordProcessor();
+	recordProcessor->initAudioBufferSize(getAudioSampleRate(), (int)(getAudioSampleRate() * 0.2f), NULL);
+	isEncoding = true;
+}
+
+void AVSynchronizer::stopEncoding() {
+	if (recordProcessor) {
+		recordProcessor->destroy();
+		delete recordProcessor;
+	}
 }

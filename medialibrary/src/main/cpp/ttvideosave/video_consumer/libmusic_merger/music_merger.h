@@ -2,8 +2,8 @@
 #define SONGSTUDIO_MUSIC_MERGER_H
 
 #include "CommonTools.h"
-#include "../audio_effect/libaudio_effect/audio_effect_processor/audio_effect_processor_factory.h"
-#include "../audio_effect/libaudio_effect/audio_effect/audio_effect.h"
+#include "audio_effect/libaudio_effect/audio_effect_processor/audio_effect_processor_factory.h"
+#include "audio_effect/libaudio_effect/audio_effect/audio_effect.h"
 
 class MusicMerger {
 protected:
