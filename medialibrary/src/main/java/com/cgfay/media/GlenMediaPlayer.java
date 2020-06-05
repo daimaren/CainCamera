@@ -883,7 +883,7 @@ public class GlenMediaPlayer implements IMediaPlayer {
      */
     public void startEncoding(int width, int height, int videoBitRate, int frameRate,
                               int useHardWareEncoding,int strategy) {
-        _startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding,strategy);
+        _startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
     }
     /**
      * stopEncoding

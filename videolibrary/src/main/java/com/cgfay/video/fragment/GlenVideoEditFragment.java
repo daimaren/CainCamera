@@ -428,12 +428,6 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         if (mEffectShowing) {
             showChangeEffectLayout(false);
         }
-        if (mMediaPlayer != null) {
-            //mMediaPlayer.startEncoding();
-        }
-        if (mAudioPlayer != null) {
-            mAudioPlayer.saveAccompany();
-        }
     }
 
     /**
@@ -571,7 +565,13 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
      * 保存所有变更，合成视频
      */
     private void saveAllChange() {
-        mOnEditPreviewListener.onOpenEditPreviewPage();
+        if (mMediaPlayer != null) {
+            mMediaPlayer.startEncoding(0, 0, 0, 0, 0, 0);
+        }
+        if (mAudioPlayer != null) {
+            mAudioPlayer.saveAccompany();
+        }
+        //mOnEditPreviewListener.onOpenEditPreviewPage();
     }
 
     private void resumePlayer() {

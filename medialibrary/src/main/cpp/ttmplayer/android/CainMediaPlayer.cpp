@@ -402,6 +402,7 @@ void CainMediaPlayer::run() {
 
             case MSG_COMPLETED: {
                 LOGD("CainMediaPlayer is playback completed.\n");
+                mediaPlayer->stopEncoding();
                 postEvent(MEDIA_PLAYBACK_COMPLETE, 0, 0);
                 break;
             }

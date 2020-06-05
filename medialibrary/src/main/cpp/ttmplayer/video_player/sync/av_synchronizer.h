@@ -88,8 +88,11 @@ public:
 	int getVideoFrameHeight();
 	int getVideoFrameWidth();
 	float getVideoFPS();
+	int64_t getVideoBitrate();
+
 	int getAudioChannels();
 	int getAudioSampleRate();
+	int64_t getAudioBitrate();
 
 	void start();
 	EGLContext getUploaderEGLContext();

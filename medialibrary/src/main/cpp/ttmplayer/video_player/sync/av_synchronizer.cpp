@@ -316,6 +316,14 @@ int AVSynchronizer::getVideoFrameHeight() {
 	return videoHeight;
 }
 
+int64_t AVSynchronizer::getVideoBitrate() {
+	int64_t videoBitrate = 0;
+	if (decoder) {
+		videoBitrate = decoder->getVideoBitrate();
+	}
+	return videoBitrate;
+}
+
 bool AVSynchronizer::isValid() {
 	if (NULL != decoder && !decoder->validVideo() && !decoder->validAudio()) {
 		return false;
@@ -341,7 +349,21 @@ int AVSynchronizer::getAudioChannels() {
 	return channels;
 }
 
+int64_t AVSynchronizer::getAudioBitrate() {
+	int64_t audioBitrate = -1;
+	if (NULL != decoder) {
+		audioBitrate = decoder->getAudioBitrate();
+	}
+	return audioBitrate;
+}
 
+int AVSynchronizer::getAudioSampleRate() {
+	int audioSampleRate = -1;
+	if (NULL != decoder) {
+		audioSampleRate = decoder->getAudioSampleRate();
+	}
+	return audioSampleRate;
+}
 
 void AVSynchronizer::closeDecoder() {
 	if (NULL != decoder) {
@@ -349,10 +371,6 @@ void AVSynchronizer::closeDecoder() {
 		delete decoder;
 		decoder = NULL;
 	}
-}
-
-int AVSynchronizer::getAudioSampleRate() {
-	return decoder->getAudioSampleRate();
 }
 
 bool AVSynchronizer::isHWCodecAvaliable() {
@@ -923,11 +941,16 @@ void AVSynchronizer::setPngSequenceFilterValue(int filterId, string dirPath) {
 
 void AVSynchronizer::startEncoding() {
 	recordProcessor = new RecordProcessor();
-	recordProcessor->initAudioBufferSize(getAudioSampleRate(), (int)(getAudioSampleRate() * 0.2f), NULL);
-	isEncoding = true;
+	if (recordProcessor) {
+		recordProcessor->initAudioBufferSize(getAudioSampleRate(), (int)(getAudioSampleRate() * 0.2f), NULL);
+		isEncoding = true;
+	} else {
+		LOGE("recordProcessor create failed");
+	}
 }
 
 void AVSynchronizer::stopEncoding() {
+	isEncoding = false;
 	if (recordProcessor) {
 		recordProcessor->destroy();
 		delete recordProcessor;

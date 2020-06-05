@@ -291,7 +291,13 @@ public:
 		}
 		return -1;
 	};
-
+	/** 获得视频帧的比特率 **/
+	int64_t getVideoBitrate() {
+		if (videoCodecCtx) {
+			return videoCodecCtx->bit_rate;
+		}
+		return -1;
+	}
 	/** 获得Audio信道的声道数 **/
 	int getAudioChannels(){
 		if(audioCodecCtx){
@@ -307,7 +313,13 @@ public:
 		}
 		return -1;
 	};
-
+	/** 获得audio信道的比特率 **/
+	int64_t getAudioBitrate() {
+		if (audioCodecCtx) {
+			return audioCodecCtx->bit_rate;
+		}
+		return -1;
+	}
 	/** 解码音频 **/
 	bool decodeAudioFrames(AVPacket* packet, std::list<MovieFrame*> * result, float& decodedDuration, float minDuration, int* decodeVideoErrorState);
 

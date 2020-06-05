@@ -1,7 +1,7 @@
 #ifndef SONGSTUDIO_BASE_VIDEO_PACKET_CONSUMER_H
 #define SONGSTUDIO_BASE_VIDEO_PACKET_CONSUMER_H
 
-#include "../liblivecore/consumer/video_consumer_thread.h"
+#include "liblivecore/consumer/video_consumer_thread.h"
 #include "live_common_packet_pool.h"
 #include <map>
 

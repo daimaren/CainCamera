@@ -279,6 +279,38 @@ int MediaPlayer::getVideoFrameHeight() {
     return 0;
 }
 
+float MediaPlayer::getVideoFPS() {
+    float fps = 0.0f;
+    if (synchronizer) {
+        fps = synchronizer->getVideoFPS();
+    }
+    return fps;
+}
+
+int64_t MediaPlayer::getVideoBitrate() {
+    int64_t videoBitrate = 0;
+    if (synchronizer) {
+        videoBitrate = synchronizer->getVideoBitrate();
+    }
+    return videoBitrate;
+}
+
+int MediaPlayer::getAudioSampleRate() {
+    int audioSampleRate = -1;
+    if (NULL != synchronizer) {
+        audioSampleRate = synchronizer->getAudioSampleRate();
+    }
+    return audioSampleRate;
+}
+
+int64_t MediaPlayer::getAudioBitrate() {
+    int64_t audioBitrate = -1;
+    if (NULL != synchronizer) {
+        audioBitrate = synchronizer->getAudioBitrate();
+    }
+    return audioBitrate;
+}
+
 float MediaPlayer::getBufferedProgress() {
     if (NULL != synchronizer) {
         return synchronizer->getBufferedProgress();
@@ -367,11 +399,36 @@ void MediaPlayer::endFilter(int type, const char *name) {
 void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
                                 int useHardWareEncoding, int strategy) {
     LOGI("MediaPlayer::startEncoding");
-    seekTo(0);
+    //seekTo(0);
     //start consumer
+    LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
+    LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(getAudioSampleRate());
+    LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
+
+    videoConsumer = new VideoPacketConsumerThread();
+    if (videoConsumer) {
+        std::map<std::string, int> configMap;
+        configMap["adaptiveBitrateWindowSizeInSecs"] = 3;
+        configMap["adaptiveBitrateEncoderReconfigInterval"] = 15 * 1000;
+        configMap["adaptiveBitrateWarCntThreshold"] = 10;
+        configMap["adaptiveMinimumBitrate"] = 300;
+        configMap["adaptiveMaximumBitrate"] = 800;
+
+        int ret = videoConsumer->init("/mnt/sdcard/a_songstudio/recording.flv", getVideoFrameWidth(), getVideoFrameHeight(), getVideoFPS(), getVideoBitrate(),
+                getAudioSampleRate(), getAudioChannels(), getAudioBitrate(), "libfdk_aac", 0, configMap, NULL, NULL);
+        if(ret >= 0){
+            videoConsumer->startAsync();
+        } else{
+            LiveCommonPacketPool::GetInstance()->destoryRecordingVideoPacketQueue();
+            LiveCommonPacketPool::GetInstance()->destoryAudioPacketQueue();
+            LiveAudioPacketPool::GetInstance()->destoryAudioPacketQueue();
+        }
+    } else {
+        LOGE("videoConsumer create failed");
+    }
 
     if (NULL != videoOutput) {
-        videoOutput->startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
+        videoOutput->startEncoding(getVideoFrameWidth(), getVideoFrameHeight(), getVideoBitrate(), getVideoFPS(), useHardWareEncoding, strategy);
     }
     if (NULL != synchronizer) {
         synchronizer->startEncoding();
@@ -385,6 +442,11 @@ void MediaPlayer::stopEncoding() {
     }
     if (NULL != synchronizer) {
         synchronizer->stopEncoding();
+    }
+    if (videoConsumer) {
+        videoConsumer->stop();
+        delete videoConsumer;
+        videoConsumer = NULL;
     }
 }
 

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <android/native_window.h>
+#include <video_consumer/libvideo_consumer/video_packet_consumer.h>
 #include "./sync/av_synchronizer.h"
 #include "./audio_output.h"
 #include "opengl_media/render/video_gl_surface_render.h"
@@ -39,6 +40,14 @@ public:
 	int getVideoFrameWidth();
 
 	int getVideoFrameHeight();
+
+	float getVideoFPS();
+
+	int64_t getVideoBitrate();
+
+	int getAudioSampleRate();
+
+	int64_t getAudioBitrate();
 
 	float getBufferedProgress();
 
@@ -98,6 +107,8 @@ protected:
 	AVSynchronizer* synchronizer;
 	VideoOutput* videoOutput;
 	AudioOutput* audioOutput;
+	VideoPacketConsumerThread* videoConsumer;
+
 	bool initAudioOutput();
 	virtual int getAudioChannels();
 
