@@ -7,6 +7,7 @@
  */
 MediaPlayer::MediaPlayer() {
     userCancelled = false;
+    isEncoding = false;
 
     videoOutput = NULL;
     audioOutput = NULL;
@@ -332,7 +333,6 @@ void MediaPlayer::seekTo(float position) {
     }
 }
 
-
 void MediaPlayer::destroy() {
     LOGI("enter MediaPlayer::destroy...");
 
@@ -399,6 +399,9 @@ void MediaPlayer::endFilter(int type, const char *name) {
 void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
                                 int useHardWareEncoding, int strategy) {
     LOGI("MediaPlayer::startEncoding");
+    if (isEncoding) {
+        LOGE("is Encoding, do nothing");
+    }
     //seekTo(0);
     //start consumer
     LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
@@ -433,10 +436,15 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
     if (NULL != synchronizer) {
         synchronizer->startEncoding();
     }
+    isEncoding = true;
 }
 
 void MediaPlayer::stopEncoding() {
     LOGI("MediaPlayer::stopEncoding");
+    if (!isEncoding) {
+        LOGE("is not Encoding, do nothing");
+    }
+
     if (NULL != videoOutput) {
         videoOutput->stopEncoding();
     }

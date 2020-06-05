@@ -108,6 +108,7 @@ protected:
 	VideoOutput* videoOutput;
 	AudioOutput* audioOutput;
 	VideoPacketConsumerThread* videoConsumer;
+	bool isEncoding;
 
 	bool initAudioOutput();
 	virtual int getAudioChannels();
