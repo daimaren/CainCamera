@@ -437,12 +437,17 @@ bool AVSynchronizer::addFrames(float thresholdDuration, std::list<MovieFrame*>* 
 			MovieFrame* frame = *i;
 			if (frame->getType() == MovieFrameTypeAudio) {
 				AudioFrame* audioFrame = (AudioFrame*) frame;
-				//如果为离线状态时调用pushAudioBufferToQueue new RecordProcessor()
+				//如果为离线状态时调用pushAudioBufferToQueue
 				if (isEncoding) {
 					if (recordProcessor) {
 						int ret = recordProcessor->pushAudioBufferToQueue((short*)audioFrame->samples, audioFrame->size *
 								sizeof(short));
 						delete audioFrame;
+						moviePosition = frame->position;
+						if (messageQueue) {
+							messageQueue->postMessage(MSG_FRAME_AVAILABLE);
+						}
+						this->signalDecodeThread();
 					} else {
 						delete audioFrame;
 					}

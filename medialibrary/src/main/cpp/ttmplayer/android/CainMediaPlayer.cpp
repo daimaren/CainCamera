@@ -526,7 +526,11 @@ void CainMediaPlayer::run() {
                 postEvent(MEDIA_CURRENT, msg.arg1, msg.arg2);
                 break;
             }
-
+            case MSG_FRAME_AVAILABLE: {
+                if (mediaPlayer) {
+                    mediaPlayer->signalOutputFrameAvailable();
+                }
+            }
             default: {
                 LOGD("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);
                 break;

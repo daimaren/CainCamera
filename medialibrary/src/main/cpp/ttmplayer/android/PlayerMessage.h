@@ -40,4 +40,6 @@
 
 #define MSG_CURRENT_POSITON             0x300   // 当前时钟
 
+#define MSG_FRAME_AVAILABLE            0x400   // 新的一帧
+
 #endif //PLAYERMESSAGE_H

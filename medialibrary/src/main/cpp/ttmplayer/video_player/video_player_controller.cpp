@@ -402,7 +402,7 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
     if (isEncoding) {
         LOGE("is Encoding, do nothing");
     }
-    //seekTo(0);
+    seekTo(0);
     //start consumer
     LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
     LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(getAudioSampleRate());
