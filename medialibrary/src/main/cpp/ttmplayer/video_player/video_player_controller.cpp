@@ -448,6 +448,7 @@ void MediaPlayer::stopEncoding() {
     if (NULL != videoOutput) {
         videoOutput->stopEncoding();
     }
+    //usleep(0.2 * 1000000); //200ms
     if (NULL != synchronizer) {
         synchronizer->stopEncoding();
     }

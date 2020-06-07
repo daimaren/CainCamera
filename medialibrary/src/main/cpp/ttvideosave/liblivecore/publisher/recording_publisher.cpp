@@ -2,7 +2,7 @@
 
 #define LOG_TAG "RecordingPublisher"
 
-bool verboseOn = false;
+bool verboseOn = true;
 
 RecordingPublisher::RecordingPublisher() {
     isConnected = false;
