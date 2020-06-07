@@ -431,8 +431,10 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
     }
 
     if (NULL != videoOutput) {
-        videoOutput->startEncoding(getVideoFrameWidth(), getVideoFrameHeight(), getVideoBitrate(), getVideoFPS(), useHardWareEncoding, strategy);
+        //getVideoFPS()
+        videoOutput->startEncoding(getVideoFrameWidth(), getVideoFrameHeight(), getVideoBitrate(), 30, useHardWareEncoding, strategy);
     }
+
     if (NULL != synchronizer) {
         synchronizer->startEncoding();
     }

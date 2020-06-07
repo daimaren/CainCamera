@@ -124,6 +124,9 @@ FrameTexture* AVSynchronizer::getCorrectRenderTexture(bool forceGetFrame) {
 	if (leftVideoFrames == 1) {
 		return texture;
 	}
+	if (isEncoding) {
+		forceGetFrame = true;
+	}
 	while (true) {
 		int ret = circleFrameTextureQueue->front(&texture);
 		if(ret > 0){
