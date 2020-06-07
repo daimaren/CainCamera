@@ -530,6 +530,7 @@ void CainMediaPlayer::run() {
                 if (mediaPlayer) {
                     mediaPlayer->signalOutputFrameAvailable();
                 }
+                break;
             }
             default: {
                 LOGD("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);

@@ -117,7 +117,6 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
     private int mPlayViewHeight;
     private int mVideoWidth;
     private int mVideoHeight;
-
     public static GlenVideoEditFragment newInstance() {
         return new GlenVideoEditFragment();
     }
@@ -721,9 +720,11 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         mMediaPlayer.setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(IMediaPlayer mp) {
-                mMediaPlayer.seekTo(0);
-                mMediaPlayer.pause();
+                //todo
+                //mMediaPlayer.seekTo(0);
+                //mMediaPlayer.pause();
                 if (mAudioPlayer != null) {
+                    mAudioPlayer.pauseAccompany();
                     //mAudioPlayer.seek(0);
                 }
             }

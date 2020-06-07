@@ -5,10 +5,13 @@
 #include "audio_effect/libaudio_effect/audio_effect_processor/audio_effect_processor_factory.h"
 #include "audio_effect/libaudio_effect/audio_effect/audio_effect.h"
 
+#define CONFIG_SUPPORT_AUDIO_EFFECT	0
+
 class MusicMerger {
 protected:
+#if CONFIG_SUPPORT_AUDIO_EFFECT
 	AudioEffectProcessor* audioEffectProcessor;
-
+#endif
 	long frameNum;
 	int audioSampleRate;
 public:
