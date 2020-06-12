@@ -418,7 +418,7 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
         configMap["adaptiveMaximumBitrate"] = 800;
 
         int ret = videoConsumer->init("/mnt/sdcard/a_songstudio/recording.flv", getVideoFrameWidth(), getVideoFrameHeight(), getVideoFPS(), getVideoBitrate(),
-                getAudioSampleRate(), getAudioChannels(), getAudioBitrate(), "libfdk_aac", 0, configMap, NULL, NULL);
+                getAudioSampleRate(), 2, getAudioBitrate(), "libfdk_aac", 0, configMap, NULL, NULL);
         if(ret >= 0){
             videoConsumer->startAsync();
         } else{

@@ -319,7 +319,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private void ttVideoEditor() {
         Intent intent = new Intent(MainActivity.this, GlenVideoEditActivity.class);
-        intent.putExtra(GlenVideoEditActivity.VIDEO_PATH, "/mnt/sdcard/a_songstudio/recording.flv");
+        intent.putExtra(GlenVideoEditActivity.VIDEO_PATH, "/mnt/sdcard/a_songstudio/source.flv");//recording
         startActivity(intent);
     }
 }
