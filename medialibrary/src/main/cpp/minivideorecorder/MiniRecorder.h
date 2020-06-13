@@ -301,6 +301,7 @@ private:
     ANativeWindow *mEncoderWindow = NULL;
     bool mUseHardWareEncoding = true;
     bool mIsSPSUnWriteFlag = false;
+    int64_t startTime = -1;
     //Audio变量
     LivePacketPool* 	  pcmPacketPool = NULL;
     LiveCommonPacketPool* accompanyPacketPool = NULL;
@@ -369,6 +370,7 @@ private:
     EGLConfig mEGLConfig;
     EGLContext mEGLContext;
     EGLSurface mPreviewSurface;
+    PFNEGLPRESENTATIONTIMEANDROIDPROC pfneglPresentationTimeANDROID;
     //OpenGL Render
     char* mGLVertexShader;
     char* mGLFragmentShader;

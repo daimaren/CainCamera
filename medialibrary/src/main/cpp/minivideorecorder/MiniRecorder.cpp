@@ -10,6 +10,7 @@
 MiniRecorder::MiniRecorder() : mRecordListener(nullptr), mAbortRequest(true),
                                      mStartRequest(false), mExit(true),mCopyIsInitialized(false),
                                     mIsGLInitialized(false), mIsSurfaceRenderInit(false){
+    startTime = -1;
     packetBuffer = NULL;//不同的类相同的变量名要区分开，单实例的本质上是同一个对象
     packetBufferSize = 0;
     packetBufferCursor = 0;
@@ -276,9 +277,13 @@ void MiniRecorder::renderFrame() {
     }
     if (mIsVideoEncoding) {
         if (mUseHardWareEncoding) {
-            //hw encode
+            if (startTime == -1)
+                startTime = getCurrentTime();
+            int64_t curTime = getCurrentTime() - startTime;
+            //do encode here
             eglMakeCurrent(mEGLDisplay, mEncoderSurface, mEncoderSurface, mEGLContext);
             renderToView(mRotateTexId, mTextureWidth, mTextureHeight);
+            pfneglPresentationTimeANDROID(mEGLDisplay, mEncoderSurface, ((khronos_stime_nanoseconds_t) curTime) * 1000000);
             //postMessage
             if (mEncodeHandler) {
                 mEncodeHandler->postMessage(new Msg(MSG_FRAME_AVAILIBLE));
@@ -756,7 +761,7 @@ int MiniRecorder::deinitFFmpeg() {
 int MiniRecorder::writeFrame() {
     int ret = 0;
     /* Compute current audio and video time. */
-    double video_time = lastPresentationTimeMs / 1000.0f - 21190;
+    double video_time = lastPresentationTimeMs / 1000.0f;
     double audio_time = lastAudioPacketPresentationTimeMills / 1000.0f;
 
     ALOGI("video_time is %lf, audio_time is %f", video_time, audio_time);
@@ -1213,6 +1218,12 @@ bool MiniRecorder::initEGL() {
         mEGLDisplay = EGL_NO_DISPLAY;
         mEGLContext = EGL_NO_CONTEXT;
         return false;
+    }
+    pfneglPresentationTimeANDROID = (PFNEGLPRESENTATIONTIMEANDROIDPROC)eglGetProcAddress("eglPresentationTimeANDROID");
+    if (!pfneglPresentationTimeANDROID) {
+        ALOGE("eglPresentationTimeANDROID is not available!");
+    } else {
+        ALOGI("eglPresentationTimeANDROID success");
     }
     return true;
 }

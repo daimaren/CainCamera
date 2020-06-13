@@ -80,7 +80,7 @@ public class MiniVideoRecorderFragment extends Fragment implements View.OnClickL
         bindListener();
         initAudioRecorder();
         initMusicPlayer();
-        mMiniRecorder = new MiniVideoRecorder.RecordBuilder("/storage/emulated/0/a_songstudio/test.flv") //generateOutputPath()
+        mMiniRecorder = new MiniVideoRecorder.RecordBuilder("/storage/emulated/0/a_songstudio/mini_recorder.flv") //generateOutputPath()
                 .setVideoParams(720, 1280,  0, 900)
                 .setAudioParams(mAudioRecorder.getSampleRate(), AVFormatter.getSampleFormat(mAudioRecorder.getSampleFormat()), mAudioRecorder.getChannels())
                 .create();
