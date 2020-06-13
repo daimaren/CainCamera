@@ -30,6 +30,7 @@ using namespace std;
 #define PREVIEW_FILTER_SEQUENCE_OUT				10 * 60 * 60 * 1000000
 #define PREVIEW_FILTER_POSITION					0.5
 
+#define ENABLE_DUMP_AUDIO_PCM					0
 enum {
 	FILTER,
 	TRANSITION,
@@ -173,6 +174,7 @@ public:
 protected:
 	EGLContext loadTextureContext;
 protected:
+	FILE* mPcmFile;
 	GLuint mOutputTexId;
 	OpenglVideoFrame* 		targetVideoFrame;
 	VideoEffectProcessor* mProcessor;

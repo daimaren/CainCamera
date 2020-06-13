@@ -84,6 +84,7 @@ void AVSynchronizer::OnInitFromUploaderGLContext(EGLCore* eglCore, int videoFram
 }
 
 AVSynchronizer::AVSynchronizer() {
+	mPcmFile = NULL;
 	audioFrameQueue = NULL;
 	circleFrameTextureQueue = NULL;
 	currentAudioFrame = NULL;
@@ -443,8 +444,11 @@ bool AVSynchronizer::addFrames(float thresholdDuration, std::list<MovieFrame*>* 
 				//如果为离线状态时调用pushAudioBufferToQueue
 				if (isEncoding) {
 					if (recordProcessor) {
-						int ret = recordProcessor->pushAudioBufferToQueue((short*)audioFrame->samples, audioFrame->size *
-								sizeof(short));
+						int ret = recordProcessor->pushAudioBufferToQueue((short*)audioFrame->samples, audioFrame->size / sizeof(short));
+#if ENABLE_DUMP_AUDIO_PCM
+						if (mPcmFile && audioFrame->samples)
+							fwrite(audioFrame->samples, audioFrame->size, 1, mPcmFile);
+#endif
 						delete audioFrame;
 						moviePosition = frame->position;
 						if (messageQueue) {
@@ -948,6 +952,13 @@ void AVSynchronizer::setPngSequenceFilterValue(int filterId, string dirPath) {
 }
 
 void AVSynchronizer::startEncoding() {
+#if ENABLE_DUMP_AUDIO_PCM
+	mPcmFile = fopen("/storage/emulated/0/a_songstudio/decoder.pcm", "wb");
+    if (!mPcmFile) {
+        LOGI("dump AAC file open error");
+        return;
+    }
+#endif
 	recordProcessor = new RecordProcessor();
 	if (recordProcessor) {
 		recordProcessor->initAudioBufferSize(getAudioSampleRate(), (int)(getAudioSampleRate() * 0.2f), NULL);
@@ -963,4 +974,9 @@ void AVSynchronizer::stopEncoding() {
 		recordProcessor->destroy();
 		delete recordProcessor;
 	}
+#if ENABLE_DUMP_AUDIO_PCM
+	if (mPcmFile) {
+        fclose(mPcmFile);
+    }
+#endif
 }
