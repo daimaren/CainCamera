@@ -332,7 +332,7 @@ void MiniRecorder::startRecording() {
     //如下是用于录音的变量
     audioSamplesCursor = 0;
     float percent = 0.2f;
-    audioBufferSize = 44100 * percent; //8820
+    audioBufferSize = mRecordParams->sampleRate * percent; //8820
     audioSamples = new short[audioBufferSize];
     audioBufferTimeMills = (float)audioBufferSize * 1000.0f / (float)mRecordParams->sampleRate;
 
