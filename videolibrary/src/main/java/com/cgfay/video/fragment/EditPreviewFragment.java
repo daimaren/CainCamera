@@ -23,6 +23,7 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.cgfay.media.CainMediaPlayer;
+import com.cgfay.media.GlenMediaPlayer;
 import com.cgfay.media.IMediaPlayer;
 import com.cgfay.uitls.utils.FileUtils;
 import com.cgfay.uitls.utils.StringUtils;
@@ -42,7 +43,7 @@ public class EditPreviewFragment extends Fragment implements View.OnClickListene
     private ImageView mIvVideoPlay;
     private Button mBtnSave;
 
-    private CainMediaPlayer mCainMediaPlayer;
+    private GlenMediaPlayer mCainMediaPlayer;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -69,7 +70,7 @@ public class EditPreviewFragment extends Fragment implements View.OnClickListene
     public void onStart() {
         super.onStart();
         if (mCainMediaPlayer == null) {
-            mCainMediaPlayer = new CainMediaPlayer();
+            mCainMediaPlayer = new GlenMediaPlayer();
         }
     }
 
@@ -206,11 +207,6 @@ public class EditPreviewFragment extends Fragment implements View.OnClickListene
             }
         });
 
-        mCainMediaPlayer.setOnCurrentPositionListener(new CainMediaPlayer.OnCurrentPositionListener() {
-            @Override
-            public void onCurrentPosition(long current, long duration) {
-            }
-        });
         try {
             mCainMediaPlayer.setDataSource(mVideoPath);
             if (mSurface == null) {

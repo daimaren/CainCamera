@@ -414,6 +414,9 @@ public interface IMediaPlayer {
         void onCompletion(IMediaPlayer mp);
     }
 
+    public interface OnCombineFinishListener {
+        void onCombineFinish(IMediaPlayer mp);
+    }
     /**
      * Register a callback to be invoked when the end of a media source
      * has been reached during playback.

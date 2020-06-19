@@ -17,6 +17,7 @@ VideoOutput::VideoOutput() {
 	renderTexSurface = EGL_NO_SURFACE;
 
 	eglHasDestroyed = false;
+	isEncoding = false;
 }
 
 VideoOutput::~VideoOutput() {
@@ -133,7 +134,8 @@ bool VideoOutput::renderVideo() {
 		//encode 要不要把特效处理也一起加进来
 		if (isEncoding) {
 			//离线状态
-			encoder->encode(texture->texId);
+			if (encoder)
+				encoder->encode(texture->texId);
 		} else {
 			//在线状态
 			eglCore->makeCurrent(renderTexSurface);

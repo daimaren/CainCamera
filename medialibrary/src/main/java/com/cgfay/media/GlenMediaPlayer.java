@@ -679,6 +679,7 @@ public class GlenMediaPlayer implements IMediaPlayer {
         mOnPreparedListener = null;
         mOnBufferingUpdateListener = null;
         mOnCompletionListener = null;
+        mOnCombineFinishListener = null;
         mOnSeekCompleteListener = null;
         mOnErrorListener = null;
         mOnInfoListener = null;
@@ -961,6 +962,7 @@ public class GlenMediaPlayer implements IMediaPlayer {
     private static final int MEDIA_ERROR = 100;
     private static final int MEDIA_INFO = 200;
     private static final int MEDIA_CURRENT = 300;
+    private static final int MEDIA_COMBINE_FINISH = 500;
 
     private class EventHandler extends Handler {
 
@@ -1064,7 +1066,12 @@ public class GlenMediaPlayer implements IMediaPlayer {
                     }
                     break;
                 }
-
+                case MEDIA_COMBINE_FINISH: {
+                    if (mOnCombineFinishListener != null) {
+                        mOnCombineFinishListener.onCombineFinish(mMediaPlayer);
+                    }
+                    break;
+                }
                 default: {
                     Log.e(TAG, "Unknown message type " + msg.what);
                     return;
@@ -1118,8 +1125,11 @@ public class GlenMediaPlayer implements IMediaPlayer {
         mOnCompletionListener = listener;
     }
 
+    public void setOnCombineFinishListener(OnCombineFinishListener listener) {
+        mOnCombineFinishListener = listener;
+    }
     private OnCompletionListener mOnCompletionListener;
-
+    private OnCombineFinishListener mOnCombineFinishListener;
     /**
      * Register a callback to be invoked when the status of a network
      * stream's buffer has changed.

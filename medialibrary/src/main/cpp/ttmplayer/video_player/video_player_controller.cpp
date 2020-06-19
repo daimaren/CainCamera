@@ -395,7 +395,9 @@ void MediaPlayer::endFilter(int type, const char *name) {
         synchronizer->endFilter(type, name);
     }
 }
-
+/**
+ * 合并视频 combineVideo
+ */
 void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
                                 int useHardWareEncoding, int strategy) {
     LOGI("MediaPlayer::startEncoding");
@@ -450,7 +452,7 @@ void MediaPlayer::stopEncoding() {
     if (NULL != videoOutput) {
         videoOutput->stopEncoding();
     }
-    //usleep(0.2 * 1000000); //200ms
+
     if (NULL != synchronizer) {
         synchronizer->stopEncoding();
     }
@@ -458,6 +460,10 @@ void MediaPlayer::stopEncoding() {
         videoConsumer->stop();
         delete videoConsumer;
         videoConsumer = NULL;
+    }
+    //合并结束
+    if (messageQueue) {
+        messageQueue->postMessage(MSG_COMBINE_FINISH);
     }
 }
 

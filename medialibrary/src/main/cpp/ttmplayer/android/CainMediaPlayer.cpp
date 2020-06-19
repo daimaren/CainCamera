@@ -531,6 +531,10 @@ void CainMediaPlayer::run() {
                 }
                 break;
             }
+            case MSG_COMBINE_FINISH: {
+                postEvent(MEDIA_COMBINE_FINISH, 0, 0);
+                break;
+            }
             default: {
                 LOGD("CainMediaPlayer unknown MSG_xxx(%d)\n", msg.what);
                 break;

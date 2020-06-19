@@ -105,7 +105,7 @@ public class GlenVideoEditActivity extends AppCompatActivity implements GlenVide
     @Override
     public void onOpenEditPreviewPage() {
         EditPreviewFragment fragment = new EditPreviewFragment();
-        fragment.setVideoPath(mVideoPath);
+        fragment.setVideoPath("/mnt/sdcard/a_songstudio/recording.flv");
         getSupportFragmentManager()
                 .beginTransaction()
                 .setCustomAnimations(R.anim.anim_slide_up, 0)

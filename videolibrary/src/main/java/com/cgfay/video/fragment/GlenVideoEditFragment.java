@@ -107,7 +107,6 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
     private RecyclerView mListFilterView;
     private VideoFilterAdapter mFilterAdapter;
 
-
     // 播放器
     public NativeMp3Player mAudioPlayer;
     private GlenMediaPlayer mMediaPlayer;
@@ -117,6 +116,9 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
     private int mPlayViewHeight;
     private int mVideoWidth;
     private int mVideoHeight;
+
+    //合成状态
+    private boolean mCombineProcessing = false;
     public static GlenVideoEditFragment newInstance() {
         return new GlenVideoEditFragment();
     }
@@ -570,7 +572,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         if (mAudioPlayer != null) {
             mAudioPlayer.saveAccompany();
         }
-        //mOnEditPreviewListener.onOpenEditPreviewPage();
+        mCombineProcessing = true;
     }
 
     private void resumePlayer() {
@@ -720,13 +722,23 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         mMediaPlayer.setOnCompletionListener(new IMediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(IMediaPlayer mp) {
-                //todo
-                //mMediaPlayer.seekTo(0);
-                //mMediaPlayer.pause();
-                if (mAudioPlayer != null) {
-                    mAudioPlayer.stop();
-                    mMediaPlayer.stopEncoding();
+                if (mCombineProcessing) {
+                    //正在合成视频
+                    mCombineProcessing = false;
+                    if (mAudioPlayer != null) {
+                        mAudioPlayer.stop();
+                        mMediaPlayer.stopEncoding();
+                    }
+                } else {
+                    //预览视频完成，循环开始
+                    mMediaPlayer.seekTo(0);
                 }
+            }
+        });
+        mMediaPlayer.setOnCombineFinishListener(new IMediaPlayer.OnCombineFinishListener() {
+            @Override
+            public void onCombineFinish(IMediaPlayer mp) {
+                mOnEditPreviewListener.onOpenEditPreviewPage();
             }
         });
 
