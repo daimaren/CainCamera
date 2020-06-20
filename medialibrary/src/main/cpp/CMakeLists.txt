@@ -42,25 +42,25 @@ set_target_properties( yuv
 add_subdirectory(${CMAKE_SOURCE_DIR}/ttcommon)
 
 # FFmpeg命令行库
-add_subdirectory(${CMAKE_SOURCE_DIR}/FFCommand)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/FFCommand)
 
 # 媒体录制器
-add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/FFMediaRecorder)
 
 # 媒体录制器
 #add_subdirectory(${CMAKE_SOURCE_DIR}/AVRecorder)
 
 # MediaRecorder
-add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/MediaRecorder)
 
 # MiniRecorder
 #add_subdirectory(${CMAKE_SOURCE_DIR}/MiniRecorder)
 
 # FLV录制器
-add_subdirectory(${CMAKE_SOURCE_DIR}/FLVRecorder)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/FLVRecorder)
 
 # Metadata库
-add_subdirectory(${CMAKE_SOURCE_DIR}/Metadata)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/Metadata)
 
 # SoundTouch库
 #add_subdirectory(${CMAKE_SOURCE_DIR}/SoundTouch)
@@ -72,7 +72,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/Metadata)
 #add_subdirectory(${CMAKE_SOURCE_DIR}/MediaPlayer)
 
 # 媒体编辑器
-add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/MediaEditor)
 
 # Video编辑器，用最简洁的代码实现功能，麻雀虽小五脏俱全
 add_subdirectory(${CMAKE_SOURCE_DIR}/minivideoeditor)
@@ -85,6 +85,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/minivideorecorder)
 # VideoEffect
 add_subdirectory(${CMAKE_SOURCE_DIR}/VideoEffect)
 
+# ttvideosave
+add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideosave)
+
 # ttmplayer
 add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
 
@@ -92,10 +95,10 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer)
 #add_subdirectory(${CMAKE_SOURCE_DIR}/ttmplayer2)
 
 # ttvideoeditor
-add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideoeditor)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideoeditor)
 
 # ttvideorecorder
-add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideorecorder)
+#add_subdirectory(${CMAKE_SOURCE_DIR}/ttvideorecorder)
 
 
 

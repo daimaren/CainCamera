@@ -16,6 +16,7 @@ RootTests()
     play2d()<--AudioEngine.cpp
     setFinishCallback()<--AudioEngine.cpp
 
+#code flow(play assets/background.mp3)
 1. play2d()
   2. lazyInit()
   2. new AudioEngineImpl()
@@ -24,11 +25,22 @@ RootTests()
     3. Realize() //realize the engine
     3. CreateOutputMix() //realize the output mix
     3. new AudioPlayerProvider()
-  2. _audioEngineImpl->play2d()
-    3. _audioPlayerProvider->getAudioPlayer()
-      4. createUrlAudioPlayer(); //只创建一个player
-        5. new UrlAudioPlayer()
-        5. urlPlayer->prepare() //准备
+  2. _audioEngineImpl->play2d()<--AudioEngineImpl.cpp
+    3. getAudioPlayer()<--AudioPlayerProvider.cpp
+      4. getFileInfo()
+      4. isSmallFile()
+      4. preloadEffect()<--AudioPlayerProvider.cpp
+        5. createAudioDecoder()<--AudioDecoderProvider.cpp
+          6. new AudioDecoderMp3()
+          6. init()<--AudioDecoderMp3()
+        5. start()<--AudioDecoderMp3()
+          6. decodeToPcm()
+            7. decodeMP3()<--mp3reader.cpp
+          6. resample()
+          6. interleave()
+      4. obtainPcmAudioPlayer()<--AudioPlayerProvider.cpp
+        5. new PcmAudioPlayer()
+        5. prepare()<--PcmAudioPlayer.cpp
       4. preloadEffect() //if it is small file
         5. AudioDecoderProvider::createAudioDecoder()
           6. decoder = new AudioDecoderOgg() //if extension is ogg
