@@ -223,7 +223,7 @@ long CainMediaPlayer::getDuration() {
 status_t CainMediaPlayer::reset() {
     mPrepareSync = false;
     if (mediaPlayer != nullptr) {
-        //mediaPlayer->reset();
+        //mediaPlayer->destroy();
         delete mediaPlayer;
         mediaPlayer = nullptr;
     }

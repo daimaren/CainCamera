@@ -445,12 +445,14 @@ bool AVSynchronizer::addFrames(float thresholdDuration, std::list<MovieFrame*>* 
 				if (isEncoding) {
 					if (recordProcessor) {
 						int ret = recordProcessor->pushAudioBufferToQueue((short*)audioFrame->samples, audioFrame->size / sizeof(short));
+						LOGI("position is %.4f", audioFrame->position);
+						moviePosition = frame->position;
 #if ENABLE_DUMP_AUDIO_PCM
 						if (mPcmFile && audioFrame->samples)
 							fwrite(audioFrame->samples, audioFrame->size, 1, mPcmFile);
 #endif
 						delete audioFrame;
-						moviePosition = frame->position;
+						audioFrame = NULL;
 						if (messageQueue) {
 							messageQueue->postMessage(MSG_FRAME_AVAILABLE);
 						}
@@ -460,7 +462,7 @@ bool AVSynchronizer::addFrames(float thresholdDuration, std::list<MovieFrame*>* 
 					}
 				} else {
                     audioFrameQueue->push(audioFrame);
-					//				LOGI("audioFrameQueue->push(audioFrame) position is %.4f", audioFrame->position);
+					//LOGI("audioFrameQueue->push(audioFrame) position is %.4f", audioFrame->position);
 					bufferedDuration += audioFrame->duration;
 				}
 			}

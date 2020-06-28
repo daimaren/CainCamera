@@ -568,11 +568,11 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
     private void saveAllChange() {
         //保存过程流程化：准备好编码器等资源、seek开头重新离线播放一遍。先设计好再做，画时序图设计合理的流程。
         if (mMediaPlayer != null) {
-            //mMediaPlayer.pause();
+            mMediaPlayer.pause();
             mMediaPlayer.prepareCombine(0, 0, 0, 0, 0, 0);
         }
         if (mAudioPlayer != null) {
-            //mAudioPlayer.pauseAccompany();
+            mAudioPlayer.pauseAccompany();
             mAudioPlayer.startCombine();
         } else {
             //todo 没选歌曲播放点保存的case，怎么处理？
@@ -743,10 +743,11 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
             @Override
             public void onCombinePrepared(IMediaPlayer mp) {
                 //视频和伴奏一起seek开头，重新离线播放一遍
-                mMediaPlayer.seekTo(0); //暂停时seek会自动播放
+                mMediaPlayer.seekTo(0);
+                mMediaPlayer.resume();
                 if (mAudioPlayer != null) {
-                    //mAudioPlayer.seek(0);
-                    //mAudioPlayer.resumeAccompany();
+                    mAudioPlayer.seek(0);
+                    mAudioPlayer.resumeAccompany();
                 }
                 mCombineProcessing = true;
             }
