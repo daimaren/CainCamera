@@ -679,6 +679,7 @@ public class GlenMediaPlayer implements IMediaPlayer {
         mOnPreparedListener = null;
         mOnBufferingUpdateListener = null;
         mOnCompletionListener = null;
+        mOnCombinePreparedListener = null;
         mOnCombineFinishListener = null;
         mOnSeekCompleteListener = null;
         mOnErrorListener = null;
@@ -882,7 +883,7 @@ public class GlenMediaPlayer implements IMediaPlayer {
     /**
      * startEncoding
      */
-    public void startEncoding(int width, int height, int videoBitRate, int frameRate,
+    public void prepareCombine(int width, int height, int videoBitRate, int frameRate,
                               int useHardWareEncoding,int strategy) {
         _startEncoding(width, height, videoBitRate, frameRate, useHardWareEncoding, strategy);
     }
@@ -962,6 +963,7 @@ public class GlenMediaPlayer implements IMediaPlayer {
     private static final int MEDIA_ERROR = 100;
     private static final int MEDIA_INFO = 200;
     private static final int MEDIA_CURRENT = 300;
+    private static final int MEDIA_COMBINE_PREPARED = 499;
     private static final int MEDIA_COMBINE_FINISH = 500;
 
     private class EventHandler extends Handler {
@@ -1066,6 +1068,12 @@ public class GlenMediaPlayer implements IMediaPlayer {
                     }
                     break;
                 }
+                case MEDIA_COMBINE_PREPARED: {
+                    if (mOnCombinePreparedListener != null) {
+                        mOnCombinePreparedListener.onCombinePrepared(mMediaPlayer);
+                    }
+                    break;
+                }
                 case MEDIA_COMBINE_FINISH: {
                     if (mOnCombineFinishListener != null) {
                         mOnCombineFinishListener.onCombineFinish(mMediaPlayer);
@@ -1128,6 +1136,10 @@ public class GlenMediaPlayer implements IMediaPlayer {
     public void setOnCombineFinishListener(OnCombineFinishListener listener) {
         mOnCombineFinishListener = listener;
     }
+    public void setOnCombinePreparedListener(OnCombinePreparedListener listener) {
+        mOnCombinePreparedListener = listener;
+    }
+    private OnCombinePreparedListener mOnCombinePreparedListener;
     private OnCompletionListener mOnCompletionListener;
     private OnCombineFinishListener mOnCombineFinishListener;
     /**

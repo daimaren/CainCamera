@@ -42,6 +42,7 @@
 
 #define MSG_FRAME_AVAILABLE            0x400   // 新的一帧
 
+#define MSG_COMBINE_PREPARED           0x499   // 准备合成
 #define MSG_COMBINE_FINISH             0x500   // 合成完成
 
 #endif //PLAYERMESSAGE_H

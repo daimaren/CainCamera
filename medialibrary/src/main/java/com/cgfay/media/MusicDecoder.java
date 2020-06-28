@@ -27,6 +27,9 @@ public class MusicDecoder implements Mp3Decoder {
 	@Override
 	public native void resumeAccompany();
 
+	@Override
+	public native void seek(float seconds);
+
 	/** 结束当前播放的伴奏 **/
 	@Override
 	public native void stopAccompany();

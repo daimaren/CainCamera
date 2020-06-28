@@ -16,5 +16,7 @@ public interface Mp3Decoder {
 
 	public void resumeAccompany();
 
+	public void seek(float seconds);
+
 	public void stopAccompany();
 }

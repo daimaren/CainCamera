@@ -54,7 +54,13 @@ JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_pauseAccompany
  */
 JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_resumeAccompany
   (JNIEnv *, jobject);
-
+/*
+ * Class:     com_cgfay_media_MusicDecoder
+ * Method:    seek
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_seek
+        (JNIEnv *, jobject, jfloat seconds);
 /*
  * Class:     com_cgfay_media_MusicDecoder
  * Method:    stopAccompany

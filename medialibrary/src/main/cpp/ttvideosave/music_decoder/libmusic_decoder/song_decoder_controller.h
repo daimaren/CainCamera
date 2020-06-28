@@ -100,8 +100,8 @@ public:
 	void startAccompany(const char* accompanyPath);
 	void pauseAccompany();
 	void resumeAccompany();
+	void seek(float seconds);
 	void stopAccompany();
-
 	/** 销毁这个controller **/
 	virtual void destroy();
 };

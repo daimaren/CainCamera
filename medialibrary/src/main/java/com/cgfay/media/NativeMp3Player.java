@@ -276,13 +276,21 @@ public class NativeMp3Player {
 		isInStopping = false;
 	}
 
+	public void seek(float seconds) {
+		decoder.seek(seconds);
+	}
+
 	public void stopAccompany() {
 		isInStopping = true;
 		decoder.stopAccompany();
 	}
 
-	public void saveAccompany() {
+	public void startCombine() {
 		saveRequest = true;
+	}
+
+	public void stopCombine() {
+		saveRequest = false;
 	}
 
 	public int getPlayedAccompanyTimeMills() {

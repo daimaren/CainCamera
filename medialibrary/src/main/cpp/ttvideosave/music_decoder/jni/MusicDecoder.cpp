@@ -48,6 +48,11 @@ JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_resumeAccompany(JNIEnv 
 		decoderController->resumeAccompany();
 	}
 }
+JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_seek(JNIEnv * env, jobject obj, jfloat seconds){
+	if(NULL != decoderController){
+		decoderController->seek(seconds);
+	}
+}
 
 JNIEXPORT void JNICALL Java_com_cgfay_media_MusicDecoder_stopAccompany(JNIEnv * env, jobject obj){
 	if(NULL != decoderController){

@@ -396,20 +396,18 @@ void MediaPlayer::endFilter(int type, const char *name) {
     }
 }
 /**
- * 合并视频 combineVideo
+ * 准备合成 prepareCombine
  */
 void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int frameRate,
                                 int useHardWareEncoding, int strategy) {
     LOGI("MediaPlayer::startEncoding");
     if (isEncoding) {
-        LOGE("is Encoding, do nothing");
+        LOGE("Encoding started, do nothing");
     }
-    seekTo(0);
-    //start consumer
     LiveCommonPacketPool::GetInstance()->initRecordingVideoPacketQueue();
     LiveCommonPacketPool::GetInstance()->initAudioPacketQueue(getAudioSampleRate());
     LiveAudioPacketPool::GetInstance()->initAudioPacketQueue();
-
+    //start consumer
     videoConsumer = new VideoPacketConsumerThread();
     if (videoConsumer) {
         std::map<std::string, int> configMap;
@@ -427,6 +425,8 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
             LiveCommonPacketPool::GetInstance()->destoryRecordingVideoPacketQueue();
             LiveCommonPacketPool::GetInstance()->destoryAudioPacketQueue();
             LiveAudioPacketPool::GetInstance()->destoryAudioPacketQueue();
+            LOGE("videoConsumer create failed");
+            return;
         }
     } else {
         LOGE("videoConsumer create failed");
@@ -441,6 +441,10 @@ void MediaPlayer::startEncoding(int width, int height, int videoBitRate, int fra
         synchronizer->startEncoding();
     }
     isEncoding = true;
+    //通知合成准备完成
+    if (messageQueue) {
+        messageQueue->postMessage(MSG_COMBINE_PREPARED);
+    }
 }
 
 void MediaPlayer::stopEncoding() {

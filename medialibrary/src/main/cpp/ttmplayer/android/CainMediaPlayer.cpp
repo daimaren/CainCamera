@@ -531,6 +531,10 @@ void CainMediaPlayer::run() {
                 }
                 break;
             }
+            case MSG_COMBINE_PREPARED: {
+                postEvent(MEDIA_COMBINE_PREPARED, 0, 0);
+                break;
+            }
             case MSG_COMBINE_FINISH: {
                 postEvent(MEDIA_COMBINE_FINISH, 0, 0);
                 break;

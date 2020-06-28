@@ -566,13 +566,17 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
      * 保存所有变更，合成视频
      */
     private void saveAllChange() {
+        //保存过程流程化：准备好编码器等资源、seek开头重新离线播放一遍。先设计好再做，画时序图设计合理的流程。
         if (mMediaPlayer != null) {
-            mMediaPlayer.startEncoding(0, 0, 0, 0, 0, 0);
+            //mMediaPlayer.pause();
+            mMediaPlayer.prepareCombine(0, 0, 0, 0, 0, 0);
         }
         if (mAudioPlayer != null) {
-            mAudioPlayer.saveAccompany();
+            //mAudioPlayer.pauseAccompany();
+            mAudioPlayer.startCombine();
+        } else {
+            //todo 没选歌曲播放点保存的case，怎么处理？
         }
-        mCombineProcessing = true;
     }
 
     private void resumePlayer() {
@@ -592,7 +596,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
         }
         if (mAudioPlayer != null) {
             mAudioPlayer.resumeAccompany();
-            //mAudioPlayer.seekTo((int)timeMs);
+            mAudioPlayer.seek(timeMs * 1000);
         }
         mIvVideoPlay.setVisibility(View.GONE);
     }
@@ -733,6 +737,18 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
                     //预览视频完成，循环开始
                     mMediaPlayer.seekTo(0);
                 }
+            }
+        });
+        mMediaPlayer.setOnCombinePreparedListener(new IMediaPlayer.OnCombinePreparedListener() {
+            @Override
+            public void onCombinePrepared(IMediaPlayer mp) {
+                //视频和伴奏一起seek开头，重新离线播放一遍
+                mMediaPlayer.seekTo(0); //暂停时seek会自动播放
+                if (mAudioPlayer != null) {
+                    //mAudioPlayer.seek(0);
+                    //mAudioPlayer.resumeAccompany();
+                }
+                mCombineProcessing = true;
             }
         });
         mMediaPlayer.setOnCombineFinishListener(new IMediaPlayer.OnCombineFinishListener() {

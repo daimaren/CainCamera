@@ -28,6 +28,7 @@ enum media_event_type {
     MEDIA_ERROR             = 100,
     MEDIA_INFO              = 200,
     MEDIA_CURRENT           = 300,
+    MEDIA_COMBINE_PREPARED  = 499,
     MEDIA_COMBINE_FINISH    = 500,
 
     MEDIA_SET_VIDEO_SAR = 10001

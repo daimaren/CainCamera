@@ -131,6 +131,12 @@ void LiveSongDecoderController::resumeAccompany(){
 	this->resumeDecoderThread();
 }
 
+void LiveSongDecoderController::seek(float seconds) {
+	if (accompanyDecoder) {
+		accompanyDecoder->setPosition(seconds);
+	}
+}
+
 void LiveSongDecoderController::stopAccompany(){
 	this->suspendDecoderThread();
 	packetPool->clearDecoderAccompanyPacketToQueue();
