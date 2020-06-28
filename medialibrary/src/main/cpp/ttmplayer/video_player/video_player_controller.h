@@ -14,7 +14,7 @@
 #include "egl_core/egl_share_context.h"
 #include "../android/AVMessageQueue.h"
 /**
- * Video Player Controller
+ * MediaPlayer
  */
 class MediaPlayer {
 public:

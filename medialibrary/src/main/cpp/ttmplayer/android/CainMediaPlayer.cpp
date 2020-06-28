@@ -54,6 +54,7 @@ void CainMediaPlayer::disconnect() {
     }
 
     if (mediaPlayer != nullptr) {
+        mediaPlayer->destroy();
         delete mediaPlayer;
         mediaPlayer = nullptr;
     }
@@ -106,7 +107,7 @@ status_t CainMediaPlayer::setListener(MediaPlayerListener *listener) {
 }
 
 status_t CainMediaPlayer::prepare() {
-    //////LOGI("CainMediaPlayer::prepare");
+    //LOGI("CainMediaPlayer::prepare");
     if (mediaPlayer == nullptr) {
         return NO_INIT;
     }
@@ -144,9 +145,7 @@ void CainMediaPlayer::start() {
 }
 
 void CainMediaPlayer::stop() {
-    if (mediaPlayer) {
-        //mediaPlayer->stop();
-    }
+
 }
 
 void CainMediaPlayer::pause() {
@@ -177,14 +176,14 @@ int CainMediaPlayer::getRotate() {
 
 int CainMediaPlayer::getVideoWidth() {
     if (mediaPlayer != nullptr) {
-       //return mediaPlayer->getVideoWidth();
+       return mediaPlayer->getVideoFrameWidth();
     }
     return 0;
 }
 
 int CainMediaPlayer::getVideoHeight() {
     if (mediaPlayer != nullptr) {
-        //return mediaPlayer->getVideoHeight();
+        return mediaPlayer->getVideoFrameHeight();
     }
     return 0;
 }
@@ -223,7 +222,7 @@ long CainMediaPlayer::getDuration() {
 status_t CainMediaPlayer::reset() {
     mPrepareSync = false;
     if (mediaPlayer != nullptr) {
-        //mediaPlayer->destroy();
+        mediaPlayer->destroy();
         delete mediaPlayer;
         mediaPlayer = nullptr;
     }
@@ -516,7 +515,6 @@ void CainMediaPlayer::run() {
                 mSeekingPosition = (long)msg.arg1;
                 if (mediaPlayer != nullptr) {
                     mediaPlayer->seekTo(mSeekingPosition * 1000);
-                    //mediaPlayer->seekTo(mSeekingPosition);
                 }
                 break;
             }
