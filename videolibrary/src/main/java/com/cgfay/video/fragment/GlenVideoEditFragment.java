@@ -8,6 +8,7 @@ import android.graphics.SurfaceTexture;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
@@ -56,6 +57,8 @@ import java.io.IOException;
 public class GlenVideoEditFragment extends Fragment implements View.OnClickListener {
 
     private static final String TAG = "CainPlayer";
+    private static final String FRAGMENT_DIALOG = "dialog";
+    private static final boolean VERBOSE = true;
 
     private Activity mActivity;
 
@@ -119,6 +122,10 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
 
     //合成状态
     private boolean mCombineProcessing = false;
+    // 合并对话框
+    private CombineVideoDialogFragment mCombineDialog;
+    // 主线程Handler
+    private Handler mMainHandler;
     public static GlenVideoEditFragment newInstance() {
         return new GlenVideoEditFragment();
     }
@@ -127,6 +134,7 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
     public void onAttach(Context context) {
         super.onAttach(context);
         mActivity = getActivity();
+        mMainHandler = new Handler(context.getMainLooper());
     }
 
     @Override
@@ -749,12 +757,30 @@ public class GlenVideoEditFragment extends Fragment implements View.OnClickListe
                     mAudioPlayer.seek(0);
                     mAudioPlayer.resumeAccompany();
                 }
+                if (VERBOSE) {
+                    Log.d(TAG, "开始合并");
+                }
+                //显示正在合成
+                mMainHandler.post(() -> {
+                    if (mCombineDialog != null) {
+                        mCombineDialog.dismiss();
+                        mCombineDialog = null;
+                    }
+                    mCombineDialog = CombineVideoDialogFragment.newInstance(mActivity.getString(R.string.combine_video_message));
+                    mCombineDialog.show(getChildFragmentManager(), FRAGMENT_DIALOG);
+                });
                 mCombineProcessing = true;
             }
         });
         mMediaPlayer.setOnCombineFinishListener(new IMediaPlayer.OnCombineFinishListener() {
             @Override
             public void onCombineFinish(IMediaPlayer mp) {
+                mMainHandler.post(() -> {
+                    if (mCombineDialog != null) {
+                        mCombineDialog.dismiss();
+                        mCombineDialog = null;
+                    }
+                });
                 mOnEditPreviewListener.onOpenEditPreviewPage();
             }
         });

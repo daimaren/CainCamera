@@ -38,4 +38,6 @@
     <string name="video_edit_effect_category_filter">滤镜特效</string>
     <string name="video_edit_effect_category_time">时间特效</string>
 
+    <!-- 合并提示 -->
+    <string name="combine_video_message">正在合并视频...</string>
 </resources>

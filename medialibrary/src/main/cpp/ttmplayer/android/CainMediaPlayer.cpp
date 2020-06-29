@@ -62,7 +62,6 @@ void CainMediaPlayer::disconnect() {
         delete mListener;
         mListener = nullptr;
     }
-
 }
 
 status_t CainMediaPlayer::setDataSource(const char *url, int64_t offset, const char *headers) {
